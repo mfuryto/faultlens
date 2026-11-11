@@ -13,10 +13,11 @@ HOST_SCOPE = ("Kernel counters may describe the host rather than container resou
 def percentage(key: str, used: int, total: int, source: str, limitations=()) -> Observation:
     if total <= 0 or not 0 <= used <= total:
         raise ValueError("Inconsistent capacity")
-    value = round(100 * used / total, 2)
-    state = "critical" if value >= 95 else "warning" if value >= 90 else "normal"
+    measured = 100 * used / total
+    value = round(measured, 2)
+    state = "critical" if measured >= 95 else "warning" if measured >= 90 else "normal"
     return Observation(key, value, "percent", source, state,
-                       explanation="Capacity usage only; this does not establish a failure or cause.",
+                       explanation="Capacity usage only; state uses the unrounded ratio before display rounding. This does not establish a failure or cause.",
                        limitations=limitations, thresholds={"warning": 90, "critical": 95})
 
 
@@ -94,10 +95,18 @@ def status(sources=None, runner=None, sample_seconds=0.1, sleep=time.sleep) -> l
         total, free = data.f_blocks * data.f_frsize, data.f_bfree * data.f_frsize
         if not 0 <= data.f_bavail <= data.f_bfree <= data.f_blocks or data.f_frsize <= 0:
             raise ValueError("Invalid filesystem capacity")
-        return [Observation("filesystem.root.total", total, "bytes", "statvfs(/)"),
+        used = total - free
+        available = data.f_bavail * data.f_frsize
+        observations = [Observation("filesystem.root.total", total, "bytes", "statvfs(/)"),
                 Observation("filesystem.root.available", data.f_bavail * data.f_frsize, "bytes", "statvfs(/)"),
                 percentage("filesystem.root.used", total - free, total, "statvfs(/)",
-                           ("Root filesystem only; reserved blocks affect unprivileged availability. Not a filesystem integrity check.",))]
+                           ("Root filesystem only; percentage of total capacity, including reserved space. Not a filesystem integrity check.",))]
+        if used + available > 0:
+            observations.append(percentage("filesystem.root.user_used", used, used + available, "statvfs(/)",
+                                           ("Excludes reserved free blocks from usable capacity; df rounds its display up to whole percent.",)))
+        else:
+            observations.append(unavailable("filesystem.root.user_used", "statvfs(/)", "No user-accessible capacity denominator."))
+        return observations
     _attempt(items, "filesystem.root.used", "statvfs(/)", collect_disk)
     _attempt(items, "storage.io_counters", "/proc/diskstats",
              lambda: Observation("storage.io_counters", parsers.disk_io(sources.read("/proc/diskstats")),

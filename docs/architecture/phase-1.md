@@ -55,7 +55,10 @@ boundary rather than extending read-only command arguments.
   counters can reflect the host rather than cgroup limits; phase 1 is not a
   container-capacity monitor. Event correlation must account for clock changes.
 - `statvfs(/)` covers only the root filesystem. Reserved blocks reduce ordinary
-  users' available space. Capacity is not filesystem integrity or disk health.
+  users' available space. `filesystem.root.used` remains the allocated percentage
+  of total capacity; `filesystem.root.user_used` uses allocated plus user-available
+  space as its denominator, matching df's reserved-block semantics before df's
+  whole-percent ceiling. Capacity is not filesystem integrity or disk health.
 - `/proc/diskstats` sectors are converted using 512-byte accounting units. Device
   and partition counters overlap; do not sum them or infer rates from one sample.
 - `/proc/net/dev` reports cumulative counters in the current network namespace.
@@ -72,7 +75,8 @@ boundary rather than extending read-only command arguments.
   Sampling intervals, retention, disk budgets, journal configuration precedence,
   pstore usability and historical security coverage remain phase 2 verification work.
 
-Memory and root capacity observations use warning >=90% and critical >=95%, disclosed
+Memory and root capacity observations use warning >=90% and critical >=95% before
+display rounding, disclosed
 in JSON. These are initial generic thresholds, not workload-specific incident rules.
 Other raw measurements have no invented warning thresholds. `normal` means the stated
 observation was read and has no configured warning; it does not certify host health.
@@ -123,3 +127,5 @@ before claiming production support or confirming the resource targets there.
 - [journalctl boot listing](https://www.freedesktop.org/software/systemd/man/latest/journalctl.html)
 - [systemctl state and exit behavior](https://www.freedesktop.org/software/systemd/man/latest/systemctl.html)
 - [Python subprocess](https://docs.python.org/3/library/subprocess.html)
+
+Optional reference-tool validation is documented in [measurement validation](../validation.md).

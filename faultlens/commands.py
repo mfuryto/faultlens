@@ -11,6 +11,8 @@ import time
 
 
 class Command(Enum):
+    REFERENCE_MEMORY = "reference_memory"
+    REFERENCE_FILESYSTEM = "reference_filesystem"
     SYSTEM_STATE = "system_state"
     JOURNAL_BOOTS = "journal_boots"
     JOURNAL_SERVICE = "journal_service"
@@ -18,12 +20,14 @@ class Command(Enum):
 
 
 CATALOG = {
+    Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
+    Command.REFERENCE_FILESYSTEM: ("df", ("--block-size=1", "--output=size,used,avail,pcent", "/")),
     Command.SYSTEM_STATE: ("systemctl", ("is-system-running", "--no-pager")),
-    Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet")),
+    Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet", "--no-legend")),
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
     Command.ATOP_SERVICE: ("systemctl", ("is-active", "atop.service", "--no-pager")),
 }
-TOOLS = ("systemctl", "journalctl", "ip", "ss", "nstat", "nft", "atop", "sar", "sosreport")
+TOOLS = ("free", "df", "systemctl", "journalctl", "ip", "ss", "nstat", "nft", "atop", "sar", "sosreport")
 DIRECTORIES = ("/usr/bin", "/usr/sbin", "/bin", "/sbin")
 ENVIRONMENT = {"PATH": "/usr/bin:/usr/sbin:/bin:/sbin", "LANG": "C", "LC_ALL": "C",
                "SYSTEMD_PAGER": "", "PAGER": "", "SYSTEMD_COLORS": "0"}
