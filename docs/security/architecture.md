@@ -39,7 +39,7 @@ must work without the proposed prompt_toolkit TUI dependency.
 | Evidence export leaks secrets or topology | Local-only storage, 0700/0600, restrictive umask, atomic exclusive creation, reject symlinks and path traversal, redaction preview, explicit export destination and retention | Permissions, symlink races, traversal, redaction and retention tests |
 | Resource exhaustion worsens an incident | Bounded command duration/output, cancellation, sampling budgets, no default packet capture or background polling | Measured CPU/RAM/I/O budgets and timeout tests on small VPS systems |
 | Incorrect attribution or missing history misleads operators | Preserve source/time/boot context; separate observed events and hypotheses; expose confidence, thresholds, gaps and clock uncertainty | Deterministic rule tests and ambiguous/missing-history cases |
-| Dependencies or CI introduce supply-chain compromise | Minimal dependencies, verified source and license review, future hash-locked installs; pinned actions, read-only token, no application secrets or artifact uploads | Baseline checks, dependency review, owner review |
+| Dependencies or CI introduce supply-chain compromise | Minimal dependencies, verified source and license review, future hash-locked installs; pinned actions, read-only baseline token, job-scoped CodeQL findings upload, no application secrets or diagnostic artifact uploads | Baseline checks, dependency review, owner review |
 
 ## Evidence semantics and limitations
 

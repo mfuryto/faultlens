@@ -48,6 +48,23 @@ class SecurityPolicyTests(unittest.TestCase):
         self.reject(lambda w: w['jobs']['baseline']['steps'][1].update(run='echo ${{ github.event.pull_request.title }}'))
         self.reject(lambda w: w['jobs']['baseline']['steps'].append({'run': 'curl https://example.test'}))
 
+    def test_codeql_is_pinned_and_cannot_write_repository_content(self):
+        workflow = json.loads((ROOT / '.github/workflows/codeql.yml').read_text())
+        self.assertEqual([], policy.codeql_errors(json.dumps(workflow).encode()))
+        mutations = [
+            lambda w: w.update(permissions={'contents': 'write'}),
+            lambda w: w['jobs']['analyze']['permissions'].update({'contents': 'write'}),
+            lambda w: w['jobs']['analyze']['steps'][1].update(uses='github/codeql-action/init@v4'),
+            lambda w: w['jobs']['analyze']['steps'][0]['with'].update({'persist-credentials': True}),
+            lambda w: w['on'].update({'pull_request_target': {}}),
+            lambda w: w['jobs']['analyze'].update(env={'TOKEN': '${{ secrets.TOKEN }}'}),
+        ]
+        for index, mutation in enumerate(mutations):
+            candidate = copy.deepcopy(workflow)
+            mutation(candidate)
+            with self.subTest(mutation=index):
+                self.assertTrue(policy.codeql_errors(json.dumps(candidate).encode()))
+
     def test_yaml_and_duplicate_keys_fail_closed(self):
         self.assertTrue(policy.workflow_errors(b'on: [pull_request_target]'))
         self.assertTrue(policy.workflow_errors(b'{"on": {}, "on": {}}'))
