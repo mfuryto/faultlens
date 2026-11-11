@@ -247,7 +247,14 @@ def main() -> int:
         print(f'Security scan could not complete ({type(exc).__name__}).', file=sys.stderr)
         return 1
     for error in errors:
-        print(error, file=sys.stderr)
+        # Never propagate file names, object metadata or scanner-derived text to CI.
+        # These may themselves contain sensitive material. Log fixed categories only.
+        if 'possible credential material' in error:
+            print('Security policy: possible credential material in tracked content or a Git object.',
+                  file=sys.stderr)
+        else:
+            print('Repository policy violation; inspect tracked files and workflow configuration locally.',
+                  file=sys.stderr)
     if errors:
         print(f'Security baseline failed: {len(errors)} finding(s).', file=sys.stderr)
         return 1
