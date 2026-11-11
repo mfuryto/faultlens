@@ -2,14 +2,16 @@
 
 Verified administrative configuration on 2026-11-11. Recheck live GitHub settings
 before relying on this snapshot. The owner authorized public visibility after the
-content and history audit; no release, license selection, or PR merge was authorized.
+content and history audit. The owner subsequently authorized the agent to merge
+once security checks pass. No release or license selection was authorized.
 
 ## Enabled controls
 
 - Public pre-release repository; only `main` and `staging` branches.
-- Main requires an up-to-date PR, one approval, code-owner review when CODEOWNERS
-  applies, dismissal of stale approvals, resolved conversations, linear history,
-  and GitHub Actions checks `baseline` and `analyze`. Administrators are subject
+- Main requires an up-to-date PR, resolved conversations, linear history,
+  GitHub Actions checks `baseline` and `analyze`, and the CodeQL findings check
+  `CodeQL`. Independent and code-owner approvals are not required for this solo
+  project. The agent may merge when authorized and all checks pass. Administrators are subject
   to protection. Force pushes and deletion are blocked.
 - Staging permits direct development pushes, requires linear history, and blocks
   force pushes and deletion, including for administrators. This supports a two-branch
@@ -40,18 +42,20 @@ Gitleaks v8.30.1 was obtained from the official release and its archive SHA-256 
 checked against the published release checksum. Local `gitleaks git --log-opts=--all`
 and `gitleaks dir` scans with redacted output found no leaks. This is evidence from
 selected detectors, not proof that no sensitive information could ever exist.
-The dependency-free policy checks and all eleven tests passed. Check live PR statuses
+The dependency-free policy checks and all eleven tests passed. A CodeQL finding
+about sensitive logging was addressed by logging fixed categories only, never
+scanner-derived text or paths. Check live PR statuses
 for the final GitHub-hosted baseline and CodeQL results; local checks do not substitute
 for CodeQL execution.
 
 ## Remaining gates
 
-- The hardening PR remains unmerged. Main still has its original README until the
-  owner arranges review and merges; SECURITY, CODEOWNERS, Dependabot configuration,
-  and scheduled workflows take effect on the default branch only after that merge.
-- There is only one administrator/collaborator. The PR author cannot approve their
-  own PR. Add a trusted reviewer with suitable access and update CODEOWNERS before
-  relying on independent code-owner review; do not bypass protection to self-approve.
+- The hardening PR can merge only after all required checks pass. SECURITY,
+  CODEOWNERS, Dependabot configuration and scheduled workflows become active on
+  the default branch after merge. Check the live PR for merge state.
+- There is only one administrator/collaborator. The owner accepted a solo-maintainer
+  policy without independent review. CODEOWNERS documents ownership but does not
+  impose an approval requirement. Independent review remains a useful future option.
 - No license is granted, and no diagnostic application or runtime security controls
   exist yet. Public visibility is not a supported application release.
 - The runner image, installed Python, and CodeQL tool bundle are CI supply-chain

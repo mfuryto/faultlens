@@ -8,10 +8,11 @@ commits, branches, workflows, and pull requests. No license is granted yet.
 Use only `staging` and `main`. Develop on `staging` and open a pull request to `main`.
 Dependabot version PRs are paused to avoid creating extra branches; review alerts
 and apply dependency updates manually on staging. Main requires a pull request and
-owner review, passing security checks, and resolved conversations. Staging accepts
+passing baseline, analysis and CodeQL findings checks, and resolved conversations. Staging accepts
 direct development pushes; force pushes and branch deletion are blocked on both
-branches. A sole author cannot provide independent review of their own change.
-Do not bypass main's review requirements to merge your own PR.
+branches. This is a solo-maintainer project: independent approval and code-owner approval
+are not required. The maintainer or an explicitly authorized agent may merge a PR
+only after all required checks pass. Do not bypass required checks.
 
 Run the README checks before pushing. Review the entire diff and new dependency
 or workflow provenance. Never commit real diagnostic data, secrets, local settings,

@@ -112,11 +112,11 @@ class SecurityPolicyTests(unittest.TestCase):
             git('init', '-q')
             git('config', 'user.name', 'Synthetic Test')
             git('config', 'user.email', 'test@example.test')
-            secret = repo / 'removed.txt'
+            secret = repo / ('gh' + 'p_' + 'B' * 36 + '.txt')
             secret.write_text('gh' + 'p_' + 'A' * 36)
             git('add', '.')
             git('commit', '-qm', 'Add synthetic token for rejection test')
-            git('rm', '-q', 'removed.txt')
+            git('rm', '-q', secret.name)
             git('commit', '-qm', 'Remove synthetic token')
             result = subprocess.run(['python3', str(ROOT / 'scripts/security_check.py')],
                                     cwd=repo, capture_output=True, text=True)
@@ -124,6 +124,7 @@ class SecurityPolicyTests(unittest.TestCase):
             self.assertIn('Git object', result.stderr)
             self.assertIn('possible credential material', result.stderr)
             self.assertNotIn('A' * 36, result.stderr)
+            self.assertNotIn('B' * 36, result.stderr)
 
 
 if __name__ == '__main__':
