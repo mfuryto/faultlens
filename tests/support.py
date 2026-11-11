@@ -50,3 +50,16 @@ class SyntheticRunner:
     def run(self, command):
         self.calls.append(command)
         return self.results[command]
+
+
+class SyntheticHistoricalRunner(SyntheticRunner):
+    """Worst-case bounded tail, generated from invented events only."""
+    def read_boot(self, boot_id):
+        import json
+        if boot_id != 'a' * 32:
+            return Result('unavailable')
+        return Result('completed', '\n'.join(json.dumps({
+            '_BOOT_ID': boot_id, '__REALTIME_TIMESTAMP': str(1767225600000000 + index),
+            '__MONOTONIC_TIMESTAMP': str(index), '__CURSOR': 'i=' + str(index),
+            '_TRANSPORT': 'kernel', 'MESSAGE': 'Out of memory: Killed process 42 (synthetic)'
+        }) for index in range(501)), 0)

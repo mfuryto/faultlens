@@ -16,11 +16,12 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticRunner, SyntheticSources
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources
     output = io.StringIO()
     started = time.monotonic()
-    code = main([command, '--json'], sources=SyntheticSources(), runner=SyntheticRunner(), stdout=output)
-    if code != 0 or not json.loads(output.getvalue())['observations']:
+    code = main([command, '--json'], sources=SyntheticSources(), runner=SyntheticHistoricalRunner(), stdout=output)
+    payload = json.loads(output.getvalue())
+    if code != 0 or payload.get('state') == 'unavailable' or not (payload.get('observations') or payload.get('boots')):
         raise RuntimeError('Synthetic collection failed')
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return {'collection_wall_seconds': time.monotonic() - started,
@@ -38,7 +39,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -47,7 +48,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check'):
+    for command in ('status', 'check', 'history', 'diagnose'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

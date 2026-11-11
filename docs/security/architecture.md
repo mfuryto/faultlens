@@ -1,9 +1,11 @@
 # Security architecture and threat model
 
 Status: threat model for the planned full local Linux application. Phase 1 implements
-bounded read-only collectors, a fixed command catalog and a CLI. See
+bounded read-only collectors, a fixed command catalog and a CLI. The first Phase 2
+milestone adds bounded journal normalization and provenance-checked event rules; see
+[journal analysis](../architecture/phase-2-journal.md). See
 [Phase 1 decisions](../architecture/phase-1.md) for implemented boundaries and tests.
-Private evidence storage, diagnostic rules, TUI and mutation boundaries remain design
+Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 
 ## Scope, assets, and trust boundaries

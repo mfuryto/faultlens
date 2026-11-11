@@ -1,8 +1,8 @@
 # Faultlens
 
-**Pre-release — Phase 1 CLI foundation.** Faultlens provides local, read-only Linux
-system observations and dependency/logging checks. It is not yet an incident analyzer,
-a TUI, a packaged distribution, or a supported production release.
+**Pre-release — CLI foundation and initial journal analysis.** Faultlens provides local, read-only Linux
+system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
+There is no TUI, packaged distribution, or supported production release.
 
 The initial target is Debian/Ubuntu Server with Python 3.11+. No external Python
 packages, telemetry, network service, database or daemon are required. `prompt_toolkit`
@@ -19,6 +19,9 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens status --sample-seconds 0.2
 ./bin/faultlens check
 ./bin/faultlens check --json
+./bin/faultlens history
+./bin/faultlens diagnose --previous-boot
+./bin/faultlens diagnose --boot -2 --json
 ```
 
 `python3 -m faultlens` is an equivalent entry point from the repository root. The
@@ -31,6 +34,13 @@ cumulative per-device I/O and interface counters, visible process count, kernel/
 information and the systemd manager state where available. `check` inspects optional
 utilities, journal directory presence, visible prior boots, and journald/atop service
 state. It never reads out raw log entries or claims that a directory proves recording.
+
+History lists accessible boot IDs. Diagnose resolves a selected boot to an immutable
+ID and analyzes at most 500 accessible tail records for specific kernel OOM, panic,
+I/O/ext4 error and structured systemd event signatures. Findings retain references,
+reasoning, confidence and limitations. Raw journal messages are processed in bounded
+memory only; they are never displayed or saved. Missing evidence and root causes
+remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md).
 
 Evidence can be sensitive even in summary form. Output stays on your terminal/stdout;
 review it before manually redirecting or sharing it. No automatic exports or uploads
@@ -57,7 +67,7 @@ Exit codes: 0 means a report was rendered (including partial/unavailable observa
 1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
 and 130 means interrupted collection. Inspect observation states for warnings or gaps;
 exit 0 does not assert that the system is healthy. `health`, `network`, `security`,
-`incidents`, `diagnose`, `history`, configuration changes and the TUI are not implemented.
+`incidents`, calendar history filters, configuration changes and the TUI are not implemented.
 
 ## Develop and verify
 
