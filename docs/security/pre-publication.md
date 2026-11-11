@@ -1,7 +1,10 @@
 # Pre-publication security checklist
 
-Publication is a separate, explicit owner decision. Keep this repository private.
-No license is selected by this baseline. Do not merge or publish automatically.
+The owner explicitly authorized public visibility after a clean-content audit on
+2026-11-11. The repository is now public for pre-release review; no application
+release is published. No license is selected. Do not merge or release automatically.
+The historical private-plan limitations below describe the initial audit, not the
+current configuration. See [hardening status](hardening-status.md) for current settings.
 
 ## Repository and history
 
@@ -19,13 +22,14 @@ No license is selected by this baseline. Do not merge or publish automatically.
 
 Paths refer to repository Settings. Availability depends on the private-repository plan.
 
-- [ ] General / Danger Zone: preserve **Private** visibility. Consider disabling
-  private-repository forking where the account/plan permits it.
+- [ ] General / Danger Zone: verify visibility matches the owner's explicit decision.
+  Public visibility permits copying and forking; later visibility changes cannot recall copies.
 - [ ] General: add a truthful pre-release description; keep website empty until an
   approved destination exists. Keep unused Pages, wiki and discussions disabled.
 - [ ] Actions / General / Actions permissions: select **Allow select actions and
   reusable workflows**; allow GitHub-owned actions only for this baseline. If a
-  specific allowlist is supported, restrict it to `actions/checkout`.
+  specific allowlist is supported, restrict it to `actions/checkout@*` and
+  `github/codeql-action/init@*` / `github/codeql-action/analyze@*`, with SHA pinning required.
 - [ ] Actions / General: enable **Require actions to be pinned to a full-length
   commit SHA** if offered. The local policy remains necessary if unavailable.
 - [ ] Actions / General / Workflow permissions: retain **Read repository contents
@@ -46,7 +50,7 @@ Paths refer to repository Settings. Availability depends on the private-reposito
 - [ ] Rules / Rulesets or Branches: current plan returns an upgrade requirement for
   private repositories. Do not make the repository public to unlock this. If the owner
   chooses an eligible plan, protect **main and staging**, require PRs and owner review,
-  dismiss stale approvals, require `Security baseline / baseline`, block force pushes
+  dismiss stale approvals, require `baseline` and `analyze`, block force pushes
   and deletions, and restrict bypasses. Verify the exact check name after a CI run.
 - [ ] Collaborators: audit least privilege, owner 2FA/passkeys and recovery access.
   Only one administrator currently exists; independent review and recovery remain gaps.
@@ -74,6 +78,9 @@ suspicious file paths, binary/oversized tracked content, and unsafe synthetic fi
 patterns. It is not a comprehensive secret scanner or sanitization proof. Workflow
 files intentionally use a constrained JSON subset of YAML; non-JSON workflows fail
 closed. The runner image and system Python are GitHub-maintained mutable dependencies.
-No dependency installs, caches, report uploads, or privileged checks are required.
+The baseline requires no dependency installs, caches, or diagnostic report uploads.
+The separate CodeQL job downloads its analysis tools and uploads code-scanning findings
+using only job-scoped security-events write permission.
 A malicious contributor able to modify the checks or bypass CI can defeat them.
-CODEOWNERS and passing CI do not enforce review without GitHub branch protection.
+CODEOWNERS and passing CI require administrative protection to enforce review;
+verify live branch protection rather than relying on this historical checklist.

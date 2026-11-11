@@ -1,16 +1,17 @@
 # Contributing
 
-This private, pre-release repository uses English for code, documentation, comments,
+This public, pre-release repository uses English for code, documentation, comments,
 commits, branches, workflows, and pull requests. No license is granted yet.
 
 ## Branch and review policy
 
 Use only `staging` and `main`. Develop on `staging` and open a pull request to `main`.
 Dependabot version PRs are paused to avoid creating extra branches; review alerts
-and apply dependency updates manually on staging. Do not merge without owner review. CODEOWNERS identifies the maintainer but does not
-itself enforce reviews. The current private-repository plan does not provide branch
-protection or rulesets. Until that changes, PR discipline is a manual control;
-a sole author cannot provide independent review of their own change.
+and apply dependency updates manually on staging. Main requires a pull request and
+owner review, passing security checks, and resolved conversations. Staging accepts
+direct development pushes; force pushes and branch deletion are blocked on both
+branches. A sole author cannot provide independent review of their own change.
+Do not bypass main's review requirements to merge your own PR.
 
 Run the README checks before pushing. Review the entire diff and new dependency
 or workflow provenance. Never commit real diagnostic data, secrets, local settings,
@@ -48,8 +49,10 @@ narrow policy. Keep actions pinned to full verified commit SHAs. Only standard G
 hosted runners and explicit read-only tokens are allowed. Never use privileged PR
 triggers, self-hosted runners, secrets, dynamic shell expressions, cache restoration,
 artifact uploads, dependency installation, or deployment in the baseline workflow.
+The separate pinned CodeQL workflow has only job-scoped `security-events: write`
+to upload source-code analysis findings to GitHub; it does not collect diagnostic
+reports. CodeQL tooling is a justified CI-only dependency, never a runtime dependency.
 A broader workflow requires a reviewed policy change and negative tests.
 
 The baseline scanner is heuristic, not a complete secret detector or malware audit.
-Review scanner changes carefully: code in a PR can weaken its own checks, especially
-without protected branches. See the security checklist for administrative controls.
+Review scanner changes carefully: code in a PR can weaken its own checks, if administrative protections are bypassed. See the security checklist for administrative controls.

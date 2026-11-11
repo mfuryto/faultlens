@@ -142,10 +142,53 @@ def workflow_errors(data: bytes) -> list[str]:
     return []
 
 
+
+def codeql_errors(data: bytes) -> list[str]:
+    """Code scanning may write findings only, never repository content."""
+    try:
+        def unique_object(pairs):
+            obj = {}
+            for key, value in pairs:
+                if key in obj:
+                    raise ValueError('duplicate key')
+                obj[key] = value
+            return obj
+        workflow = json.loads(data, object_pairs_hook=unique_object)
+        assert set(workflow) == {'name', 'on', 'permissions', 'jobs'}
+        assert workflow['name'] == 'CodeQL'
+        assert workflow['on'] == {
+            'push': {'branches': ['main', 'staging']},
+            'pull_request': {'branches': ['main']},
+            'schedule': [{'cron': '23 6 * * 1'}]}
+        assert workflow['permissions'] == {'contents': 'read'}
+        assert set(workflow['jobs']) == {'analyze'}
+        job = workflow['jobs']['analyze']
+        assert set(job) == {'runs-on', 'timeout-minutes', 'permissions', 'steps'}
+        assert job['runs-on'] == 'ubuntu-24.04'
+        assert type(job['timeout-minutes']) is int and 1 <= job['timeout-minutes'] <= 20
+        assert job['permissions'] == {'contents': 'read', 'security-events': 'write'}
+        steps = job['steps']
+        assert len(steps) == 3
+        expected = [
+            ('actions/checkout', {'persist-credentials': False}),
+            ('github/codeql-action/init', {'languages': 'python', 'build-mode': 'none',
+                                          'queries': 'security-extended'}),
+            ('github/codeql-action/analyze', {'category': '/language:python'})]
+        for step, (action, options) in zip(steps, expected):
+            assert set(step) == {'name', 'uses', 'with'}
+            assert isinstance(step['name'], str)
+            assert SHA_ACTION.fullmatch(step['uses'])
+            assert step['uses'].split('@')[0] == action
+            assert step['with'] == options
+    except (ValueError, TypeError, KeyError, AssertionError, AttributeError, RecursionError):
+        return ['CodeQL workflow violates the constrained JSON security profile']
+    return []
+
+
 def check_repository() -> list[str]:
     errors = []
     tracked = git('ls-files', '--stage', '-z').split(b'\0')
-    workflows = 0
+    workflows = set()
     for record in filter(None, tracked):
         metadata, raw_path = record.split(b'\t', 1)
         mode, _, stage = metadata.decode().split()
@@ -164,14 +207,17 @@ def check_repository() -> list[str]:
         data = file.read_bytes()
         errors.extend(f'{path}: {e}' for e in content_errors(path, data, mode))
         if path.startswith('.github/workflows/'):
-            workflows += 1
-            if path != '.github/workflows/security-baseline.yml':
+            workflows.add(path)
+            checks = {'.github/workflows/security-baseline.yml': workflow_errors,
+                      '.github/workflows/codeql.yml': codeql_errors}
+            if path not in checks:
                 errors.append(f'{path}: additional workflows require a policy review')
-            errors.extend(f'{path}: {e}' for e in workflow_errors(data))
+            else:
+                errors.extend(f'{path}: {e}' for e in checks[path](data))
         if path.endswith(('/action.yml', '/action.yaml')) or path in {'action.yml', 'action.yaml'}:
             errors.append(f'{path}: local actions require a policy review')
-    if workflows != 1:
-        errors.append('exactly one baseline workflow is required')
+    if workflows != {'.github/workflows/security-baseline.yml', '.github/workflows/codeql.yml'}:
+        errors.append('exactly the baseline and CodeQL workflows are required')
 
     # Scan every reachable blob, not just the working tree or latest commit. Do not
     # print matched content: the check must not copy suspected secrets to CI logs.

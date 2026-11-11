@@ -1,7 +1,7 @@
 # Faultlens
 
 **Pre-release — planning and security foundation only.** No diagnostic application,
-installable package, or supported release exists yet. This repository remains private.
+installable package, or supported release exists yet. The repository is public for pre-release review.
 
 Faultlens is a planned lightweight Linux CLI/TUI for local system monitoring,
 incident reconstruction, and explainable security diagnostics, initially targeting
@@ -35,7 +35,8 @@ Do not run proposed diagnostic commands as root to test this foundation.
 Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the
 [product specification](docs/product-specification.md),
 [security architecture](docs/security/architecture.md), and
-[publication checklist](docs/security/pre-publication.md).
+[publication checklist](docs/security/pre-publication.md), and
+[current repository controls](docs/security/hardening-status.md).
 
 ## Licensing
 

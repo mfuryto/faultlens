@@ -11,15 +11,14 @@ completed or audited implementation.
 Do not disclose vulnerabilities, credentials, host identifiers, or diagnostic evidence
 in public issues, pull requests, CI logs, or discussions.
 
-If GitHub private vulnerability reporting is enabled, use the repository Security
+Use the repository Security
 page's **Report a vulnerability** entry:
 https://github.com/mfuryto/faultlens/security/advisories/new
 
-This facility is not currently verified as available for this private repository.
-If unavailable, contact maintainer `@mfuryto` through an existing private channel
-and request a secure reporting channel before sending details. Do not open a public
-issue to establish contact. There is currently no published security email address
-or guaranteed response time; establishing a verified private contact is a release blocker.
+GitHub private vulnerability reporting is enabled. This is the established private
+reporting route; no separate security email address or guaranteed response time is
+published. If GitHub reporting is unavailable, use an existing private maintainer
+channel to arrange secure contact. Do not post vulnerability details in public issues.
 
 Include affected revision, minimal synthetic reproduction, impact, and remediation
 ideas. Share only sanitized evidence; arrange encrypted transfer separately if raw
