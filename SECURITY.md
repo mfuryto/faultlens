@@ -2,9 +2,10 @@
 
 ## Status and scope
 
-Faultlens is pre-release and has no supported application versions. Security
-requirements in this repository describe intended behavior, not a claim of a
-completed or audited implementation.
+Faultlens is pre-release and has no supported production versions. Phase 1 implements
+a read-only CLI foundation. Security requirements cover both implemented boundaries
+and planned functionality; see the architecture documents for the distinction.
+No independent security audit or complete implementation is claimed.
 
 ## Report privately
 

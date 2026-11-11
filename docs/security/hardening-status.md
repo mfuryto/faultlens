@@ -13,7 +13,7 @@ once security checks pass. No release or license selection was authorized.
   `CodeQL`. Independent and code-owner approvals are not required for this solo
   project. The agent may merge when authorized and all checks pass. Administrators are subject
   to protection. Force pushes and deletion are blocked.
-- Staging permits direct development pushes, requires linear history, and blocks
+- Staging permits direct development pushes and main synchronization merges, and blocks
   force pushes and deletion, including for administrators. This supports a two-branch
   development model without creating disposable feature branches.
 - Actions allow only `actions/checkout@*`, `github/codeql-action/init@*`, and
@@ -56,8 +56,9 @@ for CodeQL execution.
 - There is only one administrator/collaborator. The owner accepted a solo-maintainer
   policy without independent review. CODEOWNERS documents ownership but does not
   impose an approval requirement. Independent review remains a useful future option.
-- No license is granted, and no diagnostic application or runtime security controls
-  exist yet. Public visibility is not a supported application release.
+- No license is granted. Phase 1 provides a read-only CLI with bounded source and
+  command handling; the full diagnostic application and other planned controls are
+  not complete. Public visibility is not a supported production release.
 - The runner image, installed Python, and CodeQL tool bundle are CI supply-chain
   dependencies. Action commit SHAs are pinned; the downloaded tool bundle and runner
   image are not a fully reproducible toolchain. No such tooling is a runtime dependency.
