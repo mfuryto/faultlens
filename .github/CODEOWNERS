@@ -1,0 +1,5 @@
+# Ownership is advisory until GitHub can enforce required reviews.
+* @mfuryto
+/.github/ @mfuryto
+/scripts/ @mfuryto
+/docs/security/ @mfuryto

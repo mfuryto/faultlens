@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "description": "Invented boot event without collected host data.",
+  "events": [
+    {
+      "timestamp": "2026-01-01T00:00:00Z",
+      "message": "Documentation host 192.0.2.10 recorded a synthetic boot."
+    }
+  ]
+}

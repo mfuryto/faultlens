@@ -1,0 +1,16 @@
+# Automatic version PRs are paused to preserve the main/staging-only policy.
+# Review dependency updates manually on staging until bot branches are approved.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
