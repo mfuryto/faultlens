@@ -19,8 +19,10 @@ once security checks pass. No release or license selection was authorized.
 - Actions allow only `actions/checkout@*`, `github/codeql-action/init@*`, and
   `github/codeql-action/analyze@*`; full commit SHA pinning is required administratively.
 - Default workflow token is read-only and cannot approve pull requests.
-- Logs and artifacts expire after seven days. Auto-merge and automatic deletion of
-  merged branches are disabled, preserving staging.
+- Logs and artifacts expire after seven days. Auto-merge is available for individually
+  authorized PRs and still requires every protected-branch check. It is not enabled
+  automatically on other PRs. Automatic deletion of merged branches is disabled,
+  preserving staging.
 - Dependency graph and Dependabot vulnerability alerts are enabled. Automated
   security-update PRs were already disabled and were not changed. Version PRs are
   paused in the proposed Dependabot configuration to preserve the two-branch model.
