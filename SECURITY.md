@@ -3,7 +3,7 @@
 ## Status and scope
 
 Faultlens is pre-release and has no supported production versions. Phase 1 implements
-a read-only CLI foundation. Security requirements cover both implemented boundaries
+a read-only CLI foundation, extended with bounded journal event analysis. Security requirements cover both implemented boundaries
 and planned functionality; see the architecture documents for the distinction.
 No independent security audit or complete implementation is claimed.
 

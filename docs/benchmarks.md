@@ -31,3 +31,23 @@ regression budgets: <50 MiB peak RSS, <1 s CPU and <2 s total wall per invocatio
 The benchmark exits nonzero on a budget violation. Repeat on the target VPS and
 record distribution, Python version, collection size and resource consumption before
 claiming operational performance. Do not commit diagnostic data from those tests.
+
+## Journal milestone measurements
+
+The benchmark now includes history and diagnose. Diagnose processes a worst-case
+invented 501-record journal response with 500 recognized events after applying the
+cap, formats the full JSON report in memory, and retains the same <50 MiB / <1 s CPU
+/ <2 s wall regression budgets. No live journal is collected. The resource regression
+test runs two fresh children for each of the four commands.
+
+Local measurements on 2026-11-11, Linux/Python 3.14.4, ten children per command:
+
+| Command | Median startup + collection wall | Max wall | Median CPU | Max peak RSS |
+| --- | ---: | ---: | ---: | ---: |
+| status | 0.1453 s | 0.1479 s | 0.0343 s | 18.40 MiB |
+| check | 0.0391 s | 0.0395 s | 0.0334 s | 18.31 MiB |
+| history | 0.0416 s | 0.0433 s | 0.0354 s | 22.82 MiB |
+| diagnose | 0.0534 s | 0.0545 s | 0.0468 s | 25.52 MiB |
+
+These figures exclude real journalctl startup, access restrictions and real journal
+I/O. The subprocess deadlines and byte cap remain independent runtime controls.

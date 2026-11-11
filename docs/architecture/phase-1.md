@@ -129,3 +129,5 @@ before claiming production support or confirming the resource targets there.
 - [Python subprocess](https://docs.python.org/3/library/subprocess.html)
 
 Optional reference-tool validation is documented in [measurement validation](../validation.md).
+
+The first journal-only historical milestone is now documented in [Phase 2](phase-2-journal.md); remaining historical scope is listed there.

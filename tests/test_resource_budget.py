@@ -13,7 +13,7 @@ class ResourceBudgetTests(unittest.TestCase):
                                 capture_output=True, text=True, check=True, timeout=15)
         report = json.loads(result.stdout)
         self.assertTrue(report['synthetic'])
-        self.assertEqual({'status', 'check'}, set(report['commands']))
+        self.assertEqual({'status', 'check', 'history', 'diagnose'}, set(report['commands']))
         for command, measurements in report['commands'].items():
             with self.subTest(command=command):
                 self.assertTrue(measurements['within_regression_budget'])

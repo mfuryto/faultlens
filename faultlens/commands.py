@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import os
+import re
 from pathlib import Path
 import selectors
 import signal
@@ -98,6 +99,19 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144) -> Resu
 
 
 class CommandRunner:
+    def read_boot(self, boot_id: str) -> Result:
+        if not isinstance(boot_id, str) or not re.fullmatch(r"[0-9a-f]{32}", boot_id):
+            raise ValueError("Invalid boot identity")
+        executable = trusted_tool("journalctl")
+        if executable is None:
+            return Result("missing")
+        arguments = ["--boot=" + boot_id, "--lines=501", "--output=json", "--no-pager", "--quiet",
+                     "--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM"]
+        try:
+            return _capture([executable, *arguments])
+        except (OSError, ValueError, UnicodeError, subprocess.SubprocessError):
+            return Result("unavailable")
+
     def available(self, name: str) -> bool:
         return trusted_tool(name) is not None
 
