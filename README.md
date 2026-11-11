@@ -38,6 +38,21 @@ exist. Missing/denied/malformed sources are explicitly unavailable, not healthy 
 JSON includes units, source, confidence, explanations, thresholds and limitations.
 CPU/network counters may reflect a host or namespace rather than cgroup limits.
 
+For an optional local consistency check against trusted `free`, `df`, `uname`'s
+kernel interface and the Linux boot clock:
+
+```sh
+python3 scripts/validate_local.py
+python3 scripts/validate_local.py --json
+```
+
+The comparison prints only PASS/MISMATCH/UNAVAILABLE and fixed explanations, never
+raw machine values. It saves nothing and does not run automatically in CI. Validation
+exit codes are separate: 0 means all eight comparisons matched within documented
+tolerances, 1 means a mismatch, 2 means incomplete/unsupported validation, and 130
+means interrupted. A mismatch can reflect collection-time differences; a pass is
+not proof of host health. See [measurement validation](docs/validation.md).
+
 Exit codes: 0 means a report was rendered (including partial/unavailable observations),
 1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
 and 130 means interrupted collection. Inspect observation states for warnings or gaps;

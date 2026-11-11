@@ -20,8 +20,9 @@ def counters(parts: list[str]) -> list[int]:
 
 
 def cpu(text: str) -> tuple[int, ...]:
-    fields = text.splitlines()[0].split()
-    if fields[0] != "cpu" or len(fields) < 9:
+    lines = text.splitlines()
+    fields = lines[0].split() if lines else []
+    if len(fields) < 9 or fields[0] != "cpu":
         raise ValueError("Incomplete aggregate CPU counters")
     # guest and guest_nice are already included in user and nice.
     return tuple(counters(fields[1:9]))
