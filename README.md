@@ -1,44 +1,72 @@
 # Faultlens
 
-**Pre-release — planning and security foundation only.** No diagnostic application,
-installable package, or supported release exists yet. The repository is public for pre-release review.
+**Pre-release — Phase 1 CLI foundation.** Faultlens provides local, read-only Linux
+system observations and dependency/logging checks. It is not yet an incident analyzer,
+a TUI, a packaged distribution, or a supported production release.
 
-Faultlens is a planned lightweight Linux CLI/TUI for local system monitoring,
-incident reconstruction, and explainable security diagnostics, initially targeting
-Debian and Ubuntu Server. Python is preferred; `prompt_toolkit` is a candidate,
-not an installed dependency. Proposed commands in the specification are not available.
+The initial target is Debian/Ubuntu Server with Python 3.11+. No external Python
+packages, telemetry, network service, database or daemon are required. `prompt_toolkit`
+remains the preferred future TUI candidate; it is not installed by this foundation.
 
-## Security principles
+## Run from source
 
-- Fully local runtime: no telemetry, cloud services, web interface, or automatic uploads.
-- Read-only diagnostics and minimal privileges by default; explicit, scoped confirmation
-  before any configuration change.
-- Treat logs as sensitive, untrusted evidence. Distinguish observations, hypotheses,
-  missing evidence, and confirmed causes.
-- Use existing Linux tools through validated argument lists and bounded execution.
-- Require justification before adding a daemon, database, service, or heavyweight dependency.
-
-## Development
-
-Python 3.11 or later and Git are sufficient for the baseline checks; no pip install
-or live system collection is required:
+From a trusted checkout, as an ordinary user:
 
 ```sh
-python3 scripts/security_check.py
-python3 -m unittest discover -s tests -v
+./bin/faultlens
+./bin/faultlens status
+./bin/faultlens status --json
+./bin/faultlens status --sample-seconds 0.2
+./bin/faultlens check
+./bin/faultlens check --json
 ```
 
-The checks inspect tracked files and all locally reachable Git history. Fetch all
-remote branches and tags before a pre-publication audit. CI uses a full checkout.
-Do not run proposed diagnostic commands as root to test this foundation.
+`python3 -m faultlens` is an equivalent entry point from the repository root. The
+launcher can also be invoked by absolute path from another directory. No installation
+or root access is required. Python source imports may create normal bytecode caches;
+the launcher disables them. Faultlens does not save reports or change system settings.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the
+Status covers sampled aggregate CPU, load, RAM/swap, root filesystem capacity,
+cumulative per-device I/O and interface counters, visible process count, kernel/boot
+information and the systemd manager state where available. `check` inspects optional
+utilities, journal directory presence, visible prior boots, and journald/atop service
+state. It never reads out raw log entries or claims that a directory proves recording.
+
+Evidence can be sensitive even in summary form. Output stays on your terminal/stdout;
+review it before manually redirecting or sharing it. No automatic exports or uploads
+exist. Missing/denied/malformed sources are explicitly unavailable, not healthy zeros.
+JSON includes units, source, confidence, explanations, thresholds and limitations.
+CPU/network counters may reflect a host or namespace rather than cgroup limits.
+
+Exit codes: 0 means a report was rendered (including partial/unavailable observations),
+1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
+and 130 means interrupted collection. Inspect observation states for warnings or gaps;
+exit 0 does not assert that the system is healthy. `health`, `network`, `security`,
+`incidents`, `diagnose`, `history`, configuration changes and the TUI are not implemented.
+
+## Develop and verify
+
+Use only `staging` and `main`; PRs to main require the baseline, analysis and CodeQL
+findings checks. Synthetic tests never collect diagnostics from the CI host.
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 scripts/security_check.py
+python3 scripts/benchmark.py --iterations 10
+```
+
+Security checks inspect tracked files and all locally reachable Git history. Stage new
+files before running the tracked-file scan; fetch all refs before a publication audit.
+No dependency installation is needed. Benchmark methodology and initial measurements
+are in [resource benchmarks](docs/benchmarks.md).
+
+Read [contributing](CONTRIBUTING.md), [private vulnerability reporting](SECURITY.md),
 [product specification](docs/product-specification.md),
-[security architecture](docs/security/architecture.md), and
-[publication checklist](docs/security/pre-publication.md), and
-[current repository controls](docs/security/hardening-status.md).
+[Phase 1 decisions and limitations](docs/architecture/phase-1.md),
+[threat model](docs/security/architecture.md), and
+[repository controls](docs/security/hardening-status.md).
 
 ## Licensing
 
 No license has been selected or granted. Do not assume permission to redistribute.
-A license requires explicit owner approval before public release.
+A license requires explicit owner approval before a licensed release.

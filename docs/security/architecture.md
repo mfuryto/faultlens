@@ -1,8 +1,10 @@
 # Security architecture and threat model
 
-Status: design requirements for a future local Linux application. The current
-repository contains documentation and repository checks only. No runtime boundary
-below has been implemented or verified yet.
+Status: threat model for the planned full local Linux application. Phase 1 implements
+bounded read-only collectors, a fixed command catalog and a CLI. See
+[Phase 1 decisions](../architecture/phase-1.md) for implemented boundaries and tests.
+Private evidence storage, diagnostic rules, TUI and mutation boundaries remain design
+requirements, not claims of completed implementation.
 
 ## Scope, assets, and trust boundaries
 
@@ -64,7 +66,9 @@ and license decisions before adding packages. Apply relevant OWASP ASVS 5.0 Leve
 principles to local input validation, secrets, permissions and integrity; no ASVS
 certification or web-application compliance is claimed.
 
-Target memory below 50 MB where practical and minimal CPU; neither is measured yet.
+Target memory below 50 MB where practical and minimal CPU; initial synthetic CLI
+measurements are recorded in [benchmarks](../benchmarks.md). Production VPS performance
+and full TUI memory usage have not yet been verified.
 Measure polling and retention overhead before choosing the proposed atop 30-second
 interval. Define measurable latency, timeout and evidence-size budgets alongside the
 first collectors. No security baseline here substitutes for runtime security tests.

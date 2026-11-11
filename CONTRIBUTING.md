@@ -10,7 +10,8 @@ Dependabot version PRs are paused to avoid creating extra branches; review alert
 and apply dependency updates manually on staging. Main requires a pull request and
 passing baseline, analysis and CodeQL findings checks, and resolved conversations. Staging accepts
 direct development pushes; force pushes and branch deletion are blocked on both
-branches. This is a solo-maintainer project: independent approval and code-owner approval
+branches. Main keeps linear history; staging permits synchronization merges from main
+so reviewed rebase merges do not reappear in later PR diffs. This is a solo-maintainer project: independent approval and code-owner approval
 are not required. The maintainer or an explicitly authorized agent may merge a PR
 only after all required checks pass. Do not bypass required checks.
 
