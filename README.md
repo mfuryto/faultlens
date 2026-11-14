@@ -70,6 +70,9 @@ both listing and diagnosis without granting access. Use history with the same fl
 when selecting boot indices. `diagnose --boot-id` can instead select an exact listed
 identity across index changes; it cannot be combined with the other boot selectors.
 See [stable boot selection](docs/architecture/phase-2-boot-selection.md).
+`--until-us` can end the ordinary tail at a reference's exact `realtime_us` value
+to inspect an older bounded window. Targeted search scope stays unchanged. See
+[historical journal windows](docs/architecture/phase-2-journal-window.md).
 Source counts and safe collection status are reported;
 completeness remains unknown. See [journal scope](docs/architecture/phase-2-journal-scope.md).
 `--search-events` adds two bounded selected-boot searches for kernel warning/error

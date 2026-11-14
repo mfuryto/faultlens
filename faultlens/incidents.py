@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
-from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries
+from .journal import BOOT_ID, MAX_REALTIME_US, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries
 from .models import report
 from .reconstruction import describe, timeline
 
@@ -192,7 +192,9 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None):
+def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None):
+    if until_us is not None and (type(until_us) is not int or not 0 <= until_us <= MAX_REALTIME_US):
+        raise ValueError('Invalid journal time boundary')
     if type(search_events) is not bool:
         raise ValueError('Invalid event search option')
     if boot_id is not None:
@@ -215,6 +217,10 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     data['command'] = 'diagnose'
     data['boot_selection'] = {'method': 'id' if boot_id is not None else 'index',
                               'requested': boot_id if boot_id is not None else boot_index, 'state': 'unresolved'}
+    data['journal_window'] = {'mode': 'tail' if until_us is None else 'tail_until_realtime',
+                               'until_realtime_us': until_us, 'completeness': 'unknown'}
+    if until_us is not None:
+        data['limitations'].append('The ordinary tail ends at the requested journal receipt-time boundary, not the latest boot record. Targeted searches retain their whole-selected-boot scope.')
     data['reconstruction'] = None
     data['journal_collection'] = None
     if search_events:
@@ -237,18 +243,23 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     if search_events:
         from .event_search import search
         data['event_search'] = search(runner, selected['boot_id'], system=system_journal)
-    result = (runner.read_system_boot(selected['boot_id']) if system_journal
-              else runner.read_boot(selected['boot_id']))
+    if until_us is not None:
+        result = runner.read_boot_until(selected['boot_id'], until_us, system=system_journal)
+    elif system_journal:
+        result = runner.read_system_boot(selected['boot_id'])
+    else:
+        result = runner.read_boot(selected['boot_id'])
     data['journal_collection'] = {'command_state': result.state, 'returncode': result.returncode,
                                   'parse_state': 'not_attempted'}
     if result.state != 'completed' or result.returncode != 0:
         data['limitations'].append('Journal collection failed, timed out, exceeded the byte limit or was inaccessible.')
         return data
     try:
-        records, limited, unsupported = entries(result.stdout, selected['boot_id'])
+        records, limited, unsupported = entries(result.stdout, selected['boot_id'],
+            validator=(lambda entry: entry.realtime_us <= until_us) if until_us is not None else None)
     except ValueError:
         data['journal_collection']['parse_state'] = 'invalid'
-        data['limitations'].append('Journal records were malformed, ambiguous or outside the selected boot.')
+        data['limitations'].append('Journal records were malformed, ambiguous or outside the selected boot or requested time boundary.')
         return data
     data['journal_collection']['parse_state'] = 'valid' if records else 'empty'
     kernel_count = sum(entry.transport == 'kernel' for entry in records)

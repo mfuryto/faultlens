@@ -9,6 +9,7 @@ CURSOR = re.compile(r'[A-Za-z0-9_=;:-]{1,1024}\Z')
 CLOCK_MAPPING_TOLERANCE_US = 2000000
 MAX_RECORDS = 500
 MAX_BYTES = 262144
+MAX_REALTIME_US = 253402300799999999
 UNIT_START_FAILED = 'be02cf6855d2428ba40df7e9d022f03d'
 SHUTDOWN_REQUEST = '98268866d1d54a499c4e98921d93bc40'
 
@@ -99,7 +100,7 @@ def entries(text: str, boot_id: str, *, validator=None) -> tuple[list[Entry], bo
             raise ValueError('Invalid journal JSON') from exc
         if not isinstance(item, dict) or item.get('_BOOT_ID') != boot_id:
             raise ValueError('Journal record does not belong to selected boot')
-        realtime = timestamp(item.get('__REALTIME_TIMESTAMP'), 253402300799999999)
+        realtime = timestamp(item.get('__REALTIME_TIMESTAMP'), MAX_REALTIME_US)
         monotonic = timestamp(item.get('__MONOTONIC_TIMESTAMP'), 10**20 - 1)
         cursor = item.get('__CURSOR')
         if cursor is not None:
