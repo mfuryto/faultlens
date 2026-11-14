@@ -26,7 +26,7 @@ CATALOG = {
     Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
     Command.REFERENCE_FILESYSTEM: ("df", ("--block-size=1", "--output=size,used,avail,pcent", "/")),
     Command.SYSTEM_STATE: ("systemctl", ("is-system-running", "--no-pager")),
-    Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet", "--no-legend")),
+    Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet")),
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
     Command.ATOP_SERVICE: ("systemctl", ("is-active", "atop.service", "--no-pager")),
 }

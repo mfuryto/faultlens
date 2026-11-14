@@ -70,8 +70,10 @@ was withheld, not committed as a fixture. This does not verify the user's machin
 all supported Debian/Ubuntu versions, resource-constrained VPS hosts or containers.
 Run this command on each target to establish its own consistency evidence.
 
-Boot-history collection now explicitly requests `--no-legend` so journal table headers
-cannot be mistaken for malformed boot records. Empty CPU input fails with ValueError.
+Boot-history collection uses portable journalctl options, without `--no-legend`,
+which is unsupported on some target installations. A single recognized leading
+C-locale boot-table header is parsed explicitly; unknown or repeated headers fail
+closed. History and prerequisite checks share the same boot-list parser. Empty CPU input fails with ValueError.
 Synthetic regression tests cover reserved blocks, threshold boundaries, reference
 formats, missing tools and real mismatches. No dependencies or privilege requirements
 were added; free and df are optional validation integrations.

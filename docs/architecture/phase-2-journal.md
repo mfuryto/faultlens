@@ -14,7 +14,12 @@ work. The next milestone provides [optional Atop context](phase-2-atop.md). No l
 ./bin/faultlens diagnose --boot 0
 ```
 
-History lists up to 128 visible journal boot indices and validated boot IDs. Locale-
+History lists up to 128 visible journal boot indices and validated boot IDs.
+The listing uses only `--list-boots --no-pager --quiet`, with no reliance on the
+unsupported `--no-legend` option. A known C-locale table heading is optional and
+recognized once at the beginning; unknown/repeated headings remain invalid.
+`boot_listing` reports safe command state/exit status and parser state without
+printing stderr or raw metadata. A failed listing does not imply a missing boot. Locale-
 dependent date text is not interpreted or echoed. Indices refer to the history
 visible to the current user, not necessarily every boot that physically occurred.
 Diagnose defaults to index -1; index 0 is an explicit request to inspect the current

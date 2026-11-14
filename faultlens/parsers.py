@@ -82,15 +82,5 @@ def disk_io(text: str) -> list[dict]:
 
 
 def boot_count(text: str) -> int:
-    previous = 0
-    seen = set()
-    for line in text.splitlines():
-        if not line.strip():
-            continue
-        fields = line.split()
-        if (len(fields) < 3 or not re.fullmatch(r"-?[0-9]{1,6}", fields[0])
-                or not re.fullmatch(r"[a-f0-9]{32}", fields[1]) or fields[0] in seen):
-            raise ValueError("Unexpected boot listing")
-        seen.add(fields[0])
-        previous += int(fields[0]) < 0
-    return previous
+    from .journal import boots
+    return sum(boot.index < 0 for boot in boots(text))

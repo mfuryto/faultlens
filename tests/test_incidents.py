@@ -46,6 +46,15 @@ class JournalParserTests(unittest.TestCase):
         self.assertEqual([0, -1], [boot.index for boot in value])
         self.assertNotIn('secret-host-text', str(value))
 
+    def test_one_known_leading_header_is_accepted_but_other_text_is_not(self):
+        header = 'IDX BOOT ID FIRST ENTRY LAST ENTRY\n'
+        row = '0 ' + CURRENT + ' synthetic current'
+        self.assertEqual(0, boots(header + row)[0].index)
+        for text in (header + header + row, row + '\n' + header,
+                     'arbitrary unexpected heading\n' + row):
+            with self.assertRaises(ValueError):
+                boots(text)
+
     def test_duplicate_id_or_index_and_positive_boot_are_rejected(self):
         for text in ('-1 ' + BOOT + ' x\n-1 ' + CURRENT + ' x',
                      '-1 ' + BOOT + ' x\n0 ' + BOOT + ' x',
@@ -165,6 +174,20 @@ class HistoricalCollectionTests(unittest.TestCase):
             self.assertEqual('unavailable', data['state'])
             self.assertEqual('Unknown', data['root_cause'])
             self.assertEqual([], data['findings'])
+
+    def test_command_failure_is_not_misreported_as_an_absent_selected_boot(self):
+        runner = JournalRunner()
+        runner.boot_result = Result('completed', '', 1)
+        data = diagnose(runner, 0)
+        self.assertEqual('unavailable', data['state'])
+        self.assertEqual(1, data['boot_listing']['returncode'])
+        self.assertEqual('not_attempted', data['boot_listing']['parse_state'])
+        self.assertFalse(any('requested boot is not visible' in text.lower() for text in data['limitations']))
+        self.assertEqual([], runner.requested)
+        output = io.StringIO()
+        main(['diagnose', '--boot', '0'], runner=runner, stdout=output)
+        self.assertIn('Boot listing:', output.getvalue())
+        self.assertIn('did not succeed', output.getvalue())
 
     def test_missing_boot_does_not_query_current_boot_as_a_fallback(self):
         runner = JournalRunner()

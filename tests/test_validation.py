@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import patch
 
 from faultlens.collectors import percentage, status
-from faultlens.commands import CATALOG, Command, Result
-from faultlens.parsers import cpu
+from faultlens.commands import Command, CommandRunner, Result
+from faultlens.parsers import cpu, boot_count
 from faultlens.validation import compare, exit_code, filesystem_reference, memory_reference, validate
 from tests.support import SyntheticRunner, SyntheticSources
 
@@ -62,5 +62,21 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual('mismatch', next(item['state'] for item in result if item['key'] == 'memory.total'))
         self.assertEqual(1, exit_code({'comparisons': result}))
 
-    def test_boot_listing_explicitly_disables_legend(self):
-        self.assertIn('--no-legend', CATALOG[Command.JOURNAL_BOOTS][1])
+    def test_boot_count_accepts_both_portable_listing_formats(self):
+        rows = '-1 ' + 'a' * 32 + ' synthetic previous\n0 ' + 'b' * 32 + ' synthetic current'
+        self.assertEqual(1, boot_count(rows))
+        self.assertEqual(1, boot_count('IDX BOOT ID FIRST ENTRY LAST ENTRY\n' + rows))
+
+    def test_legacy_journalctl_supported_options_are_sufficient_for_history(self):
+        from faultlens.incidents import history
+        def legacy(argv):
+            supported = {'--list-boots', '--no-pager', '--quiet'}
+            if '--list-boots' not in argv or any(value not in supported for value in argv[1:]):
+                return Result('completed', '', 1)
+            return Result('completed', '0 ' + 'a' * 32 + ' synthetic current', 0)
+        with patch('faultlens.commands.trusted_tool', return_value='/usr/bin/journalctl'), patch(
+                'faultlens.commands._capture', side_effect=legacy):
+            data = history(CommandRunner())
+        self.assertEqual('available', data['state'])
+        self.assertEqual('valid', data['boot_listing']['parse_state'])
+        self.assertEqual(0, data['boots'][0]['index'])

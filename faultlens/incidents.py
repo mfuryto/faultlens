@@ -91,13 +91,18 @@ def history(runner=None):
     runner = runner or CommandRunner()
     data = base('history')
     result = runner.run(Command.JOURNAL_BOOTS)
+    data['boot_listing'] = {'command_state': result.state, 'returncode': result.returncode,
+                            'parse_state': 'not_attempted'}
     if result.state != 'completed' or result.returncode != 0:
+        data['limitations'].append('The boot-listing command did not succeed; this does not establish absent history or denied access.')
         return data
     try:
         available = boots(result.stdout)
     except ValueError:
+        data['boot_listing']['parse_state'] = 'invalid'
         data['limitations'].append('The boot listing was malformed or exceeded safe limits.')
         return data
+    data['boot_listing']['parse_state'] = 'valid' if available else 'empty'
     data.update(state='available' if available else 'unavailable',
                 coverage='boot_metadata_only' if available else 'unavailable',
                 boots=[asdict(boot) for boot in available])
@@ -117,6 +122,9 @@ def diagnose(runner=None, boot_index=-1, atop_date=None):
                     'reason': 'not_requested' if atop_date is None else 'journal_scope_unavailable',
                     'samples': [], 'correlations': []}
     data['command'] = 'diagnose'
+    if data['state'] != 'available':
+        data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
+        return data
     selected = next((boot for boot in data['boots'] if boot['index'] == boot_index), None)
     if selected is None:
         data.update(state='unavailable')
