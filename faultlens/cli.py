@@ -190,7 +190,12 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
     parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
     parser.add_argument("--until-us", type=receipt_boundary, help="End the ordinary tail at Unix receipt-time microseconds (diagnose only; searches unchanged).")
+    parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; searches unchanged).")
     args = parser.parse_args(argv)
+    if args.since_us is not None and args.until_us is not None and args.since_us > args.until_us:
+        parser.error("Journal start boundary must not exceed the end boundary.")
+    if args.since_us is not None and args.command != "diagnose":
+        parser.error("Journal time boundaries are supported only with diagnose.")
     if args.until_us is not None and args.command != "diagnose":
         parser.error("Journal time boundaries are supported only with diagnose.")
     if args.search_events and args.command != "diagnose":
@@ -212,7 +217,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         if args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us))
+                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)

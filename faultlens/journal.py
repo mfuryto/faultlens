@@ -14,6 +14,14 @@ UNIT_START_FAILED = 'be02cf6855d2428ba40df7e9d022f03d'
 SHUTDOWN_REQUEST = '98268866d1d54a499c4e98921d93bc40'
 
 
+def validate_window(since_us=None, until_us=None):
+    for value in (since_us, until_us):
+        if value is not None and (type(value) is not int or not 0 <= value <= MAX_REALTIME_US):
+            raise ValueError('Invalid journal time boundary')
+    if since_us is not None and until_us is not None and since_us > until_us:
+        raise ValueError('Journal start exceeds end')
+
+
 @dataclass(frozen=True)
 class Boot:
     index: int
