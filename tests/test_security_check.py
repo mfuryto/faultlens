@@ -1,11 +1,14 @@
 """Mutation tests for unsafe CI changes, evidence and credential leakage."""
 import copy
+import contextlib
+import io
 import importlib.util
 import json
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('security_check', ROOT / 'scripts/security_check.py')
@@ -101,6 +104,19 @@ class SecurityPolicyTests(unittest.TestCase):
         good['synthetic'] = False
         self.assertTrue(policy.fixture_errors(path, json.dumps(good)))
         self.assertTrue(policy.fixture_errors(path, 'unstructured host capture'))
+
+    def test_git_failures_are_actionable_without_logging_raw_stderr(self):
+        for detail, expected in ((b'fatal: detected dubious ownership: synthetic-private-path', 'checkout owner'),
+                                 (b'fatal: not a git repository: synthetic-private-path', 'checkout root'),
+                                 (b'Permission denied: synthetic-private-path', 'read access'),
+                                 (b'Other failure: synthetic-private-path', 'Git read operation failed')):
+            failure = subprocess.CalledProcessError(128, ['git', 'ls-files'], stderr=detail)
+            output = io.StringIO()
+            with patch.object(policy, 'check_repository', side_effect=failure), contextlib.redirect_stderr(output):
+                self.assertEqual(1, policy.main())
+            self.assertIn(expected, output.getvalue())
+            self.assertNotIn('synthetic-private-path', output.getvalue())
+            self.assertNotIn('passed', output.getvalue())
 
     def test_deleted_secret_is_still_found_in_history(self):
         # Isolated repository: no real secrets, host diagnostics, or remote access.

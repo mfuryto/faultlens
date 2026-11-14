@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from faultlens import parsers
-from faultlens.cli import main, safe_text
+from faultlens.cli import SafeArgumentParser, main, safe_text
 from faultlens.collectors import check, percentage, status
 from faultlens.commands import Command, CommandRunner, Result, _capture, trusted_tool
 from faultlens.linux import LinuxSources
@@ -218,6 +218,19 @@ class CliTests(unittest.TestCase):
             main(['\x1b]52;c;synthetic\x07'])
         self.assertNotIn('\x1b', output.getvalue())
         self.assertNotIn('\x07', output.getvalue())
+
+    def test_forced_color_and_terminal_detection_do_not_add_control_sequences(self):
+        # Both a forced-color environment and an interactive terminal are supported.
+        for environment in ({'PYTHON_COLORS': '1', 'FORCE_COLOR': '1', 'TERM': 'xterm-256color'},
+                            {'PYTHON_COLORS': '', 'FORCE_COLOR': '', 'TERM': 'xterm-256color'}):
+            with patch.dict(os.environ, environment), patch('os.isatty', return_value=True):
+                parser = SafeArgumentParser(prog='faultlens')
+                self.assertNotIn('\x1b', parser.format_help())
+                output = io.StringIO()
+                with contextlib.redirect_stderr(output), self.assertRaises(SystemExit):
+                    main(['\x1b]52;c;synthetic\x07'])
+                self.assertNotIn('\x1b', output.getvalue())
+                self.assertNotIn('\x07', output.getvalue())
 
     def test_help_and_version_do_not_collect(self):
         with patch('faultlens.cli.status', side_effect=AssertionError('must not collect')):

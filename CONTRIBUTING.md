@@ -15,7 +15,8 @@ so reviewed rebase merges do not reappear in later PR diffs. This is a solo-main
 are not required. The maintainer or an explicitly authorized agent may merge a PR
 only after all required checks pass. Do not bypass required checks.
 
-Run the README checks before pushing. Review the entire diff and new dependency
+Run the README checks before pushing, as the checkout owner. Unit tests, the
+security scan and synthetic benchmarks do not need root. Review the entire diff and new dependency
 or workflow provenance. Never commit real diagnostic data, secrets, local settings,
 private hostnames, addresses, or unsanitized reports. `.gitignore` is only a convenience;
 it cannot prevent forced additions or remove previously tracked data.
