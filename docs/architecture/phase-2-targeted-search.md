@@ -93,3 +93,6 @@ pagination, lower-priority supported events and targeted resource correlation re
 future work. Phase 2 and shutdown verification are not complete.
 
 Primary reference: [journalctl priority, field matching and record limits](https://www.freedesktop.org/software/systemd/man/253/journalctl.html).
+
+The [candidate-review milestone](phase-2-candidate-review.md) adds metadata explanations
+and bounded unclassified examples without changing selection, collection or attribution.

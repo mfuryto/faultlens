@@ -156,3 +156,18 @@ class SyntheticEventRunner(SyntheticSystemRunner):
                              MESSAGE_ID=UNIT_START_FAILED, MESSAGE='Synthetic start-job event', PRIORITY='6')
             rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticReviewRunner(SyntheticEventRunner):
+    """Maximum unclassified kernel candidates without using private host messages."""
+    def read_event_candidates(self, boot_id, query, *, system=False):
+        import json
+        result = super().read_event_candidates(boot_id, query, system=system)
+        if query != 'kernel_warnings' or result.state != 'completed':
+            return result
+        rows = []
+        for line in result.stdout.splitlines():
+            value = json.loads(line)
+            value['MESSAGE'] = 'Unclassified synthetic kernel warning'
+            rows.append(json.dumps(value))
+        return Result('completed', '\n'.join(rows), 0)

@@ -104,6 +104,17 @@ def render_history(data, stdout):
                 print("  Collection: " + json.dumps({key: query[key] for key in ('command_state', 'returncode', 'parse_state', 'reason')}, ensure_ascii=True), file=stdout)
                 if query['candidate_window']:
                     print(f"  Candidate receipt-time span: {query['candidate_window']['monotonic_candidate_span_us']} microseconds; filtered, not continuous coverage.", file=stdout)
+                review = query['candidate_review']
+                if review is not None:
+                    print(f"  Candidate review: matched {review['matched_candidates']}; unclassified {review['unclassified_candidates']}; examples truncated {review['unclassified_examples_truncated']}.", file=stdout)
+                    print("  Recorded priority counts: " + json.dumps(review['reported_priority_counts'], ensure_ascii=True), file=stdout)
+                    for example in review['unclassified_examples']:
+                        print(f"    Unclassified candidate {example['candidate_index']}: recorded priority {example['reported_priority_label']}; {example['reason']}.", file=stdout)
+                        print("      Evidence: " + json.dumps(example['reference'], ensure_ascii=True), file=stdout)
+                        print("      Selection: " + example['selection_reason'], file=stdout)
+                        print("      Explanation: " + example['explanation'], file=stdout)
+                    for text in review['limitations'] + review['recommendations']:
+                        print("  " + text, file=stdout)
                 for finding in query['findings']:
                     print(f"  [{finding['severity'].upper()}] {finding['title']} ({finding['confidence']} report; cause Unknown)", file=stdout)
                     print("    Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)

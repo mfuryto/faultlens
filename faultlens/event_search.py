@@ -1,6 +1,7 @@
 """Two fixed bounded candidate queries over one immutable accessible journal boot."""
 from dataclasses import asdict
 
+from .candidate_review import explain
 from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, entries
 from .reconstruction import timeline
 
@@ -42,7 +43,7 @@ def search(runner, boot_id, *, system=False):
         item = {'query': query, 'state': 'unavailable', 'command_state': result.state,
                 'returncode': result.returncode, 'parse_state': 'not_attempted', 'candidates_examined': 0,
                 'record_limit_reached': False, 'unsupported_messages_in_response': 0,
-                'candidate_window': None, 'findings': [], 'timeline': []}
+                'candidate_window': None, 'findings': [], 'timeline': [], 'candidate_review': None}
         results.append(item)
         if result.state != 'completed' or result.returncode != 0:
             item['reason'] = 'collection_unavailable'
@@ -53,8 +54,12 @@ def search(runner, boot_id, *, system=False):
         except ValueError:
             item.update(parse_state='invalid', reason='invalid_or_unexpected_candidates')
             continue
-        findings = [finding for finding in analyze(records)
-                    if finding.rule_id.startswith('kernel.' if query == 'kernel_warnings' else 'systemd.')]
+        findings, matched = [], []
+        for entry in records:
+            matches = [finding for finding in analyze([entry])
+                       if finding.rule_id.startswith('kernel.' if query == 'kernel_warnings' else 'systemd.')]
+            findings.extend(matches)
+            matched.append(bool(matches))
         window = None if not records else {'first_candidate': records[0].reference(),
                   'last_candidate': records[-1].reference(),
                   'monotonic_candidate_span_us': records[-1].monotonic_us - records[0].monotonic_us}
@@ -62,7 +67,8 @@ def search(runner, boot_id, *, system=False):
                     reason='candidates_examined' if records else 'no_candidates_returned',
                     candidates_examined=len(records), record_limit_reached=limited,
                     unsupported_messages_in_response=unsupported, candidate_window=window,
-                    findings=[asdict(finding) for finding in findings], timeline=timeline(findings, records))
+                    findings=[asdict(finding) for finding in findings], timeline=timeline(findings, records),
+                    candidate_review=explain(records, matched, query))
     completed = sum(item['state'] == 'available' for item in results)
     output = unresolved(system=system)
     output.update(state='available' if completed == 2 else 'partial' if completed else 'unavailable',

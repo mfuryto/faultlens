@@ -147,3 +147,14 @@ wall 0.0843 s, median CPU 0.0714 s and maximum peak RSS 31.59 MiB. All twelve mo
 passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. The resource regression suite now
 runs two children per mode. Native whole-boot journal searching, disk I/O and access
 checks are excluded; each actual external query has separate deadline/output limits.
+
+## Unclassified candidate review — 2026-11-15
+
+The thirteenth mode, `diagnose-review`, verifies 500 retained unclassified kernel
+candidates, all-candidate counts and 20 newest examples with explicit truncation,
+alongside the ordinary tail and structured candidate query. Ten fresh Linux/Python
+3.14.4 children measured median wall 0.0761 s, maximum wall 0.0798 s, median CPU
+0.0683 s and maximum peak RSS 29.00 MiB. All thirteen modes passed the existing
+<50 MiB RSS / <1 s CPU / <2 s wall budgets. Tests now run two fresh children per mode.
+Existing maximum matched-candidate mode also passed at 31.58 MiB peak RSS. No live
+host messages, native journal search cost or actual warning semantics are measured.
