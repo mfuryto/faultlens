@@ -16,6 +16,13 @@ def safe_text(value: str) -> str:
 
 
 class SafeArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Python 3.14 adds automatic help colors. Keep parser output deterministic
+        # and control-free, including when the environment forces terminal color.
+        if hasattr(self, 'color'):
+            self.color = False
+
     def error(self, message):
         super().error(safe_text(message))
 

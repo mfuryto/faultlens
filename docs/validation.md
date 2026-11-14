@@ -81,3 +81,22 @@ were added; free and df are optional validation integrations.
 References: [GNU df](https://www.gnu.org/software/coreutils/manual/html_node/df-invocation.html),
 [reserved filesystem space](https://www.gnu.org/software/coreutils/faq/coreutils-faq.html),
 and [journalctl](https://www.freedesktop.org/software/systemd/man/latest/journalctl.html).
+
+## Development tests, terminal colors and Git ownership
+
+Run unit tests, the repository security scan and synthetic resource benchmarks as
+the checkout owner, without root. Real diagnostic visibility depends on the user's
+existing log permissions, but synthetic tests do not need those privileges.
+
+Python 3.14 can add ANSI colors to argparse help/error output when stdout is a
+terminal or color is forced by the environment. Faultlens disables parser coloring
+where that feature exists, retaining compatibility with Python 3.11+. Forced-color
+and simulated-terminal tests verify that help and argument errors remain control-free;
+the unittest runner itself may still color its own summary.
+
+The security scanner preserves Git's ownership checks. It classifies fixed C-locale
+Git errors for ownership refusal, wrong working directory and denied access, without
+echoing raw stderr or paths. These errors fail the scan rather than being described
+as a successful scan. It never adds safe.directory exceptions or changes filesystem
+permissions. Run the scan as the checkout owner if Git rejects a different user's
+ownership; no global trust setting is required for the normal owner workflow.

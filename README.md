@@ -79,7 +79,11 @@ exit 0 does not assert that the system is healthy. `health`, `network`, `securit
 ## Develop and verify
 
 Use only `staging` and `main`; PRs to main require the baseline, analysis and CodeQL
-findings checks. Synthetic tests never collect diagnostics from the CI host.
+findings checks. Run development checks as the user who owns the checkout, without
+root. The tests and benchmarks use synthetic data and do not require access to real
+system logs. Git can refuse a checkout owned by another user; switch to its owner
+instead of changing repository trust or permissions just to run the checks.
+Synthetic tests never collect diagnostics from the CI host.
 
 ```sh
 python3 -m unittest discover -s tests -v

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -29,7 +30,8 @@ DOC_NETWORKS = tuple(ipaddress.ip_network(n) for n in
 
 
 def git(*args: str) -> bytes:
-    return subprocess.check_output(['git', *args], stderr=subprocess.PIPE)
+    return subprocess.check_output(['git', *args], stderr=subprocess.PIPE,
+                                   env={**os.environ, 'LC_ALL': 'C', 'GIT_TERMINAL_PROMPT': '0'})
 
 
 def secret_errors(data: bytes) -> list[str]:
@@ -243,7 +245,20 @@ def main() -> int:
         return 1
     try:
         errors = check_repository()
-    except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+    except subprocess.CalledProcessError as exc:
+        # Classify only fixed Git diagnostics; never echo untrusted stderr or paths.
+        detail = exc.stderr if isinstance(exc.stderr, bytes) else b''
+        if b'detected dubious ownership' in detail:
+            print('Git rejected repository ownership. Run this scan as the checkout owner; root is not required.', file=sys.stderr)
+            print('No Git trust or filesystem permissions were changed. The scan did not complete.', file=sys.stderr)
+        elif b'not a git repository' in detail:
+            print('Run this scan from the Git checkout root. The scan did not complete.', file=sys.stderr)
+        elif b'Permission denied' in detail:
+            print('Git access was denied. Run as the checkout owner with read access. The scan did not complete.', file=sys.stderr)
+        else:
+            print('A Git read operation failed. The security scan did not complete.', file=sys.stderr)
+        return 1
+    except (OSError, ValueError) as exc:
         print(f'Security scan could not complete ({type(exc).__name__}).', file=sys.stderr)
         return 1
     for error in errors:
