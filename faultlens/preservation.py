@@ -182,10 +182,12 @@ def assess(sources=None, runner=None):
     try:
         inventory = sources.recording_inventory()
         observations.append(Observation('atop.recording_inventory', inventory, 'metadata', '/var/log/atop (metadata only)',
-            'warning' if inventory['unsafe_entries'] or inventory['oversized_files'] else 'unknown',
+            'warning' if (inventory['unsafe_entries'] or inventory['oversized_files']
+                          or inventory['filename_coverage']['missing_filename_days']) else 'unknown',
             explanation='Bounded snapshot of protected date-named files; dates and sizes do not prove recorded coverage.',
             limitations=('No binary content read. Logical byte sizes differ from allocated disk blocks.',
                          'Files can change during inspection. Compressed/custom names are excluded.',
+                         'Missing filename dates are Possible gaps only; downtime, retention and custom naming are unresolved.',
                          'At most 512 directory entries are inspected; no recursive traversal.'),
             recommendations=('Verify replay on the desired date; check retention/rotation and gaps before relying on history.',)))
     except (OSError, ValueError, KeyError, AttributeError):

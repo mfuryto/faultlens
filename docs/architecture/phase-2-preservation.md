@@ -56,7 +56,7 @@ settings, dates and capacity summaries can still be sensitive; review before sha
 Observation JSON gains an additive `recommendations` array, also rendered in text.
 Warnings and unavailable observations do not change the existing report exit-code
 contract. Nothing in this milestone establishes root cause or completes phase 2.
-Loaded-state verification, namespace/custom paths, rotation verification, pstore,
+Loaded-state verification, namespace/custom paths, rotation verification, archived pstore,
 full shutdown verification and explicitly approved configuration changes remain future work.
 
 Synthetic tests cover overrides, section boundaries, limits, unsupported expressions,
@@ -67,3 +67,5 @@ References: [systemd-analyze](https://www.freedesktop.org/software/systemd/man/2
 [journald configuration](https://www.freedesktop.org/software/systemd/man/258/journald.conf.html),
 [Atop service](https://github.com/Atoptool/atop/blob/master/atop.service),
 [Atop rotation](https://github.com/Atoptool/atop/blob/master/atop.daily).
+
+The next milestone adds [filename/sample coverage hints and live pstore analysis](phase-2-coverage-pstore.md).

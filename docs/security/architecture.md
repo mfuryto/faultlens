@@ -7,6 +7,10 @@ milestone adds bounded journal normalization and provenance-checked event rules;
 [Atop adapter](../architecture/phase-2-atop.md) adds protected-descriptor replay,
 child-only native resource limits and uncertain wall-time pairing. See
 [Phase 1 decisions](../architecture/phase-1.md) for implemented boundaries and tests.
+The [coverage and pstore milestone](../architecture/phase-2-coverage-pstore.md) adds
+uncertain gap assessments and opt-in descriptor-bounded live crash-signature reading.
+Pstore content is treated as untrusted and never printed; signature references do not
+authenticate evidence or associate a boot. No record deletion or permission changes occur.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

@@ -81,17 +81,29 @@ def render_history(data, stdout):
             if resources['state'] == 'available':
                 intervals = sorted({value['interval_s'] for value in resources['samples'] if not value['since_boot']})
                 print(f"  Samples: {len(resources['samples'])}; observed intervals (seconds): {intervals}", file=stdout)
+                coverage = resources["coverage"]
+                print(f"  Possible interval gaps: {len(coverage['possible_gaps'])}; overlapping intervals: {coverage['overlapping_intervals']}; complete coverage unverified.", file=stdout)
+                for text in coverage["limitations"]:
+                    print("  Limitation: " + text, file=stdout)
                 print(f"  Possible temporal overlaps: {len(resources['correlations'])}; host/boot unverified; cause Unknown.", file=stdout)
                 print("  Use --json for normalized samples and overlap references.", file=stdout)
             else:
                 print("  Reason: " + resources.get('reason', 'unavailable'), file=stdout)
             for limitation in resources.get('limitations', []):
                 print("  Limitation: " + limitation, file=stdout)
+        if 'pstore' in data:
+            crash = data['pstore']
+            print("Pstore: " + crash['state'] + "; " + crash['reason'], file=stdout)
+            print("  Boot identity: unverified. Root cause: Unknown.", file=stdout)
+            for item in crash['records']:
+                print("  Evidence: " + json.dumps(item, ensure_ascii=True), file=stdout)
+            for text in crash['limitations'] + crash['recommendations']:
+                print("  " + text, file=stdout)
     for text in data['limitations']:
         print("Limitation: " + text, file=stdout)
 
 
-def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, stderr=None) -> int:
+def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, stderr=None, pstore_collector=None) -> int:
     stdout = stdout or sys.stdout
     stderr = stderr or sys.stderr
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
@@ -104,7 +116,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
     parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
+    parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
     args = parser.parse_args(argv)
+    if args.pstore and args.command != "diagnose":
+        parser.error("Pstore analysis is supported only with diagnose.")
     if args.history and args.command != "check":
         parser.error("Preservation assessment is supported only with check.")
     if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.atop_date is not None):
@@ -116,6 +131,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         if args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = history(runner) if args.command == "history" else diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date)
+            if args.command == "diagnose" and args.pstore:
+                from .pstore import analyze
+                data["pstore"] = analyze(pstore_collector)
         else:
             items = (status(sources, runner, args.sample_seconds) if args.command == "status"
                      else check(sources, runner))

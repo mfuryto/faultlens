@@ -165,3 +165,6 @@ Primary references: [Atop manual](https://www.atoptool.nl/download/man_atop-1.pd
 [2.12.1 option/handler selection](https://github.com/Atoptool/atop/blob/v2.12.1/atop.c),
 [Debian package](https://packages.debian.org/stable/atop), and
 [Ubuntu package](https://packages.ubuntu.com/noble/atop).
+
+See [coverage hints](phase-2-coverage-pstore.md) for the subsequent bounded filename-date
+and sample-interval gap assessments. They do not establish recording continuity.

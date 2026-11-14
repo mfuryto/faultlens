@@ -77,6 +77,8 @@ class LinuxSources:
                     dates.append(date)
             if dates:
                 result.update(oldest_date=min(dates), newest_date=max(dates))
+            from .coverage import date_gaps
+            result['filename_coverage'] = date_gaps(dates)
             return result
         finally:
             os.close(directory)

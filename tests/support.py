@@ -36,7 +36,12 @@ class SyntheticSources:
 
     def recording_inventory(self):
         return {'files': 2, 'logical_bytes': 10000, 'empty_files': 0, 'oversized_files': 0,
-                'unsafe_entries': 0, 'unsupported_entries': 0, 'oldest_date': '20260101', 'newest_date': '20260102'}
+                'unsafe_entries': 0, 'unsupported_entries': 0, 'oldest_date': '20260101', 'newest_date': '20260102',
+                'filename_coverage': {'date_ranges': [], 'missing_filename_days': 0,
+                                      'assessment': 'Synthetic contiguous filename dates only.'}}
+
+    def pstore_snapshot(self):
+        return ([(b"Kernel panic - not syncing: synthetic test\n" + b"synthetic kernel context\n" * 3000)[:65536]] * 8, 0)
 
     def process_count(self):
         return 20

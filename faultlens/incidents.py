@@ -12,7 +12,7 @@ LIMITATIONS = [
     'The bounded tail is not the complete boot. Rotation, permission filtering and a freeze can remove final evidence.',
     'Kernel/root compromise can falsify local evidence. Event observations do not establish a root cause.',
     'Timeline order uses boot-local monotonic time; wall-clock timestamps may move backward.',
-    'Atop correlation is optional and temporal only; pstore and complete shutdown verification are not implemented.',
+    'Atop correlation is optional and temporal only; opt-in pstore evidence is not boot-attributed. Complete shutdown verification is not implemented.',
 ]
 
 

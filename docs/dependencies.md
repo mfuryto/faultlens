@@ -35,12 +35,13 @@ Prioritize better evidence quality before adding integrations:
 
 - Explain exactly which feature is unavailable and why (permissions, unsupported
   version, missing tool or missing historical data), with a bounded capability probe.
-- Assess observed recording gaps and time coverage, preserving uncertainty about
-  host/boot identity and incomplete input.
-- Add opt-in pstore analysis with strict size limits and redacted references for
-  crash evidence that may survive a reboot.
+- Extend the implemented bounded filename/sample gap hints with richer coverage
+  provenance, preserving uncertainty about host/boot identity and incomplete input.
+- Extend the implemented opt-in live pstore panic-signature reader with reviewed
+  archived evidence support and narrowly tested additional signatures.
 - Offer an explicit export preview and redaction review before any future local
   report export; never upload reports automatically.
 
-These are proposals, not implemented functionality or new installation requirements.
+These extensions are proposals, not new installation requirements. The current
+coverage/pstore scope is documented in [the milestone](architecture/phase-2-coverage-pstore.md).
 Each integration needs a documented threat model, resource budget and synthetic tests.
