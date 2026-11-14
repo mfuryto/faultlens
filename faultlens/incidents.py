@@ -12,7 +12,7 @@ LIMITATIONS = [
     'The bounded tail is not the complete boot. Rotation, permission filtering and a freeze can remove final evidence.',
     'Kernel/root compromise can falsify local evidence. Event observations do not establish a root cause.',
     'Timeline order uses boot-local monotonic time; wall-clock timestamps may move backward.',
-    'Atop history, pstore, historical resource correlation and complete shutdown verification are not implemented.',
+    'Atop correlation is optional and temporal only; pstore and complete shutdown verification are not implemented.',
 ]
 
 
@@ -105,11 +105,17 @@ def history(runner=None):
     return data
 
 
-def diagnose(runner=None, boot_index=-1):
+def diagnose(runner=None, boot_index=-1, atop_date=None):
     if type(boot_index) is not int or not -128 <= boot_index <= 0:
         raise ValueError('Invalid boot index')
+    if atop_date is not None:
+        from .recordings import recording_date
+        recording_date(atop_date)
     runner = runner or CommandRunner()
     data = history(runner)
+    data['atop'] = {'state': 'not_requested' if atop_date is None else 'unavailable',
+                    'reason': 'not_requested' if atop_date is None else 'journal_scope_unavailable',
+                    'samples': [], 'correlations': []}
     data['command'] = 'diagnose'
     selected = next((boot for boot in data['boots'] if boot['index'] == boot_index), None)
     if selected is None:
@@ -143,4 +149,7 @@ def diagnose(runner=None, boot_index=-1):
         data['limitations'].append('Some messages were binary, missing or oversized and could not be classified.')
     if not findings:
         data['limitations'].append('No supported event signatures matched; the cause remains unknown.')
+    if atop_date is not None:
+        from .atop import attach
+        attach(data, records, runner, atop_date)
     return data

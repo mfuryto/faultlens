@@ -1,8 +1,8 @@
 # Phase 2, milestone 1: bounded journal history and event analysis
 
 Status: implemented initial journal-only milestone, pre-release. Full incident
-reconstruction, atop integration, resource correlation, retention setup and TUI
-remain future work. No license, daemon, database or dependency is introduced.
+reconstruction, richer resource correlation, retention setup and TUI remain future
+work. The next milestone provides [optional Atop context](phase-2-atop.md). No license, daemon, database or dependency is introduced.
 
 ## Commands
 
@@ -108,8 +108,8 @@ boot-index races, raw-data exclusion and CPU/memory regression budgets. CI never
 reads its host's real journal. A local environment without accessible boot history
 can only verify graceful unavailability, not live detection accuracy.
 
-Remaining phase 2 work: read/validate atop recordings through a justified existing
-interface, correlate resource samples with journal events, verify persistence and
+Remaining phase 2 work: expand target-host validation and historical resource
+coverage beyond the optional Atop context adapter, verify persistence and
 retention configuration, support richer history selection and complete evidence
 inspection, and test on real supported Debian/Ubuntu targets using separately
 reviewed sanitized material. Configuration recommendations must remain read-only;
@@ -118,3 +118,6 @@ any future changes require exact previews and explicit confirmation.
 Primary references: [journalctl](https://www.freedesktop.org/software/systemd/man/253/journalctl.html),
 [journal addressing fields](https://www.freedesktop.org/software/systemd/man/258/systemd.journal-fields.html),
 and [systemd message IDs](https://github.com/systemd/systemd/blob/main/src/systemd/sd-messages.h).
+
+The next milestone adds [optional Atop temporal context](phase-2-atop.md). Its pairing
+confidence never upgrades the journal-only cause confidence or implies complete reconstruction.

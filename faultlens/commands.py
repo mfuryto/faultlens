@@ -7,6 +7,8 @@ from pathlib import Path
 import selectors
 import signal
 import stat
+import sys
+from datetime import datetime, timezone
 import subprocess
 import time
 
@@ -59,11 +61,11 @@ def trusted_tool(name: str) -> str | None:
     return None
 
 
-def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144) -> Result:
+def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None) -> Result:
     """Drain both pipes without communicate's unbounded in-memory buffering."""
     process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, shell=False, env=ENVIRONMENT,
-                               cwd="/", start_new_session=True)
+                               cwd="/", start_new_session=True, pass_fds=pass_fds)
     output = bytearray()
     total = 0
     deadline = time.monotonic() + timeout
@@ -86,19 +88,49 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144) -> Resu
                         return Result("output_limit")
                     if key.fileobj is process.stdout:
                         output.extend(chunk)
+                        if end_when is not None:
+                            boundary = end_when(output)
+                            if boundary is not None:
+                                return Result("window_complete", output[:boundary].decode("utf-8", errors="strict"))
             return Result("completed", output.decode("utf-8", errors="strict"), process.returncode)
     finally:
         # Also kill descendants retaining pipes after the direct child exits.
         try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        process.wait(timeout=1)
-        process.stdout.close()
-        process.stderr.close()
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=1)
+        finally:
+            process.stdout.close()
+            process.stderr.close()
 
 
 class CommandRunner:
+    def read_atop(self, date: str, start: int, end: int) -> Result:
+        from .recordings import open_recording, recording_date
+        recording_date(date)
+        if (type(start) is not int or type(end) is not int or not 0 <= start <= end
+                or end - start > 1800):
+            raise ValueError("Invalid recording time window")
+        executable = trusted_tool("atop")
+        if executable is None:
+            return Result("missing")
+        descriptor = None
+        try:
+            window = [datetime.fromtimestamp(value, timezone.utc).strftime('%Y%m%d%H%M%S')
+                      for value in (start, end)]
+            descriptor = open_recording(date)
+            helper = str(Path(__file__).with_name('_atop_exec.py').resolve())
+            from .atop import window_boundary
+            return _capture([sys.executable, '-I', '-B', helper, executable, str(descriptor), *window],
+                            pass_fds=(descriptor,), end_when=lambda output: window_boundary(output, end))
+        except (OSError, ValueError, OverflowError, subprocess.SubprocessError):
+            return Result("unavailable")
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+
     def read_boot(self, boot_id: str) -> Result:
         if not isinstance(boot_id, str) or not re.fullmatch(r"[0-9a-f]{32}", boot_id):
             raise ValueError("Invalid boot identity")

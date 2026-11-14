@@ -63,3 +63,15 @@ class SyntheticHistoricalRunner(SyntheticRunner):
             '__MONOTONIC_TIMESTAMP': str(index), '__CURSOR': 'i=' + str(index),
             '_TRANSPORT': 'kernel', 'MESSAGE': 'Out of memory: Killed process 42 (synthetic)'
         }) for index in range(501)), 0)
+
+    def read_atop(self, date, start, end):
+        from datetime import datetime, timezone
+        rows = []
+        for index in range(256):
+            timestamp = 1767225601 + index * 2
+            moment = datetime.fromtimestamp(timestamp, timezone.utc)
+            header = f'synthetic.test {timestamp} {moment:%Y/%m/%d} {moment:%H:%M:%S} 1'
+            rows += ['CPU ' + header + ' 100 1 10 10 0 80 0 0 0 0 50',
+                     'MEM ' + header + ' 4096 1000 400 300',
+                     'SWP ' + header + ' 4096 100 25', 'SEP']
+        return Result('completed', '\n'.join(rows), 0)

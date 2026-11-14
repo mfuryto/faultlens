@@ -1,6 +1,6 @@
 # Faultlens
 
-**Pre-release — CLI foundation and initial journal analysis.** Faultlens provides local, read-only Linux
+**Pre-release — CLI foundation, journal analysis and optional Atop context.** Faultlens provides local, read-only Linux
 system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
 There is no TUI, packaged distribution, or supported production release.
 
@@ -22,6 +22,7 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens history
 ./bin/faultlens diagnose --previous-boot
 ./bin/faultlens diagnose --boot -2 --json
+./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
 ```
 
 `python3 -m faultlens` is an equivalent entry point from the repository root. The
@@ -41,6 +42,12 @@ I/O/ext4 error and structured systemd event signatures. Findings retain referenc
 reasoning, confidence and limitations. Raw journal messages are processed in bounded
 memory only; they are never displayed or saved. Missing evidence and root causes
 remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md).
+
+`--atop-date YYYYMMDD` optionally reads a protected local recording through the
+installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.
+It never asserts shared host/boot identity or a root cause. Atop remains optional;
+without this explicit flag it is not invoked. See [Atop setup and limits](docs/architecture/phase-2-atop.md).
+Recording begins only after Atop installation; old measurements cannot be recreated.
 
 Evidence can be sensitive even in summary form. Output stays on your terminal/stdout;
 review it before manually redirecting or sharing it. No automatic exports or uploads
