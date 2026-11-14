@@ -47,6 +47,13 @@ def boot_index(value: str) -> int:
     return parsed
 
 
+def boot_identity(value: str) -> str:
+    from .journal import BOOT_ID
+    if not isinstance(value, str) or not BOOT_ID.fullmatch(value):
+        raise argparse.ArgumentTypeError("Boot ID must contain exactly 32 lowercase hexadecimal characters.")
+    return value
+
+
 def atop_date(value: str) -> str:
     from .recordings import recording_date
     try:
@@ -70,6 +77,7 @@ def render_history(data, stdout):
     for boot in data['boots']:
         print(f"Boot {boot['index']}: {boot['boot_id']}", file=stdout)
     if data['command'] == 'diagnose':
+        print("Boot selection: " + json.dumps(data['boot_selection'], ensure_ascii=True), file=stdout)
         if data['selected_boot']:
             print("Selected boot: " + json.dumps(data['selected_boot'], ensure_ascii=True), file=stdout)
         print(f"Records examined: {data['records_examined']} (bounded tail)", file=stdout)
@@ -166,6 +174,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
+    scope.add_argument("--boot-id", type=boot_identity, help="Exact boot ID visible in the selected scope listing (diagnose only).")
     parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
     parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
@@ -183,7 +192,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("Pstore analysis is supported only with diagnose.")
     if args.history and args.command != "check":
         parser.error("Preservation assessment is supported only with check.")
-    if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.atop_date is not None):
+    if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
     if (platform or sys.platform) != "linux":
         print("Faultlens supports Linux only.", file=stderr)
@@ -192,7 +201,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         if args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events))
+                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)

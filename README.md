@@ -67,7 +67,10 @@ See [chronology and coverage](docs/architecture/phase-2-reconstruction.md).
 The default journal scope is everything accessible to the current user; it can lack
 system evidence. `--system-journal` explicitly selects accessible system journals for
 both listing and diagnosis without granting access. Use history with the same flag
-when selecting boot indices. Source counts and safe collection status are reported;
+when selecting boot indices. `diagnose --boot-id` can instead select an exact listed
+identity across index changes; it cannot be combined with the other boot selectors.
+See [stable boot selection](docs/architecture/phase-2-boot-selection.md).
+Source counts and safe collection status are reported;
 completeness remains unknown. See [journal scope](docs/architecture/phase-2-journal-scope.md).
 `--search-events` adds two bounded selected-boot searches for kernel warning/error
 candidates and supported structured systemd events. Results appear separately in

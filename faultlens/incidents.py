@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
-from .journal import MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries
+from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries
 from .models import report
 from .reconstruction import describe, timeline
 
@@ -192,11 +192,18 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=-1, atop_date=None, *, system_journal=False, search_events=False):
+def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None):
     if type(search_events) is not bool:
         raise ValueError('Invalid event search option')
-    if type(boot_index) is not int or not -128 <= boot_index <= 0:
-        raise ValueError('Invalid boot index')
+    if boot_id is not None:
+        if not isinstance(boot_id, str) or not BOOT_ID.fullmatch(boot_id):
+            raise ValueError('Invalid boot identity')
+        if boot_index is not None:
+            raise ValueError('Boot index and identity are mutually exclusive')
+    else:
+        boot_index = -1 if boot_index is None else boot_index
+        if type(boot_index) is not int or not -128 <= boot_index <= 0:
+            raise ValueError('Invalid boot index')
     if atop_date is not None:
         from .recordings import recording_date
         recording_date(atop_date)
@@ -206,20 +213,26 @@ def diagnose(runner=None, boot_index=-1, atop_date=None, *, system_journal=False
                     'reason': 'not_requested' if atop_date is None else 'journal_scope_unavailable',
                     'samples': [], 'correlations': []}
     data['command'] = 'diagnose'
+    data['boot_selection'] = {'method': 'id' if boot_id is not None else 'index',
+                              'requested': boot_id if boot_id is not None else boot_index, 'state': 'unresolved'}
     data['reconstruction'] = None
     data['journal_collection'] = None
     if search_events:
         from .event_search import unresolved
         data['event_search'] = unresolved(system=system_journal)
     if data['state'] != 'available':
+        data['boot_selection']['state'] = 'listing_unavailable'
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
         return data
-    # Resolve scope-local indices before either candidate search or tail collection.
-    selected = next((boot for boot in data['boots'] if boot['index'] == boot_index), None)
+    # Resolve the scope-local selector before candidate search or tail collection.
+    selected = next((boot for boot in data['boots'] if
+                     (boot['boot_id'] == boot_id if boot_id is not None else boot['index'] == boot_index)), None)
     if selected is None:
+        data['boot_selection']['state'] = 'not_visible'
         data.update(state='unavailable')
-        data['limitations'].append('The requested boot is not visible. This does not prove that no earlier boot occurred.')
+        data['limitations'].append('The requested boot is not visible in the bounded listing for this scope. This does not prove that the boot did not occur.')
         return data
+    data['boot_selection']['state'] = 'resolved'
     data.update(selected_boot=selected, state='unavailable', coverage='unavailable')
     if search_events:
         from .event_search import search

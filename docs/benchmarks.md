@@ -167,3 +167,12 @@ median wall 0.0583 s, maximum wall 0.0603 s, median CPU 0.0513 s and maximum pea
 27.43 MiB. All fourteen modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets.
 Regression tests now run two fresh children per mode. No filesystem is mounted,
 container started or live incident reproduced; native collection cost is excluded.
+
+## Exact boot identity selection — 2026-11-15
+
+The existing `diagnose-system` mode now selects its invented identity with --boot-id
+and verifies ID-based resolution alongside 500 retained kernel records. Ten fresh
+Linux/Python 3.14.4 children measured median wall 0.0562 s, maximum wall 0.0587 s,
+median CPU 0.0492 s and maximum peak RSS 26.20 MiB. All fourteen modes passed the
+existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. Other modes continue to exercise
+index/default selection. No native journal traversal or real reboot is measured.
