@@ -202,19 +202,21 @@ class RecordingBoundaryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 CommandRunner().read_atop('20260101', start, end)
 
-    def test_capture_closes_pipes_even_if_reap_times_out(self):
-        child = subprocess.Popen([sys.executable, '-c', 'print("synthetic")'],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
-        original_wait = child.wait
-        try:
-            with patch('faultlens.commands.subprocess.Popen', return_value=child), patch.object(
-                    child, 'wait', side_effect=subprocess.TimeoutExpired('synthetic', 1)):
-                with self.assertRaises(subprocess.TimeoutExpired):
-                    _capture([sys.executable, '-c', 'unused'])
-            self.assertTrue(child.stdout.closed)
-            self.assertTrue(child.stderr.closed)
-        finally:
-            original_wait(timeout=5)
+    def test_capture_closes_pipes_even_if_cleanup_fails(self):
+        for failure in ('signal', 'reap'):
+            child = subprocess.Popen([sys.executable, '-c', 'print("synthetic")'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            original_wait = child.wait
+            try:
+                with patch('faultlens.commands.subprocess.Popen', return_value=child), patch(
+                        'faultlens.commands.os.killpg', side_effect=PermissionError if failure == 'signal' else ProcessLookupError), patch.object(
+                        child, 'wait', side_effect=subprocess.TimeoutExpired('synthetic', 1)):
+                    with self.assertRaises(PermissionError if failure == 'signal' else subprocess.TimeoutExpired):
+                        _capture([sys.executable, '-c', 'unused'])
+                self.assertTrue(child.stdout.closed)
+                self.assertTrue(child.stderr.closed)
+            finally:
+                original_wait(timeout=5)
 
     def test_helper_cannot_be_used_to_launch_an_arbitrary_program(self):
         with patch('faultlens._atop_exec.os.execve', side_effect=AssertionError('must not exec')):

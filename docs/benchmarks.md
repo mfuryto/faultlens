@@ -73,5 +73,4 @@ Native replay and the recording daemon are not included. Native replay has separ
 64 MiB address-space / 2 s CPU / 2 s wall limits; it is not measured by the
 synthetic benchmark. A separate limited native smoke test verified EOF and cutoff
 handling but did not establish a native resource/performance baseline. Neither
-these synthetic results nor the limits establish
-target-host overhead or justify changing an existing sampling interval automatically.
+these synthetic results nor the limits establish target-host overhead or justify changing an existing sampling interval automatically.

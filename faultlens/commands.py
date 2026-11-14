@@ -96,10 +96,10 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fd
     finally:
         # Also kill descendants retaining pipes after the direct child exits.
         try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        try:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
             process.wait(timeout=1)
         finally:
             process.stdout.close()
