@@ -6,6 +6,7 @@ import re
 
 BOOT_ID = re.compile(r'[0-9a-f]{32}\Z')
 CURSOR = re.compile(r'[A-Za-z0-9_=;:-]{1,1024}\Z')
+CLOCK_MAPPING_TOLERANCE_US = 2000000
 MAX_RECORDS = 500
 MAX_BYTES = 262144
 

@@ -69,8 +69,20 @@ def render_history(data, stdout):
         if data['last_record']:
             print("Last visible record reference: " + json.dumps(data['last_record'], ensure_ascii=True), file=stdout)
         print("Root cause: Unknown. Shutdown: " + data['shutdown_assessment'], file=stdout)
-        for finding in data['findings']:
+        context = data.get('reconstruction')
+        if context and context['state'] == 'available':
+            print(f"Observed journal span: {context['monotonic_span_us']} microseconds; whole-boot coverage unknown.", file=stdout)
+            interval = context['largest_observed_record_interval']
+            if interval:
+                print(f"Largest observed record interval: {interval['duration_us']} microseconds; no missing-log or downtime inference.", file=stdout)
+            clock = context['clock_mapping']
+            print(f"Clock mapping: {clock['assessment']}; wall-clock regressions: {clock['wall_clock_regression_count']}; equal timestamp pairs: {context['equal_monotonic_record_pairs']}.", file=stdout)
+            for text in context['limitations']:
+                print("  Limitation: " + text, file=stdout)
+        for index, finding in enumerate(data['findings']):
             print(f"[{finding['severity'].upper()}] {finding['title']} ({finding['confidence']} report; cause Unknown)", file=stdout)
+            position = data['timeline'][index]
+            print(f"  Journal position: {position['from_first_visible_record_us']} microseconds from first visible record; {position['before_last_visible_record_us']} before last; {position['relative_order']}.", file=stdout)
             print("  Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
             print("  Reasoning: " + finding['reasoning'], file=stdout)
             if finding["reported_measurements"]:

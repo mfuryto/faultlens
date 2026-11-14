@@ -4,6 +4,7 @@ import hashlib
 import re
 
 from .coverage import sample_coverage
+from .journal import CLOCK_MAPPING_TOLERANCE_US
 from .parsers import counters
 from .recordings import recording_date
 
@@ -102,7 +103,7 @@ def attach(data: dict, records, runner, date: str):
         output['reason'] = 'journal_scope_unavailable'
         return
     offsets = [record.realtime_us - record.monotonic_us for record in records]
-    if max(offsets) - min(offsets) > 2000000:
+    if max(offsets) - min(offsets) > CLOCK_MAPPING_TOLERANCE_US:
         output['reason'] = 'ambiguous_journal_clock_mapping'
         return
     end = records[-1].realtime_us // 1000000 + 900

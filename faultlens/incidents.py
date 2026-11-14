@@ -5,6 +5,7 @@ import re
 from .commands import Command, CommandRunner
 from .journal import MAX_RECORDS, boots, entries
 from .models import report
+from .reconstruction import describe, timeline
 
 
 LIMITATIONS = [
@@ -173,6 +174,7 @@ def diagnose(runner=None, boot_index=-1, atop_date=None):
                     'reason': 'not_requested' if atop_date is None else 'journal_scope_unavailable',
                     'samples': [], 'correlations': []}
     data['command'] = 'diagnose'
+    data['reconstruction'] = None
     if data['state'] != 'available':
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
         return data
@@ -198,7 +200,7 @@ def diagnose(runner=None, boot_index=-1, atop_date=None):
                 unsupported_messages=unsupported,
                 findings=[asdict(finding) for finding in findings],
                 last_record=records[-1].reference() if records else None,
-                timeline=[{'rule_id': f.rule_id, 'reference': f.evidence[0]} for f in findings],
+                timeline=timeline(findings, records), reconstruction=describe(records, findings, limited, unsupported),
                 shutdown_assessment='Marker observed; completion unknown' if any(
                     f.rule_id == 'systemd.shutdown_marker' for f in findings) else 'Unknown')
     data['limitations'].append(f'At most {MAX_RECORDS} tail records are analyzed. No matches is not proof of absence.')
