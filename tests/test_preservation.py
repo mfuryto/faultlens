@@ -114,6 +114,19 @@ class PreservationTests(unittest.TestCase):
         self.assertEqual('warning', item.state)
         self.assertIn('running state remains unverified', item.explanation)
 
+    def test_text_distinguishes_unknown_configuration_from_unavailable_source(self):
+        runner = SyntheticRunner()
+        runner.results[Command.JOURNAL_CONFIG] = Result('completed', '[Journal]\nStorage=unsupported', 0)
+        output = io.StringIO()
+        main(['check', '--history'], sources=SyntheticSources(), runner=runner, stdout=output)
+        self.assertIn('[UNKNOWN] journal.config.storage: unknown mode', output.getvalue())
+        self.assertIn('Final assignment uses an unsupported expression', output.getvalue())
+        self.assertIn('No explicit assignment observed', output.getvalue())
+        runner.results[Command.JOURNAL_CONFIG] = Result('missing')
+        output = io.StringIO()
+        main(['check', '--history'], sources=SyntheticSources(), runner=runner, stdout=output)
+        self.assertIn('[UNAVAILABLE] journal.config: unavailable', output.getvalue())
+
     def test_raw_config_payload_and_custom_paths_are_not_reported(self):
         sources, runner = SyntheticSources(), SyntheticRunner()
         marker = 'synthetic-private-value'

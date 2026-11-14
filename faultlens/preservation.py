@@ -142,7 +142,8 @@ def assess(sources=None, runner=None):
             observations.append(Observation('journal.config.' + label, value, unit, CONFIG_SOURCE,
                 state, 'Confirmed' if origin == 'explicit' else 'Unknown',
                 'Explicit configuration value observed; running state remains unverified.' if origin == 'explicit'
-                else 'Setting is unspecified or uses an unsupported expression; no default value is assumed.',
+                else ('No explicit assignment observed; no compiled default value is assumed.' if origin == 'unspecified'
+                      else 'Final assignment uses an unsupported expression; no value is inferred.'),
                 CONFIG_LIMITS, recommendations=(
                     'Verify accessible previous boots and loaded journald settings before planning any change.',
                     'Review storage budgets and retention together; defaults may already provide limits.')))

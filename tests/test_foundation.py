@@ -81,6 +81,14 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual('unavailable', data['atop.service_active'].state)
         self.assertNotIn('a' * 32, json.dumps(data['journal.previous_boots'].value))
 
+    def test_dependencies_describe_implemented_features_only(self):
+        with patch.object(self.runner, 'available', return_value=False):
+            items = {i.key: i for i in check(self.sources, self.runner) if i.key.startswith('dependency.')}
+        self.assertEqual({'dependency.' + name for name in ('free', 'df', 'systemctl', 'journalctl', 'systemd-analyze', 'atop')}, set(items))
+        self.assertIn('Optional:', items['dependency.atop'].explanation)
+        self.assertIn('Feature dependency:', items['dependency.journalctl'].explanation)
+        self.assertTrue(all(i.state == 'unavailable' for i in items.values()))
+
     def test_empty_or_denied_history_is_not_disabled_persistence(self):
         for result in (Result('completed', '', 0), Result('completed', 'denied', 1), Result('output_limit')):
             self.runner.results[Command.JOURNAL_BOOTS] = result

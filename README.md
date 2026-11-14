@@ -84,6 +84,9 @@ and 130 means interrupted collection. Inspect observation states for warnings or
 exit 0 does not assert that the system is healthy. `health`, `network`, `security`,
 `incidents`, calendar history filters, configuration changes and the TUI are not implemented.
 
+See [dependencies and feature requirements](docs/dependencies.md) before installing
+optional tools. Executable availability alone does not prove feature readiness.
+
 ## Develop and verify
 
 Use only `staging` and `main`; PRs to main require the baseline, analysis and CodeQL
