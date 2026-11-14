@@ -130,7 +130,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         else:
             print("Faultlens " + __version__ + " — read-only " + args.command, file=stdout)
             for item in items:
-                value = "unavailable" if item.value is None else json.dumps(item.value, ensure_ascii=True)
+                value = (("unavailable" if item.state == "unavailable" else "unknown")
+                         if item.value is None else json.dumps(item.value, ensure_ascii=True))
                 print(safe_text(f"[{item.state.upper()}] {item.key}: {value} {item.unit}"), file=stdout)
                 print(safe_text(f"  Source: {item.source}. {item.explanation}"), file=stdout)
                 for limitation in item.limitations:

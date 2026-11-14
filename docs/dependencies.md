@@ -1,0 +1,46 @@
+# Dependencies and installation scope
+
+Faultlens runs from source on Linux with Python 3.11+. It has no external Python
+packages, mandatory recorder, database, cloud service or daemon. Run as an ordinary
+user. Missing feature dependencies produce partial/unavailable observations, not
+installation requests or automatic privilege escalation.
+
+| Tool | Used by | Requirement |
+| --- | --- | --- |
+| journalctl | history, diagnose, previous-boot check | Needed for these journal features; visible records depend on permissions and retention |
+| systemctl | status/check service observations | Needed for service state only |
+| systemd-analyze | check --history merged journald configuration | Optional; systemd 255+ needed for --tldr; executable discovery alone does not verify version |
+| atop | diagnose --atop-date | Optional replay tool; recordings must already exist; Faultlens does not install or enable a recorder |
+| free, df | scripts/validate_local.py | Optional comparison tools; ordinary status reads procfs/statvfs directly |
+
+On typical Debian/Ubuntu systems, the systemd tools are provided by the systemd
+installation, free by procps, and df by coreutils. Package availability and service
+configuration depend on the distribution. Inspect existing availability first;
+there is no blanket installation command or need to install every optional tool.
+Atop recording and rotation require a separately managed service; installing a tool
+does not recreate past measurements. Do not change sampling without measuring overhead.
+
+Faultlens currently does not invoke sosreport, sar, ip, ss, nstat or nft. They are
+excluded from dependency observations until an implemented feature needs them.
+In particular, sosreport collection is not required and could gather substantially
+more sensitive material than current Faultlens observations.
+
+`dependency.*` reports trusted executable availability, not host health or full
+feature readiness. The explanation identifies the feature and optional scope.
+A missing optional tool is unavailable evidence, not a system security failure.
+
+## Candidate improvements
+
+Prioritize better evidence quality before adding integrations:
+
+- Explain exactly which feature is unavailable and why (permissions, unsupported
+  version, missing tool or missing historical data), with a bounded capability probe.
+- Assess observed recording gaps and time coverage, preserving uncertainty about
+  host/boot identity and incomplete input.
+- Add opt-in pstore analysis with strict size limits and redacted references for
+  crash evidence that may survive a reboot.
+- Offer an explicit export preview and redaction review before any future local
+  report export; never upload reports automatically.
+
+These are proposals, not implemented functionality or new installation requirements.
+Each integration needs a documented threat model, resource budget and synthetic tests.

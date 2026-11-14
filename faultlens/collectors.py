@@ -1,7 +1,7 @@
 """Read-only observations from Linux interfaces, with explicit evidence gaps."""
 import time
 
-from .commands import Command, CommandRunner, TOOLS
+from .commands import Command, CommandRunner, TOOLS, TOOL_PURPOSES
 from .linux import LinuxSources
 from .models import Observation, unavailable
 from . import parsers
@@ -140,7 +140,8 @@ def check(sources=None, runner=None) -> list[Observation]:
         available = runner.available(tool)
         items.append(Observation("dependency." + tool, available, "", "trusted system executable directories",
                                  "normal" if available else "unavailable",
-                                 explanation="Optional integration availability only; no installation or elevation performed."))
+                                 explanation=TOOL_PURPOSES[tool],
+                                 limitations=("Executable discovery alone does not establish version, service state or feature usability. No installation or elevation performed.",)))
     for key, path in (("journal.persistent_directory", "/var/log/journal"),
                       ("journal.runtime_directory", "/run/log/journal"),
                       ("kernel.pstore_directory", "/sys/fs/pstore")):

@@ -32,7 +32,15 @@ CATALOG = {
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
     Command.ATOP_SERVICE: ("systemctl", ("is-active", "atop.service", "--no-pager")),
 }
-TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "ip", "ss", "nstat", "nft", "atop", "sar", "sosreport")
+TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop")
+TOOL_PURPOSES = {
+    "free": "Optional: memory comparison in scripts/validate_local.py; status reads procfs directly.",
+    "df": "Optional: filesystem comparison in scripts/validate_local.py; status uses statvfs directly.",
+    "systemctl": "Feature dependency: service observations in status/check; other observations remain available without it.",
+    "journalctl": "Feature dependency: visible boot history and journal incident analysis.",
+    "systemd-analyze": "Optional: explicit journald configuration in check --history; requires systemd 255+ for --tldr, not verified by executable discovery.",
+    "atop": "Optional: replay only when diagnose --atop-date is requested; historical samples require existing recordings.",
+}
 DIRECTORIES = ("/usr/bin", "/usr/sbin", "/bin", "/sbin")
 ENVIRONMENT = {"PATH": "/usr/bin:/usr/sbin:/bin:/sbin", "LANG": "C", "LC_ALL": "C",
                "SYSTEMD_PAGER": "", "PAGER": "", "SYSTEMD_COLORS": "0"}
