@@ -106,3 +106,13 @@ suite now checks two fresh children per mode. Live/archive benchmark modes also
 assert that all eight records were analyzed successfully, not merely journal success.
 Real archive directory traversal and filesystem latency are excluded; separate
 synthetic boundary tests exercise traversal limits and protected descriptors.
+
+## Kernel detector report rules — 2026-11-14
+
+The ninth mode, `diagnose-stalls`, generates 501 invented mixed watchdog/blocked-task
+reports and verifies 500 retained findings spanning all three new rules. Ten fresh
+Linux/Python 3.14.4 children measured median wall 0.0581 s, maximum wall 0.0624 s,
+median CPU 0.0512 s and maximum peak RSS 26.48 MiB. All nine modes passed the existing
+<50 MiB RSS / <1 s CPU / <2 s wall budgets. The regression suite now runs two fresh
+children per mode. These figures cover synthetic parsing/rendering, not real lockups,
+detector overhead, journald latency or native Atop replay.

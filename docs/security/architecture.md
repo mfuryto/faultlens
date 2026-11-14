@@ -13,6 +13,9 @@ The [archive reader](../architecture/phase-2-pstore-archive.md) extends this to 
 protected systemd archive paths with global traversal bounds.
 Pstore content is treated as untrusted and never printed; signature references do not
 authenticate evidence or associate a boot. No record deletion or permission changes occur.
+[Kernel stall report rules](../architecture/phase-2-stall-rules.md) require full supported
+message formats and kernel transport, omit task identities, and distinguish detector
+observations from root-cause attribution.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

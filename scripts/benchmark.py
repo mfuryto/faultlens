@@ -16,17 +16,19 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticHistoricalRunner, SyntheticSources
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner
     output = io.StringIO()
     started = time.monotonic()
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
+    if command == 'diagnose-stalls':
+        arguments = ['diagnose', '--json']
     if command == 'check-history':
         arguments = ['check', '--history', '--json']
     if command == 'diagnose-pstore-archive':
         arguments = ['diagnose', '--pstore-archive', '--json']
     if command == 'diagnose-pstore':
         arguments = ['diagnose', '--pstore', '--json']
-    code = main(arguments, sources=SyntheticSources(), runner=SyntheticHistoricalRunner(), stdout=output,
+    code = main(arguments, sources=SyntheticSources(), runner=SyntheticStallRunner() if command == 'diagnose-stalls' else SyntheticHistoricalRunner(), stdout=output,
                 pstore_collector=SyntheticSources().pstore_snapshot,
                 pstore_archive_collector=SyntheticSources().pstore_snapshot)
     payload = json.loads(output.getvalue())
@@ -36,6 +38,10 @@ def worker(command: str) -> dict:
         key = 'pstore_archive' if command == 'diagnose-pstore-archive' else 'pstore'
         if payload[key]['state'] != 'available' or len(payload[key]['records']) != 8:
             raise RuntimeError('Synthetic pstore analysis failed')
+    if command == 'diagnose-stalls':
+        if len(payload['findings']) != 500 or {item['rule_id'] for item in payload['findings']} != {
+                'kernel.soft_lockup', 'kernel.hard_lockup', 'kernel.hung_task'}:
+            raise RuntimeError('Synthetic stall analysis failed')
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return {'collection_wall_seconds': time.monotonic() - started,
             'cpu_seconds': usage.ru_utime + usage.ru_stime,
@@ -52,7 +58,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -61,7 +67,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

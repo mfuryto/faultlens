@@ -1,5 +1,5 @@
 """Evidence-backed event rules; no automatic attribution of a freeze or root cause."""
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
@@ -29,6 +29,7 @@ class Finding:
     limitations: tuple[str, ...]
     recommendations: tuple[str, ...]
     cause_confidence: str = 'Unknown'
+    reported_measurements: dict[str, int] = field(default_factory=dict)
 
 
 # Patterns describe kernel messages, not arbitrary mentions in application output.
@@ -44,6 +45,53 @@ KERNEL_RULES = (
     ('kernel.filesystem_error', 'Kernel reported an ext4 error', r'^EXT4-fs error ',
      'warning', 'Inspect filesystem and storage evidence before considering any repair operation.'),
 )
+# Full-message detector signatures: task names are matched but never copied into findings.
+TASK_NAME = r'[^\x00-\x1f\x7f-\x9f]{1,64}'
+STALL_RULES = (
+    ('kernel.soft_lockup', 'Kernel watchdog reported a soft lockup',
+     re.compile(r'watchdog: BUG: soft lockup - CPU#(?P<cpu>[0-9]{1,10}) stuck for (?P<seconds>[0-9]{1,10})s! \['
+                + TASK_NAME + r':(?P<pid>[0-9]{1,10})\]\n?'),
+     'warning', 'Review nearby scheduling and kernel evidence; do not change watchdog settings based on this report alone.'),
+    ('kernel.hard_lockup', 'Kernel watchdog reported a hard lockup',
+     re.compile(r'(?:watchdog|NMI watchdog): Watchdog detected hard LOCKUP on cpu (?P<cpu>[0-9]{1,10})\n?'),
+     'critical', 'Review nearby kernel records and available crash evidence; a detector report does not prove hardware failure.'),
+    ('kernel.hung_task', 'Kernel reported a blocked task',
+     re.compile(r'INFO: task ' + TASK_NAME + r':(?P<pid>[0-9]{1,10}) blocked for more than (?P<seconds>[0-9]{1,19}) seconds\.\n?'),
+     'warning', 'Review nearby storage, filesystem and scheduling evidence; a blocked task alone does not identify the cause.'),
+)
+
+
+def stall_finding(entry):
+    if entry.transport != 'kernel' or entry.message is None:
+        return None
+    for rule_id, title, pattern, severity, recommendation in STALL_RULES:
+        match = pattern.fullmatch(entry.message)
+        if not match:
+            continue
+        fields = {key: int(value) for key, value in match.groupdict().items()}
+        if (any(fields.get(key, 0) > 2**31 - 1 for key in ('cpu', 'pid'))
+                or ('seconds' in fields and not 1 <= fields['seconds'] <=
+                    (2**32 - 1 if rule_id == 'kernel.soft_lockup' else 2**63 - 1))):
+            return None
+        measurements = {}
+        if 'cpu' in fields:
+            measurements['reported_cpu_index'] = fields['cpu']
+        if 'seconds' in fields:
+            key = 'reported_blocked_more_than_seconds' if rule_id == 'kernel.hung_task' else 'reported_stuck_seconds'
+            measurements[key] = fields['seconds']
+        return Finding(rule_id, title, title + ' in the selected journal tail.',
+            'Confirmed', severity, [entry.reference()],
+            'A kernel-transport record matches a complete supported detector signature; numeric fields are range-checked.',
+            {'minimum_matching_records': 1},
+            ('Confirms the recorded detector report, not a proven system-wide freeze, panic or root cause.',
+             'Detector configuration, coverage and false positives are not assessed. Missing reports do not exclude stalls.',
+             'Reported durations are detector observations, not independently measured timings or configured thresholds.',
+             'Task names and process IDs are omitted; CPU indices are reported labels, not verified topology.',
+             'Timeline and optional Atop pairing use journal report time, not the full reported stall period.'),
+            (recommendation,), reported_measurements=measurements)
+    return None
+
+
 UNIT_START_FAILED = 'be02cf6855d2428ba40df7e9d022f03d'
 SHUTDOWN_REQUEST = '98268866d1d54a499c4e98921d93bc40'
 
@@ -51,6 +99,9 @@ SHUTDOWN_REQUEST = '98268866d1d54a499c4e98921d93bc40'
 def analyze(records) -> list[Finding]:
     findings = []
     for entry in records:
+        stall = stall_finding(entry)
+        if stall is not None:
+            findings.append(stall)
         if entry.transport == 'kernel' and entry.message is not None:
             for rule_id, title, pattern, severity, recommendation in KERNEL_RULES:
                 if re.match(pattern, entry.message):

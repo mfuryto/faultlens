@@ -48,10 +48,14 @@ or inaccessible sources remain unavailable. See [preservation assessment](docs/a
 
 History lists accessible boot IDs. Diagnose resolves a selected boot to an immutable
 ID and analyzes at most 500 accessible tail records for specific kernel OOM, panic,
-I/O/ext4 error and structured systemd event signatures. Findings retain references,
+I/O/ext4 error, supported watchdog/blocked-task reports and structured systemd event
+signatures. Findings retain references,
 reasoning, confidence and limitations. Raw journal messages are processed in bounded
 memory only; they are never displayed or saved. Missing evidence and root causes
-remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md).
+remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md)
+and [kernel stall report rules](docs/architecture/phase-2-stall-rules.md).
+Detector findings show checked reported measurements without task names or PID;
+they do not establish a whole-system freeze or a cause.
 
 `--atop-date YYYYMMDD` optionally reads a protected local recording through the
 installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.
