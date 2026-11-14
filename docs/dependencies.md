@@ -28,6 +28,9 @@ more sensitive material than current Faultlens observations.
 `dependency.*` reports trusted executable availability, not host health or full
 feature readiness. The explanation identifies the feature and optional scope.
 A missing optional tool is unavailable evidence, not a system security failure.
+Journal availability also depends on existing access: default history/diagnosis reads
+the visible set, and `--system-journal` explicitly selects accessible system journals.
+The flag grants no permissions. See [source scope](architecture/phase-2-journal-scope.md).
 
 ## Candidate improvements
 

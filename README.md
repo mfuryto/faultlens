@@ -22,10 +22,12 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens check --history
 ./bin/faultlens check --history --json
 ./bin/faultlens history
+./bin/faultlens history --system-journal
 ./bin/faultlens diagnose --previous-boot
 ./bin/faultlens diagnose --previous-boot --pstore
 ./bin/faultlens diagnose --previous-boot --pstore-archive --json
 ./bin/faultlens diagnose --boot -2 --json
+./bin/faultlens diagnose --boot 0 --system-journal --json
 ./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
 ```
 
@@ -59,6 +61,11 @@ they do not establish a whole-system freeze or a cause.
 Diagnose also reports the retained journal window, finding positions and clock-mapping
 variation. Long intervals between records are not classified as missing logs or downtime.
 See [chronology and coverage](docs/architecture/phase-2-reconstruction.md).
+The default journal scope is everything accessible to the current user; it can lack
+system evidence. `--system-journal` explicitly selects accessible system journals for
+both listing and diagnosis without granting access. Use history with the same flag
+when selecting boot indices. Source counts and safe collection status are reported;
+completeness remains unknown. See [journal scope](docs/architecture/phase-2-journal-scope.md).
 
 `--atop-date YYYYMMDD` optionally reads a protected local recording through the
 installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.

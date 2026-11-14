@@ -19,6 +19,7 @@ class Command(Enum):
     SYSTEM_STATE = "system_state"
     JOURNAL_CONFIG = "journal_config"
     JOURNAL_BOOTS = "journal_boots"
+    JOURNAL_SYSTEM_BOOTS = "journal_system_boots"
     JOURNAL_SERVICE = "journal_service"
     ATOP_SERVICE = "atop_service"
 
@@ -29,6 +30,7 @@ CATALOG = {
     Command.SYSTEM_STATE: ("systemctl", ("is-system-running", "--no-pager")),
     Command.JOURNAL_CONFIG: ("systemd-analyze", ("cat-config", "--tldr", "systemd/journald.conf")),
     Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet")),
+    Command.JOURNAL_SYSTEM_BOOTS: ("journalctl", ("--system", "--list-boots", "--no-pager", "--quiet")),
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
     Command.ATOP_SERVICE: ("systemctl", ("is-active", "atop.service", "--no-pager")),
 }
@@ -142,6 +144,14 @@ class CommandRunner:
                 os.close(descriptor)
 
     def read_boot(self, boot_id: str) -> Result:
+        return self._read_boot(boot_id, system=False)
+
+    def read_system_boot(self, boot_id: str) -> Result:
+        return self._read_boot(boot_id, system=True)
+
+    def _read_boot(self, boot_id: str, *, system: bool) -> Result:
+        if type(system) is not bool:
+            raise ValueError("Invalid journal scope")
         if not isinstance(boot_id, str) or not re.fullmatch(r"[0-9a-f]{32}", boot_id):
             raise ValueError("Invalid boot identity")
         executable = trusted_tool("journalctl")
@@ -149,6 +159,8 @@ class CommandRunner:
             return Result("missing")
         arguments = ["--boot=" + boot_id, "--lines=501", "--output=json", "--no-pager", "--quiet",
                      "--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM"]
+        if system:
+            arguments.insert(0, "--system")
         try:
             return _capture([executable, *arguments])
         except (OSError, ValueError, UnicodeError, subprocess.SubprocessError):

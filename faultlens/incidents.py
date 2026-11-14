@@ -139,10 +139,16 @@ def base(command):
     return result
 
 
-def history(runner=None):
+def history(runner=None, *, system_journal=False):
+    if type(system_journal) is not bool:
+        raise ValueError('Invalid journal scope')
     runner = runner or CommandRunner()
     data = base('history')
-    result = runner.run(Command.JOURNAL_BOOTS)
+    data['journal_scope'] = {'requested': 'system' if system_journal else 'visible',
+                             'completeness': 'unknown', 'kernel_records_examined': None,
+                             'pid1_systemd_records_examined': None, 'system_evidence_observed': None}
+    data['limitations'].append('Journal scope selects accessible sources only; visible scope may contain personal logs only. System scope does not grant access or prove completeness.')
+    result = runner.run(Command.JOURNAL_SYSTEM_BOOTS if system_journal else Command.JOURNAL_BOOTS)
     data['boot_listing'] = {'command_state': result.state, 'returncode': result.returncode,
                             'parse_state': 'not_attempted'}
     if result.state != 'completed' or result.returncode != 0:
@@ -162,19 +168,20 @@ def history(runner=None):
     return data
 
 
-def diagnose(runner=None, boot_index=-1, atop_date=None):
+def diagnose(runner=None, boot_index=-1, atop_date=None, *, system_journal=False):
     if type(boot_index) is not int or not -128 <= boot_index <= 0:
         raise ValueError('Invalid boot index')
     if atop_date is not None:
         from .recordings import recording_date
         recording_date(atop_date)
     runner = runner or CommandRunner()
-    data = history(runner)
+    data = history(runner, system_journal=system_journal)
     data['atop'] = {'state': 'not_requested' if atop_date is None else 'unavailable',
                     'reason': 'not_requested' if atop_date is None else 'journal_scope_unavailable',
                     'samples': [], 'correlations': []}
     data['command'] = 'diagnose'
     data['reconstruction'] = None
+    data['journal_collection'] = None
     if data['state'] != 'available':
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
         return data
@@ -185,15 +192,27 @@ def diagnose(runner=None, boot_index=-1, atop_date=None):
         return data
     data.update(selected_boot=selected, state='unavailable', coverage='unavailable')
     # Resolve the index to an immutable ID before querying, avoiding reboot/index races.
-    result = runner.read_boot(selected['boot_id'])
+    result = (runner.read_system_boot(selected['boot_id']) if system_journal
+              else runner.read_boot(selected['boot_id']))
+    data['journal_collection'] = {'command_state': result.state, 'returncode': result.returncode,
+                                  'parse_state': 'not_attempted'}
     if result.state != 'completed' or result.returncode != 0:
         data['limitations'].append('Journal collection failed, timed out, exceeded the byte limit or was inaccessible.')
         return data
     try:
         records, limited, unsupported = entries(result.stdout, selected['boot_id'])
     except ValueError:
+        data['journal_collection']['parse_state'] = 'invalid'
         data['limitations'].append('Journal records were malformed, ambiguous or outside the selected boot.')
         return data
+    data['journal_collection']['parse_state'] = 'valid' if records else 'empty'
+    kernel_count = sum(entry.transport == 'kernel' for entry in records)
+    systemd_count = sum(entry.pid == '1' and entry.comm == 'systemd' for entry in records)
+    data['journal_scope'].update(kernel_records_examined=kernel_count,
+                                 pid1_systemd_records_examined=systemd_count,
+                                 system_evidence_observed=bool(kernel_count or systemd_count))
+    if not kernel_count and not systemd_count:
+        data['limitations'].append('No kernel or PID 1 systemd records were observed in the retained tail; this does not establish absent system access or a healthy system.')
     findings = analyze(records)
     data.update(state='available' if records else 'unavailable', coverage='bounded_tail',
                 records_examined=len(records), record_limit_reached=limited,

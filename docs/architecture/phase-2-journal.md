@@ -132,3 +132,6 @@ rules and normalized reported measurements without changing root-cause semantics
 
 The [retained chronology milestone](phase-2-reconstruction.md) adds evidence-window
 coverage, finding positions and clock-mapping observations without inferring causes.
+
+The [source-scope milestone](phase-2-journal-scope.md) adds explicit system-journal
+selection and safe collection status without elevating privileges or claiming full access.

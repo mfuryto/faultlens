@@ -122,3 +122,15 @@ class SyntheticClockRunner(SyntheticStallRunner):
             value['__REALTIME_TIMESTAMP'] = str(int(value['__REALTIME_TIMESTAMP']) + (index % 2) * 3000000)
             rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticSystemRunner(SyntheticHistoricalRunner):
+    """Explicit system-scope interface using invented boot and record data only."""
+    def run(self, command):
+        if command == Command.JOURNAL_SYSTEM_BOOTS:
+            self.calls.append(command)
+            return self.results[Command.JOURNAL_BOOTS]
+        return super().run(command)
+
+    def read_system_boot(self, boot_id):
+        return self.read_boot(boot_id)

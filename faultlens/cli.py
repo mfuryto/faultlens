@@ -57,6 +57,13 @@ def atop_date(value: str) -> str:
 
 def render_history(data, stdout):
     print("Faultlens — read-only " + data['command'] + ": " + data['state'], file=stdout)
+    scope = data['journal_scope']
+    print("Journal scope: " + scope['requested'] + "; completeness unknown; no elevation.", file=stdout)
+    if scope['kernel_records_examined'] is not None:
+        print(f"System evidence in retained tail: kernel records {scope['kernel_records_examined']}; PID 1 systemd records {scope['pid1_systemd_records_examined']}.", file=stdout)
+    collection = data.get('journal_collection')
+    if collection and (collection['command_state'] != 'completed' or collection['returncode'] != 0 or collection['parse_state'] != 'valid'):
+        print("Journal collection: " + json.dumps(collection, ensure_ascii=True), file=stdout)
     listing = data.get('boot_listing')
     if listing and (listing['command_state'] != 'completed' or listing['returncode'] != 0 or listing['parse_state'] != 'valid'):
         print("Boot listing: " + json.dumps(listing, ensure_ascii=True), file=stdout)
@@ -134,7 +141,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
     parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
     parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
+    parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
     args = parser.parse_args(argv)
+    if args.system_journal and args.command not in {"history", "diagnose"}:
+        parser.error("System journal scope is supported only with history or diagnose.")
     if args.pstore_archive and args.command != "diagnose":
         parser.error("Pstore archive analysis is supported only with diagnose.")
     if args.pstore and args.command != "diagnose":
@@ -149,7 +159,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     try:
         if args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
-            data = history(runner) if args.command == "history" else diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date)
+            data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
+                    diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date, system_journal=args.system_journal))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)
