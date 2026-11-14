@@ -51,3 +51,27 @@ Local measurements on 2026-11-11, Linux/Python 3.14.4, ten children per command:
 
 These figures exclude real journalctl startup, access restrictions and real journal
 I/O. The subprocess deadlines and byte cap remain independent runtime controls.
+
+## Optional Atop context — 2026-11-14
+
+The `diagnose-atop` benchmark is a synthetic diagnostic invocation with 501 invented
+journal records (500 retained events), 256 resource groups and possible temporal
+pairings. No native Atop binary or recording is used. All five benchmark modes retain
+the <50 MiB parent RSS / <1 s CPU / <2 s wall regression budgets.
+
+Linux/Python 3.14.4, ten fresh children per command:
+
+| Command | Median wall | Max wall | Median CPU | Max peak RSS |
+| --- | ---: | ---: | ---: | ---: |
+| status | 0.1494 s | 0.1551 s | 0.0367 s | 18.14 MiB |
+| check | 0.0371 s | 0.0388 s | 0.0316 s | 18.11 MiB |
+| history | 0.0406 s | 0.0419 s | 0.0342 s | 22.72 MiB |
+| diagnose | 0.0516 s | 0.0522 s | 0.0450 s | 25.39 MiB |
+| diagnose-atop | 0.0712 s | 0.0748 s | 0.0641 s | 26.84 MiB |
+
+Native replay and the recording daemon are not included. Native replay has separate
+64 MiB address-space / 2 s CPU / 2 s wall limits; it is not measured by the
+synthetic benchmark. A separate limited native smoke test verified EOF and cutoff
+handling but did not establish a native resource/performance baseline. Neither
+these synthetic results nor the limits establish
+target-host overhead or justify changing an existing sampling interval automatically.

@@ -118,3 +118,6 @@ any future changes require exact previews and explicit confirmation.
 Primary references: [journalctl](https://www.freedesktop.org/software/systemd/man/253/journalctl.html),
 [journal addressing fields](https://www.freedesktop.org/software/systemd/man/258/systemd.journal-fields.html),
 and [systemd message IDs](https://github.com/systemd/systemd/blob/main/src/systemd/sd-messages.h).
+
+The next milestone adds [optional Atop temporal context](phase-2-atop.md). Its pairing
+confidence never upgrades the journal-only cause confidence or implies complete reconstruction.

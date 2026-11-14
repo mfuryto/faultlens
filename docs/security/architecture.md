@@ -3,7 +3,9 @@
 Status: threat model for the planned full local Linux application. Phase 1 implements
 bounded read-only collectors, a fixed command catalog and a CLI. The first Phase 2
 milestone adds bounded journal normalization and provenance-checked event rules; see
-[journal analysis](../architecture/phase-2-journal.md). See
+[journal analysis](../architecture/phase-2-journal.md). The optional
+[Atop adapter](../architecture/phase-2-atop.md) adds protected-descriptor replay,
+child-only native resource limits and uncertain wall-time pairing. See
 [Phase 1 decisions](../architecture/phase-1.md) for implemented boundaries and tests.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.

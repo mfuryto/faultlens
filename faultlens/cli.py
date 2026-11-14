@@ -40,6 +40,14 @@ def boot_index(value: str) -> int:
     return parsed
 
 
+def atop_date(value: str) -> str:
+    from .recordings import recording_date
+    try:
+        return recording_date(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Atop date must be a valid YYYYMMDD date from 1970 onward.") from exc
+
+
 def render_history(data, stdout):
     print("Faultlens — read-only " + data['command'] + ": " + data['state'], file=stdout)
     for boot in data['boots']:
@@ -57,6 +65,18 @@ def render_history(data, stdout):
             print("  Reasoning: " + finding['reasoning'], file=stdout)
             for text in finding['limitations'] + finding['recommendations']:
                 print("  " + text, file=stdout)
+        resources = data.get('atop', {})
+        if resources.get('state') != 'not_requested':
+            print("Atop: " + resources['state'], file=stdout)
+            if resources['state'] == 'available':
+                intervals = sorted({value['interval_s'] for value in resources['samples'] if not value['since_boot']})
+                print(f"  Samples: {len(resources['samples'])}; observed intervals (seconds): {intervals}", file=stdout)
+                print(f"  Possible temporal overlaps: {len(resources['correlations'])}; host/boot unverified; cause Unknown.", file=stdout)
+                print("  Use --json for normalized samples and overlap references.", file=stdout)
+            else:
+                print("  Reason: " + resources.get('reason', 'unavailable'), file=stdout)
+            for limitation in resources.get('limitations', []):
+                print("  Limitation: " + limitation, file=stdout)
     for text in data['limitations']:
         print("Limitation: " + text, file=stdout)
 
@@ -72,8 +92,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
+    parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
     args = parser.parse_args(argv)
-    if args.command != "diagnose" and (args.previous_boot or args.boot is not None):
+    if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
     if (platform or sys.platform) != "linux":
         print("Faultlens supports Linux only.", file=stderr)
@@ -81,7 +102,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     try:
         if args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
-            data = history(runner) if args.command == "history" else diagnose(runner, -1 if args.boot is None else args.boot)
+            data = history(runner) if args.command == "history" else diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date)
         else:
             items = (status(sources, runner, args.sample_seconds) if args.command == "status"
                      else check(sources, runner))
