@@ -23,6 +23,7 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens check --history --json
 ./bin/faultlens history
 ./bin/faultlens diagnose --previous-boot
+./bin/faultlens diagnose --previous-boot --pstore
 ./bin/faultlens diagnose --boot -2 --json
 ./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
 ```
@@ -56,6 +57,14 @@ installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overl
 It never asserts shared host/boot identity or a root cause. Atop remains optional;
 without this explicit flag it is not invoked. See [Atop setup and limits](docs/architecture/phase-2-atop.md).
 Recording begins only after Atop installation; old measurements cannot be recreated.
+Filename-date gaps appear in `check --history`; replayed sample intervals add Possible
+coverage gaps to `diagnose --atop-date`. Neither proves a recorder outage or continuity.
+
+`diagnose --pstore` optionally inspects bounded live pstore records for panic signatures.
+It shows redacted references, never raw crash text, and does not associate records with
+the selected boot. Access denial or no visible records does not exclude a crash.
+No extra package, root execution or system changes are required by Faultlens; restricted
+records remain unavailable. See [coverage and pstore scope](docs/architecture/phase-2-coverage-pstore.md).
 
 Evidence can be sensitive even in summary form. Output stays on your terminal/stdout;
 review it before manually redirecting or sharing it. No automatic exports or uploads

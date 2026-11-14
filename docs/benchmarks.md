@@ -83,3 +83,14 @@ Linux/Python 3.14.4 measured median wall 0.0423 s, maximum wall 0.0464 s, median
 0.0360 s and maximum peak RSS 22.74 MiB. All six modes passed the existing budgets.
 This excludes native systemd-analyze startup and live filesystem latency. The resource
 regression test now runs two fresh children for each of the six modes.
+
+## Coverage hints and live pstore — 2026-11-14
+
+The seventh mode, `diagnose-pstore`, analyzes eight invented pstore text records
+(512 KiB total) plus the bounded synthetic journal; it never reads host pstore.
+Ten fresh Linux/Python 3.14.4 children measured median wall 0.0583 s, maximum wall
+0.0613 s, median CPU 0.0507 s and maximum peak RSS 25.47 MiB. Diagnose-atop, now
+including interval coverage, measured median wall 0.0776 s and maximum peak RSS
+27.05 MiB. All seven modes retained <50 MiB RSS / <1 s CPU / <2 s wall budgets.
+The regression suite now runs two fresh children for each of seven modes.
+These are synthetic parser/CLI measurements, not kernel filesystem latency guarantees.

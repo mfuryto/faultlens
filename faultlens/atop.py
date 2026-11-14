@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import hashlib
 import re
 
+from .coverage import sample_coverage
 from .parsers import counters
 from .recordings import recording_date
 
@@ -91,7 +92,7 @@ def attach(data: dict, records, runner, date: str):
     recording_date(date)
     output = {'state': 'unavailable', 'recording_date': date, 'samples': [], 'correlations': [],
               'host_identity': 'unverified', 'boot_identity': 'unverified',
-              'correlation_limit_reached': False,
+              'correlation_limit_reached': False, 'coverage': None,
               'limitations': ['Wall-clock overlap is Possible only; it does not verify host/boot identity or a cause.',
                               'Memory free/cache are snapshots, not MemAvailable or evidence of memory pressure.',
                               'One recording and a 30-minute window centered on the last journal record are examined.',
@@ -119,7 +120,7 @@ def attach(data: dict, records, runner, date: str):
     if not values:
         output['reason'] = 'no_samples_in_window'
         return
-    output.update(state='available', collection_state=result.state, samples=values, output_sha256=hashlib.sha256(result.stdout.encode()).hexdigest())
+    output.update(state='available', collection_state=result.state, samples=values, coverage=sample_coverage(values), output_sha256=hashlib.sha256(result.stdout.encode()).hexdigest())
     for index, finding in enumerate(data['findings']):
         event = finding['evidence'][0]['realtime_us']
         for value in values:
