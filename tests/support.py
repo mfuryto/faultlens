@@ -171,3 +171,20 @@ class SyntheticReviewRunner(SyntheticEventRunner):
             value['MESSAGE'] = 'Unclassified synthetic kernel warning'
             rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticOverlayRunner(SyntheticHistoricalRunner):
+    """Bounded invented OverlayFS report variants without mounting filesystems."""
+    def read_boot(self, boot_id):
+        import json
+        result = super().read_boot(boot_id)
+        if result.state != 'completed':
+            return result
+        rows = []
+        for index, line in enumerate(result.stdout.splitlines()):
+            value = json.loads(line)
+            role = 'upperdir' if index % 2 else 'workdir'
+            value['MESSAGE'] = ('overlayfs: ' + role + ' is in-use as upperdir/workdir of another mount, '
+                                'accessing files from both mounts will result in undefined behavior.')
+            rows.append(json.dumps(value))
+        return Result('completed', '\n'.join(rows), 0)

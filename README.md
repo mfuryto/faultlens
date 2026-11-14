@@ -51,14 +51,16 @@ or inaccessible sources remain unavailable. See [preservation assessment](docs/a
 
 History lists accessible boot IDs. Diagnose resolves a selected boot to an immutable
 ID and analyzes at most 500 accessible tail records for specific kernel OOM, panic,
-I/O/ext4 error, supported watchdog/blocked-task reports and structured systemd event
-signatures. Findings retain references,
+I/O/ext4 error, supported watchdog/blocked-task and OverlayFS reuse reports, and
+structured systemd event signatures. Findings retain references,
 reasoning, confidence and limitations. Raw journal messages are processed in bounded
 memory only; they are never displayed or saved. Missing evidence and root causes
 remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md)
 and [kernel stall report rules](docs/architecture/phase-2-stall-rules.md).
 Detector findings show checked reported measurements without task names or PID;
 they do not establish a whole-system freeze or a cause.
+[OverlayFS findings](docs/architecture/phase-2-overlayfs-rule.md) confirm a historical
+layer-reuse warning, not an identified container or active current mount conflict.
 Diagnose also reports the retained journal window, finding positions and clock-mapping
 variation. Long intervals between records are not classified as missing logs or downtime.
 See [chronology and coverage](docs/architecture/phase-2-reconstruction.md).

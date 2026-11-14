@@ -16,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner
     output = io.StringIO()
     started = time.monotonic()
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
-    if command in {'diagnose-stalls', 'diagnose-clock'}:
+    if command in {'diagnose-stalls', 'diagnose-clock', 'diagnose-overlay'}:
         arguments = ['diagnose', '--json']
     if command in {'diagnose-events', 'diagnose-review'}:
         arguments = ['diagnose', '--system-journal', '--search-events', '--json']
@@ -32,7 +32,8 @@ def worker(command: str) -> dict:
         arguments = ['diagnose', '--pstore-archive', '--json']
     if command == 'diagnose-pstore':
         arguments = ['diagnose', '--pstore', '--json']
-    runner = (SyntheticReviewRunner() if command == 'diagnose-review' else
+    runner = (SyntheticOverlayRunner() if command == 'diagnose-overlay' else
+              SyntheticReviewRunner() if command == 'diagnose-review' else
               SyntheticEventRunner() if command == 'diagnose-events' else
               SyntheticSystemRunner() if command == 'diagnose-system' else
               SyntheticClockRunner() if command == 'diagnose-clock' else
@@ -71,6 +72,9 @@ def worker(command: str) -> dict:
         if (review['retained_candidates'] != 500 or review['unclassified_candidates'] != 500
                 or len(review['unclassified_examples']) != 20 or not review['unclassified_examples_truncated']):
             raise RuntimeError('Synthetic unclassified candidate review failed')
+    if command == 'diagnose-overlay':
+        if len(payload['findings']) != 500 or any(item['rule_id'] != 'kernel.overlay_layer_reuse' for item in payload['findings']):
+            raise RuntimeError('Synthetic OverlayFS analysis failed')
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return {'collection_wall_seconds': time.monotonic() - started,
             'cpu_seconds': usage.ru_utime + usage.ru_stime,
@@ -87,7 +91,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -96,7 +100,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

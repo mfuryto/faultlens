@@ -29,6 +29,9 @@ filtered chronology separate from ordinary tail coverage and causal claims.
 [Unclassified candidate review](../architecture/phase-2-candidate-review.md) emits only
 fixed explanations and bounded normalized metadata. It never labels unknown messages
 benign or associates rule matches solely through potentially identical references.
+The [OverlayFS reuse rule](../architecture/phase-2-overlayfs-rule.md) matches only
+complete kernel warning formats, distinguishes historical evidence from current
+mount state and never triggers mount/service operations or protection changes.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 
