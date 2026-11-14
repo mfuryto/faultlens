@@ -27,20 +27,30 @@ def trusted_metadata(metadata, directory=False, allow_group_write=False):
         raise ValueError('Recording is not a bounded regular file')
 
 
-def open_recording(date: str) -> int:
-    """Caller owns the returned read-only fd. Never accept an arbitrary path."""
-    recording_date(date)
+def open_log_directory(kind: str) -> int:
+    """Pin one supported protected log directory; caller closes its descriptor."""
+    if kind not in {'atop', 'journal'}:
+        raise ValueError('Unsupported log directory')
     directory = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
     try:
         trusted_metadata(os.fstat(directory), directory=True)
-        for name in ('var', 'log', 'atop'):
+        for name in ('var', 'log', kind):
             child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW,
                             dir_fd=directory)
             os.close(directory)
             directory = child
-            # Some distributions give syslog write access to /var/log. The next
-            # root-owned non-writable atop directory and final inode are pinned.
             trusted_metadata(os.fstat(directory), directory=True, allow_group_write=name == 'log')
+        return directory
+    except BaseException:
+        os.close(directory)
+        raise
+
+
+def open_recording(date: str) -> int:
+    """Caller owns the returned read-only fd. Never accept an arbitrary path."""
+    recording_date(date)
+    directory = open_log_directory('atop')
+    try:
         descriptor = os.open('atop_' + date, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
                              dir_fd=directory)
         try:
