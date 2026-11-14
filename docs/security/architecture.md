@@ -26,6 +26,9 @@ provenance counts without granting rights or inferring complete access.
 field/priority profiles with per-query resource limits and validates all returned
 candidates before trimming. It never accepts user regex or path filters and keeps
 filtered chronology separate from ordinary tail coverage and causal claims.
+[Unclassified candidate review](../architecture/phase-2-candidate-review.md) emits only
+fixed explanations and bounded normalized metadata. It never labels unknown messages
+benign or associates rule matches solely through potentially identical references.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

@@ -70,6 +70,9 @@ completeness remains unknown. See [journal scope](docs/architecture/phase-2-jour
 `--search-events` adds two bounded selected-boot searches for kernel warning/error
 candidates and supported structured systemd events. Results appear separately in
 `event_search`; filtered spans are not continuous coverage. See [targeted search limits](docs/architecture/phase-2-targeted-search.md).
+Each query also supplies `candidate_review` with recorded priority counts, reasons
+for non-matches and at most 20 normalized example references. Unclassified does not
+mean harmless; raw messages are not shown. See [candidate review](docs/architecture/phase-2-candidate-review.md).
 
 `--atop-date YYYYMMDD` optionally reads a protected local recording through the
 installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.
