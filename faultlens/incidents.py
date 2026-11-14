@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
-from .journal import MAX_RECORDS, boots, entries
+from .journal import MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries
 from .models import report
 from .reconstruction import describe, timeline
 
@@ -93,10 +93,6 @@ def stall_finding(entry):
     return None
 
 
-UNIT_START_FAILED = 'be02cf6855d2428ba40df7e9d022f03d'
-SHUTDOWN_REQUEST = '98268866d1d54a499c4e98921d93bc40'
-
-
 def analyze(records) -> list[Finding]:
     findings = []
     for entry in records:
@@ -168,7 +164,9 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=-1, atop_date=None, *, system_journal=False):
+def diagnose(runner=None, boot_index=-1, atop_date=None, *, system_journal=False, search_events=False):
+    if type(search_events) is not bool:
+        raise ValueError('Invalid event search option')
     if type(boot_index) is not int or not -128 <= boot_index <= 0:
         raise ValueError('Invalid boot index')
     if atop_date is not None:
@@ -182,16 +180,22 @@ def diagnose(runner=None, boot_index=-1, atop_date=None, *, system_journal=False
     data['command'] = 'diagnose'
     data['reconstruction'] = None
     data['journal_collection'] = None
+    if search_events:
+        from .event_search import unresolved
+        data['event_search'] = unresolved(system=system_journal)
     if data['state'] != 'available':
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
         return data
+    # Resolve scope-local indices before either candidate search or tail collection.
     selected = next((boot for boot in data['boots'] if boot['index'] == boot_index), None)
     if selected is None:
         data.update(state='unavailable')
         data['limitations'].append('The requested boot is not visible. This does not prove that no earlier boot occurred.')
         return data
     data.update(selected_boot=selected, state='unavailable', coverage='unavailable')
-    # Resolve the index to an immutable ID before querying, avoiding reboot/index races.
+    if search_events:
+        from .event_search import search
+        data['event_search'] = search(runner, selected['boot_id'], system=system_journal)
     result = (runner.read_system_boot(selected['boot_id']) if system_journal
               else runner.read_boot(selected['boot_id']))
     data['journal_collection'] = {'command_state': result.state, 'returncode': result.returncode,

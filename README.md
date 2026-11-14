@@ -28,6 +28,7 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens diagnose --previous-boot --pstore-archive --json
 ./bin/faultlens diagnose --boot -2 --json
 ./bin/faultlens diagnose --boot 0 --system-journal --json
+./bin/faultlens diagnose --boot 0 --system-journal --search-events --json
 ./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
 ```
 
@@ -66,6 +67,9 @@ system evidence. `--system-journal` explicitly selects accessible system journal
 both listing and diagnosis without granting access. Use history with the same flag
 when selecting boot indices. Source counts and safe collection status are reported;
 completeness remains unknown. See [journal scope](docs/architecture/phase-2-journal-scope.md).
+`--search-events` adds two bounded selected-boot searches for kernel warning/error
+candidates and supported structured systemd events. Results appear separately in
+`event_search`; filtered spans are not continuous coverage. See [targeted search limits](docs/architecture/phase-2-targeted-search.md).
 
 `--atop-date YYYYMMDD` optionally reads a protected local recording through the
 installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.

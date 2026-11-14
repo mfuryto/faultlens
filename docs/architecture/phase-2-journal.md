@@ -135,3 +135,6 @@ coverage, finding positions and clock-mapping observations without inferring cau
 
 The [source-scope milestone](phase-2-journal-scope.md) adds explicit system-journal
 selection and safe collection status without elevating privileges or claiming full access.
+
+The [targeted-search milestone](phase-2-targeted-search.md) adds opt-in bounded candidate
+queries beyond the ordinary tail, without merging filtered spans into tail coverage.

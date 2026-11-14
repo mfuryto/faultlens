@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 import subprocess
 import time
 
+from .journal import SHUTDOWN_REQUEST, UNIT_START_FAILED
+
 
 class Command(Enum):
     REFERENCE_MEMORY = "reference_memory"
@@ -33,6 +35,11 @@ CATALOG = {
     Command.JOURNAL_SYSTEM_BOOTS: ("journalctl", ("--system", "--list-boots", "--no-pager", "--quiet")),
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
     Command.ATOP_SERVICE: ("systemctl", ("is-active", "atop.service", "--no-pager")),
+}
+EVENT_FILTERS = {
+    'kernel_warnings': ('--priority=warning', '_TRANSPORT=kernel'),
+    'systemd_events': ('_PID=1', '_COMM=systemd', 'MESSAGE_ID=' + UNIT_START_FAILED,
+                       'MESSAGE_ID=' + SHUTDOWN_REQUEST),
 }
 TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop")
 TOOL_PURPOSES = {
@@ -149,7 +156,14 @@ class CommandRunner:
     def read_system_boot(self, boot_id: str) -> Result:
         return self._read_boot(boot_id, system=True)
 
-    def _read_boot(self, boot_id: str, *, system: bool) -> Result:
+    def read_event_candidates(self, boot_id: str, query: str, *, system=False) -> Result:
+        if not isinstance(query, str) or query not in EVENT_FILTERS:
+            raise ValueError("Invalid event query")
+        return self._read_boot(boot_id, system=system, query=query)
+
+    def _read_boot(self, boot_id: str, *, system: bool, query=None) -> Result:
+        if query is not None and (not isinstance(query, str) or query not in EVENT_FILTERS):
+            raise ValueError("Invalid event query")
         if type(system) is not bool:
             raise ValueError("Invalid journal scope")
         if not isinstance(boot_id, str) or not re.fullmatch(r"[0-9a-f]{32}", boot_id):
@@ -159,6 +173,9 @@ class CommandRunner:
             return Result("missing")
         arguments = ["--boot=" + boot_id, "--lines=501", "--output=json", "--no-pager", "--quiet",
                      "--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM"]
+        if query is not None:
+            arguments[-1] += ",PRIORITY"
+            arguments.extend(EVENT_FILTERS[query])
         if system:
             arguments.insert(0, "--system")
         try:

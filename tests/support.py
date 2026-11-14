@@ -134,3 +134,25 @@ class SyntheticSystemRunner(SyntheticHistoricalRunner):
 
     def read_system_boot(self, boot_id):
         return self.read_boot(boot_id)
+
+
+class SyntheticEventRunner(SyntheticSystemRunner):
+    """Maximum filtered candidates from invented data, independently of the tail."""
+    def read_event_candidates(self, boot_id, query, *, system=False):
+        import json
+        if query not in {'kernel_warnings', 'systemd_events'}:
+            raise ValueError('Unknown synthetic query')
+        result = self.read_boot(boot_id)
+        if result.state != 'completed':
+            return result
+        rows = []
+        for line in result.stdout.splitlines():
+            value = json.loads(line)
+            if query == 'kernel_warnings':
+                value['PRIORITY'] = '3'
+            else:
+                from faultlens.journal import UNIT_START_FAILED
+                value.update(_TRANSPORT='journal', _PID='1', _COMM='systemd',
+                             MESSAGE_ID=UNIT_START_FAILED, MESSAGE='Synthetic start-job event', PRIORITY='6')
+            rows.append(json.dumps(value))
+        return Result('completed', '\n'.join(rows), 0)

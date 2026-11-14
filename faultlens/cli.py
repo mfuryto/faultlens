@@ -96,6 +96,24 @@ def render_history(data, stdout):
                 print("  Reported measurements: " + json.dumps(finding["reported_measurements"], ensure_ascii=True), file=stdout)
             for text in finding['limitations'] + finding['recommendations']:
                 print("  " + text, file=stdout)
+        targeted = data.get('event_search')
+        if targeted:
+            print("Targeted event search: " + targeted['state'] + "; completeness unknown; root cause Unknown.", file=stdout)
+            for query in targeted['queries']:
+                print(f"  Query {query['query']}: {query['state']}; candidates {query['candidates_examined']}; findings {len(query['findings'])}; cap reached {query['record_limit_reached']}.", file=stdout)
+                print("  Collection: " + json.dumps({key: query[key] for key in ('command_state', 'returncode', 'parse_state', 'reason')}, ensure_ascii=True), file=stdout)
+                if query['candidate_window']:
+                    print(f"  Candidate receipt-time span: {query['candidate_window']['monotonic_candidate_span_us']} microseconds; filtered, not continuous coverage.", file=stdout)
+                for finding in query['findings']:
+                    print(f"  [{finding['severity'].upper()}] {finding['title']} ({finding['confidence']} report; cause Unknown)", file=stdout)
+                    print("    Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
+                    print("    Reasoning: " + finding['reasoning'], file=stdout)
+                    if finding["reported_measurements"]:
+                        print("    Reported measurements: " + json.dumps(finding["reported_measurements"], ensure_ascii=True), file=stdout)
+                    for text in finding['limitations'] + finding['recommendations']:
+                        print("    " + text, file=stdout)
+            for text in targeted.get('limitations', []):
+                print("  Limitation: " + text, file=stdout)
         resources = data.get('atop', {})
         if resources.get('state') != 'not_requested':
             print("Atop: " + resources['state'], file=stdout)
@@ -142,7 +160,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
     parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
     parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
+    parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
     args = parser.parse_args(argv)
+    if args.search_events and args.command != "diagnose":
+        parser.error("Targeted event search is supported only with diagnose.")
     if args.system_journal and args.command not in {"history", "diagnose"}:
         parser.error("System journal scope is supported only with history or diagnose.")
     if args.pstore_archive and args.command != "diagnose":
@@ -160,7 +181,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         if args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date, system_journal=args.system_journal))
+                    diagnose(runner, -1 if args.boot is None else args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)
