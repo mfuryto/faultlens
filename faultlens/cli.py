@@ -70,9 +70,11 @@ def render_history(data, stdout):
             print("Last visible record reference: " + json.dumps(data['last_record'], ensure_ascii=True), file=stdout)
         print("Root cause: Unknown. Shutdown: " + data['shutdown_assessment'], file=stdout)
         for finding in data['findings']:
-            print(f"[{finding['severity'].upper()}] {finding['title']} ({finding['confidence']} event; cause Unknown)", file=stdout)
+            print(f"[{finding['severity'].upper()}] {finding['title']} ({finding['confidence']} report; cause Unknown)", file=stdout)
             print("  Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
             print("  Reasoning: " + finding['reasoning'], file=stdout)
+            if finding["reported_measurements"]:
+                print("  Reported measurements: " + json.dumps(finding["reported_measurements"], ensure_ascii=True), file=stdout)
             for text in finding['limitations'] + finding['recommendations']:
                 print("  " + text, file=stdout)
         resources = data.get('atop', {})

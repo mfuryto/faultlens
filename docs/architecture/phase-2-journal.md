@@ -126,3 +126,6 @@ and [systemd message IDs](https://github.com/systemd/systemd/blob/main/src/syste
 
 The next milestone adds [optional Atop temporal context](phase-2-atop.md). Its pairing
 confidence never upgrades the journal-only cause confidence or implies complete reconstruction.
+
+The [kernel stall report milestone](phase-2-stall-rules.md) adds narrow detector-report
+rules and normalized reported measurements without changing root-cause semantics.

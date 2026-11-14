@@ -89,3 +89,21 @@ class SyntheticHistoricalRunner(SyntheticRunner):
                      'MEM ' + header + ' 4096 1000 400 300',
                      'SWP ' + header + ' 4096 100 25', 'SEP']
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticStallRunner(SyntheticHistoricalRunner):
+    """Bounded mixed detector reports with invented task names and timings."""
+    def read_boot(self, boot_id):
+        import json
+        result = super().read_boot(boot_id)
+        if result.state != 'completed':
+            return result
+        messages = ('watchdog: BUG: soft lockup - CPU#2 stuck for 26s! [synthetic-task:42]',
+                    'watchdog: Watchdog detected hard LOCKUP on cpu 3',
+                    'INFO: task synthetic-task:42 blocked for more than 120 seconds.')
+        rows = []
+        for index, line in enumerate(result.stdout.splitlines()):
+            value = json.loads(line)
+            value['MESSAGE'] = messages[index % len(messages)]
+            rows.append(json.dumps(value))
+        return Result('completed', '\n'.join(rows), 0)
