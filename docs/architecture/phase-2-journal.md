@@ -129,3 +129,6 @@ confidence never upgrades the journal-only cause confidence or implies complete 
 
 The [kernel stall report milestone](phase-2-stall-rules.md) adds narrow detector-report
 rules and normalized reported measurements without changing root-cause semantics.
+
+The [retained chronology milestone](phase-2-reconstruction.md) adds evidence-window
+coverage, finding positions and clock-mapping observations without inferring causes.

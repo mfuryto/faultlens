@@ -107,3 +107,18 @@ class SyntheticStallRunner(SyntheticHistoricalRunner):
             value['MESSAGE'] = messages[index % len(messages)]
             rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticClockRunner(SyntheticStallRunner):
+    """Worst-case bounded mapping changes without changing any real system clock."""
+    def read_boot(self, boot_id):
+        import json
+        result = super().read_boot(boot_id)
+        if result.state != 'completed':
+            return result
+        rows = []
+        for index, line in enumerate(result.stdout.splitlines()):
+            value = json.loads(line)
+            value['__REALTIME_TIMESTAMP'] = str(int(value['__REALTIME_TIMESTAMP']) + (index % 2) * 3000000)
+            rows.append(json.dumps(value))
+        return Result('completed', '\n'.join(rows), 0)

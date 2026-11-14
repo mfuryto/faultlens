@@ -16,6 +16,9 @@ authenticate evidence or associate a boot. No record deletion or permission chan
 [Kernel stall report rules](../architecture/phase-2-stall-rules.md) require full supported
 message formats and kernel transport, omit task identities, and distinguish detector
 observations from root-cause attribution.
+[Retained journal chronology](../architecture/phase-2-reconstruction.md) describes
+receipt-time positions and bounded clock-mapping examples without causal links or
+inferences from silent intervals. It reuses already normalized evidence only.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

@@ -56,6 +56,9 @@ remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.m
 and [kernel stall report rules](docs/architecture/phase-2-stall-rules.md).
 Detector findings show checked reported measurements without task names or PID;
 they do not establish a whole-system freeze or a cause.
+Diagnose also reports the retained journal window, finding positions and clock-mapping
+variation. Long intervals between records are not classified as missing logs or downtime.
+See [chronology and coverage](docs/architecture/phase-2-reconstruction.md).
 
 `--atop-date YYYYMMDD` optionally reads a protected local recording through the
 installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.

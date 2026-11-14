@@ -116,3 +116,14 @@ median CPU 0.0512 s and maximum peak RSS 26.48 MiB. All nine modes passed the ex
 <50 MiB RSS / <1 s CPU / <2 s wall budgets. The regression suite now runs two fresh
 children per mode. These figures cover synthetic parsing/rendering, not real lockups,
 detector overhead, journald latency or native Atop replay.
+
+## Retained journal reconstruction — 2026-11-14
+
+All diagnostic benchmark modes now include the retained-window summary and finding
+positions. The tenth mode, `diagnose-clock`, verifies 500 mixed findings and 499
+adjacent offset changes, retaining only 16 examples with explicit truncation.
+Ten fresh Linux/Python 3.14.4 children measured median wall 0.0592 s, maximum wall
+0.0629 s, median CPU 0.0520 s and maximum peak RSS 27.04 MiB. All ten modes passed
+the existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. Regression tests now run
+two children per mode. The synthetic clock fixture changes data only, never system
+time. Results exclude native tool startup, storage latency and real incident coverage.
