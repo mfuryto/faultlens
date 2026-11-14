@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
-from .journal import BOOT_ID, MAX_REALTIME_US, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries
+from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries, validate_window
 from .models import report
 from .reconstruction import describe, timeline
 
@@ -192,9 +192,8 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None):
-    if until_us is not None and (type(until_us) is not int or not 0 <= until_us <= MAX_REALTIME_US):
-        raise ValueError('Invalid journal time boundary')
+def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None):
+    validate_window(since_us, until_us)
     if type(search_events) is not bool:
         raise ValueError('Invalid event search option')
     if boot_id is not None:
@@ -217,8 +216,14 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     data['command'] = 'diagnose'
     data['boot_selection'] = {'method': 'id' if boot_id is not None else 'index',
                               'requested': boot_id if boot_id is not None else boot_index, 'state': 'unresolved'}
-    data['journal_window'] = {'mode': 'tail' if until_us is None else 'tail_until_realtime',
+    if since_us is None:
+        mode = 'tail' if until_us is None else 'tail_until_realtime'
+    else:
+        mode = 'tail_since_realtime' if until_us is None else 'bounded_realtime_range'
+    data['journal_window'] = {'mode': mode, 'since_realtime_us': since_us,
                                'until_realtime_us': until_us, 'completeness': 'unknown'}
+    if since_us is not None:
+        data['limitations'].append('The ordinary tail is restricted to the requested receipt-time start boundary. A record cap can still omit earlier records inside the range; targeted searches remain whole-selected-boot.')
     if until_us is not None:
         data['limitations'].append('The ordinary tail ends at the requested journal receipt-time boundary, not the latest boot record. Targeted searches retain their whole-selected-boot scope.')
     data['reconstruction'] = None
@@ -243,7 +248,9 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     if search_events:
         from .event_search import search
         data['event_search'] = search(runner, selected['boot_id'], system=system_journal)
-    if until_us is not None:
+    if since_us is not None:
+        result = runner.read_boot_window(selected['boot_id'], since_us, until_us=until_us, system=system_journal)
+    elif until_us is not None:
         result = runner.read_boot_until(selected['boot_id'], until_us, system=system_journal)
     elif system_journal:
         result = runner.read_system_boot(selected['boot_id'])
@@ -256,7 +263,9 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         return data
     try:
         records, limited, unsupported = entries(result.stdout, selected['boot_id'],
-            validator=(lambda entry: entry.realtime_us <= until_us) if until_us is not None else None)
+            validator=(lambda entry: (since_us is None or entry.realtime_us >= since_us) and
+                                    (until_us is None or entry.realtime_us <= until_us))
+                      if since_us is not None or until_us is not None else None)
     except ValueError:
         data['journal_collection']['parse_state'] = 'invalid'
         data['limitations'].append('Journal records were malformed, ambiguous or outside the selected boot or requested time boundary.')

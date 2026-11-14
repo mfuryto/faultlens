@@ -30,7 +30,7 @@ class JournalWindowTests(unittest.TestCase):
         data = diagnose(runner, boot_id=BOOT, system_journal=True, until_us=1000)
         self.assertEqual([(BOOT, 1000, True)], runner.windows)
         self.assertEqual([], runner.requested)
-        self.assertEqual({'mode': 'tail_until_realtime', 'until_realtime_us': 1000, 'completeness': 'unknown'}, data['journal_window'])
+        self.assertEqual({'mode': 'tail_until_realtime', 'since_realtime_us': None, 'until_realtime_us': 1000, 'completeness': 'unknown'}, data['journal_window'])
         self.assertEqual('available', data['state'])
         self.assertEqual(900, data['last_record']['realtime_us'])
         self.assertEqual('Unknown', data['root_cause'])

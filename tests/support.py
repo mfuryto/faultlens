@@ -78,6 +78,16 @@ class SyntheticHistoricalRunner(SyntheticRunner):
             '_TRANSPORT': 'kernel', 'MESSAGE': 'Out of memory: Killed process 42 (synthetic)'
         }) for index in range(501)), 0)
 
+    def read_boot_window(self, boot_id, since_us, *, until_us=None, system=False):
+        import json
+        result = self.read_boot(boot_id)
+        if result.state != 'completed':
+            return result
+        rows = [line for line in result.stdout.splitlines()
+                if int(json.loads(line)['__REALTIME_TIMESTAMP']) >= since_us
+                and (until_us is None or int(json.loads(line)['__REALTIME_TIMESTAMP']) <= until_us)]
+        return Result('completed', '\n'.join(rows), 0)
+
     def read_boot_until(self, boot_id, until_us, *, system=False):
         import json
         result = self.read_boot(boot_id)
