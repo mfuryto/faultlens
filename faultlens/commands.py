@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import subprocess
 import time
 
-from .journal import SHUTDOWN_REQUEST, UNIT_START_FAILED
+from .journal import MAX_REALTIME_US, SHUTDOWN_REQUEST, UNIT_START_FAILED
 
 
 class Command(Enum):
@@ -156,12 +156,19 @@ class CommandRunner:
     def read_system_boot(self, boot_id: str) -> Result:
         return self._read_boot(boot_id, system=True)
 
+    def read_boot_until(self, boot_id: str, until_us: int, *, system=False) -> Result:
+        if type(until_us) is not int or not 0 <= until_us <= MAX_REALTIME_US:
+            raise ValueError("Invalid journal time boundary")
+        return self._read_boot(boot_id, system=system, until_us=until_us)
+
     def read_event_candidates(self, boot_id: str, query: str, *, system=False) -> Result:
         if not isinstance(query, str) or query not in EVENT_FILTERS:
             raise ValueError("Invalid event query")
         return self._read_boot(boot_id, system=system, query=query)
 
-    def _read_boot(self, boot_id: str, *, system: bool, query=None) -> Result:
+    def _read_boot(self, boot_id: str, *, system: bool, query=None, until_us=None) -> Result:
+        if until_us is not None and (type(until_us) is not int or not 0 <= until_us <= MAX_REALTIME_US):
+            raise ValueError("Invalid journal time boundary")
         if query is not None and (not isinstance(query, str) or query not in EVENT_FILTERS):
             raise ValueError("Invalid event query")
         if type(system) is not bool:
@@ -176,6 +183,8 @@ class CommandRunner:
         if query is not None:
             arguments[-1] += ",PRIORITY"
             arguments.extend(EVENT_FILTERS[query])
+        if until_us is not None:
+            arguments.append(f"--until=@{until_us // 1000000}.{until_us % 1000000:06d}")
         if system:
             arguments.insert(0, "--system")
         try:

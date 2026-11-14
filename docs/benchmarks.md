@@ -176,3 +176,12 @@ Linux/Python 3.14.4 children measured median wall 0.0562 s, maximum wall 0.0587 
 median CPU 0.0492 s and maximum peak RSS 26.20 MiB. All fourteen modes passed the
 existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. Other modes continue to exercise
 index/default selection. No native journal traversal or real reboot is measured.
+
+## Historical receipt boundary — 2026-11-15
+
+The existing system-scope mode now combines an invented boot ID with --until-us and
+verifies the requested boundary and 500 retained kernel records. Ten fresh Linux/
+Python 3.14.4 children measured median wall 0.0562 s, maximum wall 0.0584 s, median
+CPU 0.0493 s and maximum peak RSS 26.23 MiB. All fourteen modes passed the existing
+<50 MiB RSS / <1 s CPU / <2 s wall budgets. Other modes retain default latest-tail
+collection. Native historical journal traversal and actual storage latency are excluded.

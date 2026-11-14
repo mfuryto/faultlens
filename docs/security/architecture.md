@@ -35,6 +35,9 @@ mount state and never triggers mount/service operations or protection changes.
 [Exact boot-ID selection](../architecture/phase-2-boot-selection.md) requires validated
 format and membership in the bounded requested-scope listing. It never uses an absent
 ID to bypass scope or substitutes another boot.
+[Historical receipt boundaries](../architecture/phase-2-journal-window.md) accept only
+bounded integer timestamps, construct fixed native arguments and revalidate all
+returned records against the requested upper boundary before trimming.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

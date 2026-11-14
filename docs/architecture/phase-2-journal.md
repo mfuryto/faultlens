@@ -144,3 +144,6 @@ reuse without inferring a current conflict, responsible container or root cause.
 
 [Stable boot selection](phase-2-boot-selection.md) adds --boot-id while keeping scope-local
 listing validation, no-fallback behavior and existing index defaults.
+
+[Historical journal windows](phase-2-journal-window.md) add an explicit receipt-time
+upper boundary without increasing caps or falling back to the latest tail.
