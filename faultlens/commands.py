@@ -17,6 +17,7 @@ class Command(Enum):
     REFERENCE_MEMORY = "reference_memory"
     REFERENCE_FILESYSTEM = "reference_filesystem"
     SYSTEM_STATE = "system_state"
+    JOURNAL_CONFIG = "journal_config"
     JOURNAL_BOOTS = "journal_boots"
     JOURNAL_SERVICE = "journal_service"
     ATOP_SERVICE = "atop_service"
@@ -26,11 +27,12 @@ CATALOG = {
     Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
     Command.REFERENCE_FILESYSTEM: ("df", ("--block-size=1", "--output=size,used,avail,pcent", "/")),
     Command.SYSTEM_STATE: ("systemctl", ("is-system-running", "--no-pager")),
+    Command.JOURNAL_CONFIG: ("systemd-analyze", ("cat-config", "--tldr", "systemd/journald.conf")),
     Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet")),
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
     Command.ATOP_SERVICE: ("systemctl", ("is-active", "atop.service", "--no-pager")),
 }
-TOOLS = ("free", "df", "systemctl", "journalctl", "ip", "ss", "nstat", "nft", "atop", "sar", "sosreport")
+TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "ip", "ss", "nstat", "nft", "atop", "sar", "sosreport")
 DIRECTORIES = ("/usr/bin", "/usr/sbin", "/bin", "/sbin")
 ENVIRONMENT = {"PATH": "/usr/bin:/usr/sbin:/bin:/sbin", "LANG": "C", "LC_ALL": "C",
                "SYSTEMD_PAGER": "", "PAGER": "", "SYSTEMD_COLORS": "0"}

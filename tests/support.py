@@ -14,6 +14,7 @@ class SyntheticSources:
             '/proc/uptime': '1000.50 800.00\n',
             '/proc/diskstats': '8 0 vda 1 0 2 0 1 0 4 0 0 5 0\n',
             '/proc/net/dev': 'Inter-| Receive | Transmit\n face |bytes packets errs drop fifo frame compressed multicast|bytes packets errs drop fifo colls carrier compressed\n eth0: 1024 10 0 0 0 0 0 0 2048 20 0 0 0 0 0 0\n',
+            '/etc/default/atop': 'LOGINTERVAL=600\nLOGGENERATIONS=28\nLOGPATH=/var/log/atop\n',
             '/proc/sys/kernel/osrelease': '6.1.0-synthetic\n',
         }
 
@@ -30,6 +31,13 @@ class SyntheticSources:
     def directory(self, path):
         return path in {'/var/log/journal', '/sys/fs/pstore'}
 
+    def log_filesystem(self, kind):
+        return self.filesystem()
+
+    def recording_inventory(self):
+        return {'files': 2, 'logical_bytes': 10000, 'empty_files': 0, 'oversized_files': 0,
+                'unsafe_entries': 0, 'unsupported_entries': 0, 'oldest_date': '20260101', 'newest_date': '20260102'}
+
     def process_count(self):
         return 20
 
@@ -38,6 +46,7 @@ class SyntheticRunner:
     def __init__(self):
         self.calls = []
         self.results = {
+            Command.JOURNAL_CONFIG: Result('completed', '# /etc/systemd/journald.conf\n[Journal]\nStorage=persistent\nSystemMaxUse=64M\nMaxRetentionSec=7day\n', 0),
             Command.SYSTEM_STATE: Result('completed', 'running\n', 0),
             Command.JOURNAL_BOOTS: Result('completed', '-1 ' + 'a' * 32 + ' synthetic previous boot\n0 ' + 'b' * 32 + ' synthetic current boot\n', 0),
             Command.JOURNAL_SERVICE: Result('completed', 'active\n', 0),

@@ -17,6 +17,7 @@ class Observation:
     explanation: str = "Directly observed; this does not establish a root cause."
     limitations: tuple[str, ...] = ()
     thresholds: dict[str, float] = field(default_factory=dict)
+    recommendations: tuple[str, ...] = ()
 
 
 def unavailable(key: str, source: str, explanation: str) -> Observation:

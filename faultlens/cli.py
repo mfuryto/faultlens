@@ -103,7 +103,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
     parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
+    parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
     args = parser.parse_args(argv)
+    if args.history and args.command != "check":
+        parser.error("Preservation assessment is supported only with check.")
     if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
     if (platform or sys.platform) != "linux":
@@ -116,6 +119,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         else:
             items = (status(sources, runner, args.sample_seconds) if args.command == "status"
                      else check(sources, runner))
+            if args.command == 'check' and args.history:
+                from .preservation import assess
+                items.extend(assess(sources, runner))
             data = report(args.command, items)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
@@ -129,6 +135,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 print(safe_text(f"  Source: {item.source}. {item.explanation}"), file=stdout)
                 for limitation in item.limitations:
                     print(safe_text("  Limitation: " + limitation), file=stdout)
+                for recommendation in item.recommendations:
+                    print(safe_text("  Recommendation: " + recommendation), file=stdout)
             print("Observations are not a root-cause diagnosis. Use --json for confidence and thresholds.", file=stdout)
         return 0
     except BrokenPipeError:

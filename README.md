@@ -19,6 +19,8 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens status --sample-seconds 0.2
 ./bin/faultlens check
 ./bin/faultlens check --json
+./bin/faultlens check --history
+./bin/faultlens check --history --json
 ./bin/faultlens history
 ./bin/faultlens diagnose --previous-boot
 ./bin/faultlens diagnose --boot -2 --json
@@ -35,6 +37,12 @@ cumulative per-device I/O and interface counters, visible process count, kernel/
 information and the systemd manager state where available. `check` inspects optional
 utilities, journal directory presence, visible prior boots, and journald/atop service
 state. It never reads out raw log entries or claims that a directory proves recording.
+
+`check --history` additionally inspects explicit merged journald settings, literal Atop
+defaults, log filesystem capacity and bounded recording metadata. It supplies review
+recommendations without changing settings. Configuration snapshots do not prove running
+state or retained coverage. The merged-config probe requires systemd 255+; unsupported
+or inaccessible sources remain unavailable. See [preservation assessment](docs/architecture/phase-2-preservation.md).
 
 History lists accessible boot IDs. Diagnose resolves a selected boot to an immutable
 ID and analyzes at most 500 accessible tail records for specific kernel OOM, panic,

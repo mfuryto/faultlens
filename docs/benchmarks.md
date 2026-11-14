@@ -74,3 +74,12 @@ Native replay and the recording daemon are not included. Native replay has separ
 synthetic benchmark. A separate limited native smoke test verified EOF and cutoff
 handling but did not establish a native resource/performance baseline. Neither
 these synthetic results nor the limits establish target-host overhead or justify changing an existing sampling interval automatically.
+
+## Preservation assessment — 2026-11-14
+
+The sixth mode, `check-history`, exercises synthetic merged configuration, literal
+Atop defaults and bounded metadata through the real CLI. Ten fresh children on
+Linux/Python 3.14.4 measured median wall 0.0423 s, maximum wall 0.0464 s, median CPU
+0.0360 s and maximum peak RSS 22.74 MiB. All six modes passed the existing budgets.
+This excludes native systemd-analyze startup and live filesystem latency. The resource
+regression test now runs two fresh children for each of the six modes.
