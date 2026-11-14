@@ -91,9 +91,11 @@ def render_history(data, stdout):
                 print("  Reason: " + resources.get('reason', 'unavailable'), file=stdout)
             for limitation in resources.get('limitations', []):
                 print("  Limitation: " + limitation, file=stdout)
-        if 'pstore' in data:
-            crash = data['pstore']
-            print("Pstore: " + crash['state'] + "; " + crash['reason'], file=stdout)
+        for key, label in (('pstore', 'Pstore'), ('pstore_archive', 'Pstore archive')):
+            if key not in data:
+                continue
+            crash = data[key]
+            print(label + ": " + crash['state'] + "; " + crash['reason'], file=stdout)
             print("  Boot identity: unverified. Root cause: Unknown.", file=stdout)
             for item in crash['records']:
                 print("  Evidence: " + json.dumps(item, ensure_ascii=True), file=stdout)
@@ -103,7 +105,7 @@ def render_history(data, stdout):
         print("Limitation: " + text, file=stdout)
 
 
-def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, stderr=None, pstore_collector=None) -> int:
+def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, stderr=None, pstore_collector=None, pstore_archive_collector=None) -> int:
     stdout = stdout or sys.stdout
     stderr = stderr or sys.stderr
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
@@ -117,7 +119,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
     parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
+    parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
     args = parser.parse_args(argv)
+    if args.pstore_archive and args.command != "diagnose":
+        parser.error("Pstore archive analysis is supported only with diagnose.")
     if args.pstore and args.command != "diagnose":
         parser.error("Pstore analysis is supported only with diagnose.")
     if args.history and args.command != "check":
@@ -134,6 +139,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)
+            if args.command == "diagnose" and args.pstore_archive:
+                from .pstore_archive import analyze as analyze_archive
+                data["pstore_archive"] = analyze_archive(pstore_archive_collector)
         else:
             items = (status(sources, runner, args.sample_seconds) if args.command == "status"
                      else check(sources, runner))

@@ -56,7 +56,7 @@ settings, dates and capacity summaries can still be sensitive; review before sha
 Observation JSON gains an additive `recommendations` array, also rendered in text.
 Warnings and unavailable observations do not change the existing report exit-code
 contract. Nothing in this milestone establishes root cause or completes phase 2.
-Loaded-state verification, namespace/custom paths, rotation verification, archived pstore,
+Loaded-state verification, namespace/custom paths, rotation verification, broader archive compatibility,
 full shutdown verification and explicitly approved configuration changes remain future work.
 
 Synthetic tests cover overrides, section boundaries, limits, unsupported expressions,

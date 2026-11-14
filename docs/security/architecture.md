@@ -9,6 +9,8 @@ child-only native resource limits and uncertain wall-time pairing. See
 [Phase 1 decisions](../architecture/phase-1.md) for implemented boundaries and tests.
 The [coverage and pstore milestone](../architecture/phase-2-coverage-pstore.md) adds
 uncertain gap assessments and opt-in descriptor-bounded live crash-signature reading.
+The [archive reader](../architecture/phase-2-pstore-archive.md) extends this to fixed,
+protected systemd archive paths with global traversal bounds.
 Pstore content is treated as untrusted and never printed; signature references do not
 authenticate evidence or associate a boot. No record deletion or permission changes occur.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design

@@ -20,11 +20,14 @@ LIMITATIONS = [
 ]
 
 
-def open_directory():
+def open_directory(source='live'):
+    roots = {'live': ('sys', 'fs', 'pstore'), 'archive': ('var', 'lib', 'systemd', 'pstore')}
+    if source not in roots:
+        raise ValueError('Unsupported pstore source')
     descriptor = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
     try:
         trusted_metadata(os.fstat(descriptor), directory=True)
-        for name in ('sys', 'fs', 'pstore'):
+        for name in roots[source]:
             child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=descriptor)
             os.close(descriptor)
             descriptor = child
