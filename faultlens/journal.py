@@ -9,6 +9,8 @@ CURSOR = re.compile(r'[A-Za-z0-9_=;:-]{1,1024}\Z')
 CLOCK_MAPPING_TOLERANCE_US = 2000000
 MAX_RECORDS = 500
 MAX_BYTES = 262144
+UNIT_START_FAILED = 'be02cf6855d2428ba40df7e9d022f03d'
+SHUTDOWN_REQUEST = '98268866d1d54a499c4e98921d93bc40'
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,7 @@ class Entry:
     comm: str
     message_id: str
     message: str | None
+    priority: str = ''
 
     def reference(self) -> dict:
         return {'source': 'systemd-journal', 'boot_id': self.boot_id,
@@ -78,7 +81,9 @@ def timestamp(value, maximum):
     return value
 
 
-def entries(text: str, boot_id: str) -> tuple[list[Entry], bool, int]:
+def entries(text: str, boot_id: str, *, validator=None) -> tuple[list[Entry], bool, int]:
+    if validator is not None and not callable(validator):
+        raise ValueError('Invalid entry validator')
     if not BOOT_ID.fullmatch(boot_id) or len(text.encode('utf-8')) > MAX_BYTES:
         raise ValueError('Invalid journal scope or size')
     result, seen = [], set()
@@ -101,15 +106,20 @@ def entries(text: str, boot_id: str) -> tuple[list[Entry], bool, int]:
             if not isinstance(cursor, str) or not CURSOR.fullmatch(cursor) or cursor in seen:
                 raise ValueError('Invalid or duplicate journal cursor')
             seen.add(cursor)
-        for key in ('_TRANSPORT', '_PID', '_COMM', 'MESSAGE_ID'):
+        for key in ('_TRANSPORT', '_PID', '_COMM', 'MESSAGE_ID', 'PRIORITY'):
             if not isinstance(item.get(key, ''), str) or len(item.get(key, '')) > 128:
                 raise ValueError('Invalid journal metadata')
+        if item.get('PRIORITY', '') and not re.fullmatch(r'[0-7]', item['PRIORITY']):
+            raise ValueError('Invalid journal priority')
         message = item.get('MESSAGE')
         if not isinstance(message, str) or len(message) > 8192:
             message = None
             unsupported += 1
-        result.append(Entry(boot_id, realtime, monotonic, cursor, item.get('_TRANSPORT', ''),
-                            item.get('_PID', ''), item.get('_COMM', ''), item.get('MESSAGE_ID', ''), message))
+        entry = Entry(boot_id, realtime, monotonic, cursor, item.get('_TRANSPORT', ''),
+                      item.get('_PID', ''), item.get('_COMM', ''), item.get('MESSAGE_ID', ''), message, item.get('PRIORITY', ''))
+        if validator is not None and not validator(entry):
+            raise ValueError('Unexpected journal candidate')
+        result.append(entry)
     # A monotonic boot-local timeline survives wall-clock steps. Stable ties preserve input order.
     result.sort(key=lambda entry: entry.monotonic_us)
     limited = len(result) > MAX_RECORDS

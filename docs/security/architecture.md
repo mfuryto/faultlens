@@ -22,6 +22,10 @@ inferences from silent intervals. It reuses already normalized evidence only.
 [Explicit journal scope](../architecture/phase-2-journal-scope.md) keeps boot listing
 and selected-boot collection consistent, never falls back across scopes, and reports
 provenance counts without granting rights or inferring complete access.
+[Targeted candidate search](../architecture/phase-2-targeted-search.md) uses two fixed
+field/priority profiles with per-query resource limits and validates all returned
+candidates before trimming. It never accepts user regex or path filters and keeps
+filtered chronology separate from ordinary tail coverage and causal claims.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

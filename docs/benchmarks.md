@@ -137,3 +137,13 @@ median CPU 0.0472 s and maximum peak RSS 26.11 MiB. All eleven modes passed the
 existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. Regression tests now run two
 children per mode. These measurements exclude native journalctl, real access checks
 and filesystem latency; no group/permission changes or host logs are used.
+
+## Targeted event search — 2026-11-15
+
+The twelfth mode, `diagnose-events`, verifies 500 findings in each of two filtered
+candidate sets plus 500 ordinary-tail findings, with both candidate caps explicitly
+reached. Ten fresh Linux/Python 3.14.4 children measured median wall 0.0793 s, maximum
+wall 0.0843 s, median CPU 0.0714 s and maximum peak RSS 31.59 MiB. All twelve modes
+passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. The resource regression suite now
+runs two children per mode. Native whole-boot journal searching, disk I/O and access
+checks are excluded; each actual external query has separate deadline/output limits.
