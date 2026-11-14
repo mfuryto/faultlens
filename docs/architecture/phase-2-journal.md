@@ -138,3 +138,6 @@ selection and safe collection status without elevating privileges or claiming fu
 
 The [targeted-search milestone](phase-2-targeted-search.md) adds opt-in bounded candidate
 queries beyond the ordinary tail, without merging filtered spans into tail coverage.
+
+The [OverlayFS rule](phase-2-overlayfs-rule.md) recognizes reported upper/work directory
+reuse without inferring a current conflict, responsible container or root cause.

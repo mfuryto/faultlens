@@ -158,3 +158,12 @@ alongside the ordinary tail and structured candidate query. Ten fresh Linux/Pyth
 <50 MiB RSS / <1 s CPU / <2 s wall budgets. Tests now run two fresh children per mode.
 Existing maximum matched-candidate mode also passed at 31.58 MiB peak RSS. No live
 host messages, native journal search cost or actual warning semantics are measured.
+
+## OverlayFS layer-reuse rule — 2026-11-15
+
+The fourteenth mode, `diagnose-overlay`, verifies 500 retained findings from 501
+invented upperdir/workdir warnings. Ten fresh Linux/Python 3.14.4 children measured
+median wall 0.0583 s, maximum wall 0.0603 s, median CPU 0.0513 s and maximum peak RSS
+27.43 MiB. All fourteen modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets.
+Regression tests now run two fresh children per mode. No filesystem is mounted,
+container started or live incident reproduced; native collection cost is excluded.

@@ -93,9 +93,37 @@ def stall_finding(entry):
     return None
 
 
+OVERLAY_REUSE = re.compile(
+    r'overlayfs: (?P<role>upperdir|workdir) is in-use as upperdir/workdir of another mount, '
+    r'accessing files from both mounts will result in undefined behavior\.\n?')
+
+
+def overlay_reuse_finding(entry):
+    if entry.transport != 'kernel' or entry.message is None:
+        return None
+    match = OVERLAY_REUSE.fullmatch(entry.message)
+    if not match:
+        return None
+    return Finding('kernel.overlay_layer_reuse', 'Kernel reported OverlayFS layer reuse',
+        'Kernel reported ' + match['role'] + ' already in use by another mount at the referenced time.',
+        'Confirmed', 'warning', [entry.reference()],
+        'A kernel-transport record exactly matches the supported OverlayFS shared upper/work directory warning.',
+        {'minimum_matching_records': 1},
+        ('Confirms the recorded warning, not a currently active conflict, data corruption, system freeze or root cause.',
+         'Affected paths, mount namespaces, containers and the responsible service are not identified by this message.',
+         'Current mount snapshots can differ from the historical state; distinct path strings do not prove distinct underlying directories.',
+         'Upperdir and workdir reports can describe the same mount operation; they are not independent incident counts.',
+         'Nearby Docker/container lifecycle events provide temporal context only, not causal attribution.'),
+        ('Review the referenced warning locally and compare relevant mount state and namespaces with lifecycle evidence.',
+         'Identify the owning workload before any change; do not automatically unmount, delete layers, restart services or disable protection.'))
+
+
 def analyze(records) -> list[Finding]:
     findings = []
     for entry in records:
+        overlay = overlay_reuse_finding(entry)
+        if overlay is not None:
+            findings.append(overlay)
         stall = stall_finding(entry)
         if stall is not None:
             findings.append(stall)
