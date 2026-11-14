@@ -16,19 +16,22 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner
     output = io.StringIO()
     started = time.monotonic()
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
     if command in {'diagnose-stalls', 'diagnose-clock'}:
         arguments = ['diagnose', '--json']
+    if command == 'diagnose-system':
+        arguments = ['diagnose', '--system-journal', '--json']
     if command == 'check-history':
         arguments = ['check', '--history', '--json']
     if command == 'diagnose-pstore-archive':
         arguments = ['diagnose', '--pstore-archive', '--json']
     if command == 'diagnose-pstore':
         arguments = ['diagnose', '--pstore', '--json']
-    runner = (SyntheticClockRunner() if command == 'diagnose-clock' else
+    runner = (SyntheticSystemRunner() if command == 'diagnose-system' else
+              SyntheticClockRunner() if command == 'diagnose-clock' else
               SyntheticStallRunner() if command == 'diagnose-stalls' else SyntheticHistoricalRunner())
     code = main(arguments, sources=SyntheticSources(), runner=runner, stdout=output,
                 pstore_collector=SyntheticSources().pstore_snapshot,
@@ -49,6 +52,10 @@ def worker(command: str) -> dict:
         if (len(payload['findings']) != 500 or clock['significant_adjacent_change_count'] != 499
                 or len(clock['change_examples']) != 16 or not clock['change_examples_truncated']):
             raise RuntimeError('Synthetic clock reconstruction failed')
+    if command == 'diagnose-system':
+        scope = payload['journal_scope']
+        if scope['requested'] != 'system' or scope['kernel_records_examined'] != 500 or scope['completeness'] != 'unknown':
+            raise RuntimeError('Synthetic system journal scope failed')
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return {'collection_wall_seconds': time.monotonic() - started,
             'cpu_seconds': usage.ru_utime + usage.ru_stime,
@@ -65,7 +72,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -74,7 +81,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

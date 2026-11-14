@@ -127,3 +127,13 @@ Ten fresh Linux/Python 3.14.4 children measured median wall 0.0592 s, maximum wa
 the existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. Regression tests now run
 two children per mode. The synthetic clock fixture changes data only, never system
 time. Results exclude native tool startup, storage latency and real incident coverage.
+
+## Explicit journal source scope — 2026-11-14
+
+The eleventh mode, `diagnose-system`, uses a synthetic system-scope interface and
+verifies 500 retained kernel records with completeness still unknown. Ten fresh
+Linux/Python 3.14.4 children measured median wall 0.0541 s, maximum wall 0.0552 s,
+median CPU 0.0472 s and maximum peak RSS 26.11 MiB. All eleven modes passed the
+existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. Regression tests now run two
+children per mode. These measurements exclude native journalctl, real access checks
+and filesystem latency; no group/permission changes or host logs are used.

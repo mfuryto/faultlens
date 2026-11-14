@@ -19,6 +19,9 @@ observations from root-cause attribution.
 [Retained journal chronology](../architecture/phase-2-reconstruction.md) describes
 receipt-time positions and bounded clock-mapping examples without causal links or
 inferences from silent intervals. It reuses already normalized evidence only.
+[Explicit journal scope](../architecture/phase-2-journal-scope.md) keeps boot listing
+and selected-boot collection consistent, never falls back across scopes, and reports
+provenance counts without granting rights or inferring complete access.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 
