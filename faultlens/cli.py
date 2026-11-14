@@ -50,6 +50,9 @@ def atop_date(value: str) -> str:
 
 def render_history(data, stdout):
     print("Faultlens — read-only " + data['command'] + ": " + data['state'], file=stdout)
+    listing = data.get('boot_listing')
+    if listing and (listing['command_state'] != 'completed' or listing['returncode'] != 0 or listing['parse_state'] != 'valid'):
+        print("Boot listing: " + json.dumps(listing, ensure_ascii=True), file=stdout)
     for boot in data['boots']:
         print(f"Boot {boot['index']}: {boot['boot_id']}", file=stdout)
     if data['command'] == 'diagnose':

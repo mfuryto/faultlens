@@ -38,10 +38,16 @@ def boots(text: str) -> list[Boot]:
     if len(text.encode('utf-8')) > MAX_BYTES:
         raise ValueError('Boot listing exceeds limit')
     result, indices, identities = [], set(), set()
+    header_seen = False
     for line in text.splitlines():
         if not line.strip():
             continue
         fields = line.split()
+        if fields == ['IDX', 'BOOT', 'ID', 'FIRST', 'ENTRY', 'LAST', 'ENTRY']:
+            if header_seen or result:
+                raise ValueError('Unexpected boot listing header')
+            header_seen = True
+            continue
         if len(fields) < 3 or not re.fullmatch(r'-?[0-9]{1,6}', fields[0]) or not BOOT_ID.fullmatch(fields[1]):
             raise ValueError('Malformed boot listing')
         index = int(fields[0])
