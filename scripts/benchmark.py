@@ -25,7 +25,7 @@ def worker(command: str) -> dict:
     if command in {'diagnose-events', 'diagnose-review'}:
         arguments = ['diagnose', '--system-journal', '--search-events', '--json']
     if command == 'diagnose-system':
-        arguments = ['diagnose', '--system-journal', '--json']
+        arguments = ['diagnose', '--system-journal', '--boot-id', 'a' * 32, '--json']
     if command == 'check-history':
         arguments = ['check', '--history', '--json']
     if command == 'diagnose-pstore-archive':
@@ -59,7 +59,7 @@ def worker(command: str) -> dict:
             raise RuntimeError('Synthetic clock reconstruction failed')
     if command == 'diagnose-system':
         scope = payload['journal_scope']
-        if scope['requested'] != 'system' or scope['kernel_records_examined'] != 500 or scope['completeness'] != 'unknown':
+        if scope['requested'] != 'system' or scope['kernel_records_examined'] != 500 or scope['completeness'] != 'unknown' or payload['boot_selection']['method'] != 'id':
             raise RuntimeError('Synthetic system journal scope failed')
     if command == 'diagnose-events':
         queries = payload['event_search']['queries']

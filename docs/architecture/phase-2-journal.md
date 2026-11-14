@@ -141,3 +141,6 @@ queries beyond the ordinary tail, without merging filtered spans into tail cover
 
 The [OverlayFS rule](phase-2-overlayfs-rule.md) recognizes reported upper/work directory
 reuse without inferring a current conflict, responsible container or root cause.
+
+[Stable boot selection](phase-2-boot-selection.md) adds --boot-id while keeping scope-local
+listing validation, no-fallback behavior and existing index defaults.
