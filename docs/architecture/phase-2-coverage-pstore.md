@@ -87,3 +87,6 @@ Primary references: [kernel ramoops documentation](https://www.kernel.org/doc/ht
 [kernel pstore block documentation](https://www.kernel.org/doc/html/latest/admin-guide/pstore-blk.html),
 [systemd-pstore](https://www.freedesktop.org/software/systemd/man/254/systemd-pstore.html),
 [pstore configuration](https://www.freedesktop.org/software/systemd/man/255/pstore.conf.d.html).
+
+A subsequent milestone adds [independent opt-in systemd archive inspection](phase-2-pstore-archive.md).
+The live reader described above retains its original scope.

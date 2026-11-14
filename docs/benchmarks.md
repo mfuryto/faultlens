@@ -94,3 +94,15 @@ including interval coverage, measured median wall 0.0776 s and maximum peak RSS
 27.05 MiB. All seven modes retained <50 MiB RSS / <1 s CPU / <2 s wall budgets.
 The regression suite now runs two fresh children for each of seven modes.
 These are synthetic parser/CLI measurements, not kernel filesystem latency guarantees.
+
+## Systemd pstore archive — 2026-11-14
+
+The eighth mode, `diagnose-pstore-archive`, injects eight invented raw records
+(512 KiB total) into the real archive parser/CLI alongside the bounded journal.
+Ten fresh Linux/Python 3.14.4 children measured median wall 0.0638 s, maximum wall
+0.0653 s, median CPU 0.0556 s and maximum peak RSS 25.54 MiB. All eight modes passed
+the existing <50 MiB RSS / <1 s CPU / <2 s wall budgets. The resource regression
+suite now checks two fresh children per mode. Live/archive benchmark modes also
+assert that all eight records were analyzed successfully, not merely journal success.
+Real archive directory traversal and filesystem latency are excluded; separate
+synthetic boundary tests exercise traversal limits and protected descriptors.

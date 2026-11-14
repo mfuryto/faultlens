@@ -24,6 +24,7 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens history
 ./bin/faultlens diagnose --previous-boot
 ./bin/faultlens diagnose --previous-boot --pstore
+./bin/faultlens diagnose --previous-boot --pstore-archive --json
 ./bin/faultlens diagnose --boot -2 --json
 ./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
 ```
@@ -65,6 +66,9 @@ It shows redacted references, never raw crash text, and does not associate recor
 the selected boot. Access denial or no visible records does not exclude a crash.
 No extra package, root execution or system changes are required by Faultlens; restricted
 records remain unavailable. See [coverage and pstore scope](docs/architecture/phase-2-coverage-pstore.md).
+`--pstore-archive` separately requests bounded raw records from the fixed systemd
+archive; it can be combined with `--pstore`. Reconstructed copies and unsupported
+layouts are excluded. See [archive scope](docs/architecture/phase-2-pstore-archive.md).
 
 Evidence can be sensitive even in summary form. Output stays on your terminal/stdout;
 review it before manually redirecting or sharing it. No automatic exports or uploads

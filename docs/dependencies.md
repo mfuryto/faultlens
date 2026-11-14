@@ -37,11 +37,12 @@ Prioritize better evidence quality before adding integrations:
   version, missing tool or missing historical data), with a bounded capability probe.
 - Extend the implemented bounded filename/sample gap hints with richer coverage
   provenance, preserving uncertainty about host/boot identity and incomplete input.
-- Extend the implemented opt-in live pstore panic-signature reader with reviewed
-  archived evidence support and narrowly tested additional signatures.
+- Extend the implemented live/archive pstore readers with narrowly tested additional
+  signatures and stronger event provenance.
 - Offer an explicit export preview and redaction review before any future local
   report export; never upload reports automatically.
 
 These extensions are proposals, not new installation requirements. The current
-coverage/pstore scope is documented in [the milestone](architecture/phase-2-coverage-pstore.md).
+coverage/pstore scope is documented in [the milestone](architecture/phase-2-coverage-pstore.md)
+and [archive support](architecture/phase-2-pstore-archive.md).
 Each integration needs a documented threat model, resource budget and synthetic tests.
