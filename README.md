@@ -211,6 +211,18 @@ See [the TUI guide](docs/tui.md), [Phase 4 acceptance](docs/architecture/phase-4
 and [release readiness](docs/release-readiness.md). Real target VPS deployment
 acceptance and owner-approved licensing remain gates before production publication.
 
+## Combined server checks
+
+```sh
+python3 scripts/server_check.py
+```
+
+Run as the non-root checkout owner. The read-only summary distinguishes passing
+checks, host warnings, missing evidence, skipped checks and failures. It does not
+install tools or change server configuration. Optional --atop-date/--pstore,
+--live-only, --json and --details are documented in [server testing](docs/server-check.md).
+Repository checks are automatically skipped when run as root or a non-owner.
+
 ## Develop and verify
 
 Use only `staging` and `main`; PRs to main require the baseline, analysis and CodeQL

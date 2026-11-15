@@ -26,6 +26,9 @@ If a source is unavailable, inspect existing permissions and retention locally;
 blanket root execution or changing account groups is not an automatic setup step.
 No host configuration, recorder or firewall service is installed or enabled.
 
+The combined server test entrypoint is `python3 scripts/server_check.py`; see
+[summary states, optional sources and root/native-only scope](server-check.md).
+
 ## Deployment acceptance matrix
 
 Before calling a version supported, run and record the following on each selected
