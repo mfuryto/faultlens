@@ -5,6 +5,10 @@ system observations and dependency/logging checks. Journal-only analysis is an i
 A keyboard-driven local TUI is available. There is no packaged distribution or
 supported production release.
 
+Phase 4 implementation and automated frontend acceptance are complete. See the
+[completion review](docs/architecture/phase-4-acceptance.md) for delivered scope and
+the remaining real-server, license and release gates.
+
 The initial target is Debian/Ubuntu Server with Python 3.11+. No external Python
 packages, telemetry, network service, database or daemon are required. The TUI uses Python curses without extra pip packages; the CLI remains independent.
 

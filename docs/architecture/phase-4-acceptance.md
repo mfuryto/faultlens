@@ -1,120 +1,102 @@
-# Phase 4 implementation and acceptance
+# Phase 4 completion and acceptance
 
-Reviewed: 2026-11-15. The keyboard-driven CLI/TUI frontend and refinement baseline
-are implemented on staging for review. This is a pre-release engineering acceptance,
-not a published release or a claim that every target deployment has been validated.
+Reviewed: 2026-11-15. **Implementation and automated frontend acceptance are complete.**
+This closes the TUI, navigation and readable-results engineering phase. It does not
+certify a production deployment or authorize a license, package, tag or release.
 
-| Phase 4 priority | Delivered | Acceptance boundary |
+## Delivered scope
+
+| Area | Complete implementation | Boundary retained |
 | --- | --- | --- |
-| Userdock-inspired terminal interface | Eight numbered pages, sidebar on wider terminals, compact SSH layout, keyboard navigation and explicit refresh | Python curses and a usable PTY/terminfo entry are required; no third-party UI dependency |
-| Incident/evidence detail | Immutable boot selection, retained timeline navigation, complete object/list/scalar inspection, source originals and confidence/reasoning/threshold views | Existing source limits, permissions and unknown attribution remain visible |
-| Navigation/reporting | CLI-independent presentation model, contextual help, health alias, session-only typed collection settings, visible stale-scope banner | One latest snapshot; no persistent preferences, shell escape, export or automatic configuration writes |
-| Small-VPS testing | Reproducible one-CPU constrained process profiles with 128/256/512 MiB address-space ceilings, plus real PTY lifecycle tests | These are process constraints on the development host, not booted Debian/Ubuntu VPS images or total VM RAM quotas |
-| Resource optimization | Reference-based evidence browser, bounded scalar previews, viewport-only rendering, one report at a time and blocking idle input | Existing native filesystem operations still have no hard deadline; optional synchronous collection can take seconds |
-| Initial release preparation | Operator/TUI guide, source-checkout launch instructions, deployment acceptance matrix and release/rollback gates | No license choice, tag, binary package, GitHub release or publication is authorized by this implementation |
+| Terminal frontend | Eight keyboard-driven pages, wide/compact layouts, explicit refresh, resize and terminal restoration | Python curses/PTY required; CLI remains independent; no background polling |
+| Readable results | Shared meanings, next steps, confidence and limits for readings, findings, boot summaries, interfaces, sockets, Atop samples and crash fragments | No healthy/secure verdict from missing or unmatched evidence; exact originals remain available |
+| Source navigation | Immutable boot selection, source-scoped timelines, finding-to-evidence links, raw metadata access and reference-based browsing | No cross-query substitution, guessed identity, changed confidence or causal timeline across boots |
+| Search and settings | Literal current-view search, next/previous matching rows/lines, typed session-only options and stale-scope notices | No filtering/redaction, regular expressions, shell execution, persistence or implicit collection |
+| Reporting contracts | Readable CLI, copyable optional commands, technical --details and unchanged --json models; full TUI raw trees | No output parsing contract for prose; no automatic export/upload or privacy masking |
+| Resource validation | Bounded source fixtures, fresh-process benchmarks, one-CPU constrained profiles and real PTY lifecycle tests | Process/address-space constraints are not real VM RAM or distro deployment certification |
+| Release preparation | Source launch/update instructions, operator test script, dependencies, threat model, publication checklist and release gates | No license selected, distribution built or release published |
 
-## Architecture decision
+The final integration closes interface rate/reset explanations, prevents suggested
+commands from being hard-wrapped into multiple shell lines, and supplies a complete
+synthetic session across all eight pages. Missing/decreased counters are never zero
+traffic; actual measured batch timing controls rates. Error/drop details remain in
+per-interface technical views, with positive growth highlighted in readable CLI output.
 
-The specification prefers prompt_toolkit but does not require it. Its upstream
-fullscreen model was evaluated against this Linux-only, small-VPS frontend. Python
-curses supplies existing terminal setup, key decoding, resize handling, differential
-screen updates and restoration with no new pip dependency or installation workflow.
-The application owns only a small menu/tree model rather than implementing a
-terminal protocol. Future richer widgets can justify revisiting the preferred
-library after provenance/license/resource review; no third-party code is vendored.
-References: [Python curses](https://docs.python.org/3.11/library/curses.html),
-[curses lifecycle](https://docs.python.org/3.11/howto/curses.html),
-[prompt_toolkit fullscreen design](https://python-prompt-toolkit.readthedocs.io/en/stable/pages/full_screen_apps.html).
+## Architecture and safety
 
-`tui_model` owns typed session settings, source dispatch, a single report and browser
-references. It imports no curses and writes nothing. The existing collector/rule
-modules remain the data source. `tui` owns screen layout, key dispatch and a bounded
-ASCII option editor; it never interprets evidence as terminal markup. `curses.wrapper`
-restores the terminal on normal completion or exceptions. Ctrl-C exits with 130;
-capability/runtime failures return 1 without printing source exception contents.
-Redirected TUI invocation fails before collection; explicit CLI JSON remains usable.
+The specification prefers prompt_toolkit but permits an alternative. Python curses
+provides the Linux terminal lifecycle without a pip dependency; the application owns
+a bounded menu/tree model. See [Python curses](https://docs.python.org/3.11/library/curses.html)
+and the [curses lifecycle](https://docs.python.org/3.11/howto/curses.html).
 
-No background thread, process, daemon, database, telemetry, polling loop or new
-external service is introduced. Collection remains synchronous and on demand.
-Dropping the old report and navigation references before refresh avoids duplicating
-large evidence trees. Rendering slices only visible rows or scalar lines; it never
-serializes an entire nested report just to display the first page. The original
-report remains available for inspection without privacy-based suppression.
+`tui_model` owns session settings, source dispatch, one report and reference-based
+navigation. `tui` owns layout, key handling and a bounded ASCII editor. Presentation
+modules explain retained models without collecting sources, changing thresholds or
+copying evidence trees. `curses.wrapper` restores terminal attributes on exit/errors;
+Ctrl-C exits with 130. Optional sources default off and never elevate privileges.
+Old reports/navigation references are dropped before explicit refresh. Idle input
+blocks; there is no timer, daemon, database, telemetry or external service.
 
-## Automated acceptance
+Original administrator evidence remains inspectable. Terminal controls are escaped
+reversibly. Raw source messages never acquire trusted finding/navigation roles merely
+because they resemble diagnostic JSON. Local evidence can be incomplete or falsified;
+root/kernel compromise, source bounds, unknown attribution and native filesystem calls
+without a hard deadline remain explicit limits.
 
-Run without root as the source-checkout owner:
+## Reproducible verification
+
+Run as the checkout owner:
 
 ```sh
 python3 -m unittest discover -s tests -q
 python3 scripts/security_check.py
 python3 scripts/benchmark.py --iterations 10
 python3 scripts/vps_acceptance.py --iterations 3
+python3 scripts/server_check.py --live-only
 ```
 
-Tests cover all eight pages, source dispatch, optional-source consent through settings,
-atomic validation, history-to-immutable-ID selection, source scope, reference-preserving
-navigation, reset/replacement of reports, stale-setting provenance, terminal-control
-escaping, long originals, help/depth limits, compact/resized screens and no idle polling.
-The real PTY test supplies invented collectors, drives keys, changes dimensions and
-compares terminal attributes before/after normal quit and SIGINT. No diagnostic
-collection from the CI host, failed login, attack traffic or firewall write is needed.
+Synthetic acceptance covers all pages, explicit refresh, settings validation, stale
+scope, unavailable/empty/partial sources, record caps, RESET and missing measurements,
+confidence, source identity, safe commands, complete originals, raw roles, long values,
+search, compact/resized layouts and normal/interrupt terminal restoration. The native
+operator check reports available coverage and limitations; it never certifies health.
 
-Current-view literal search adds /, n and N without filtering evidence or collecting
-new data. Coverage includes row wraparound, readable units, complete escaped scalars,
-line navigation after resize, cancel/clear, input bounds and unchanged source references.
-The real PTY navigation also enters a search before terminal restoration checks.
+Benchmarks exercise maximum bounded journal/security/socket/interface evidence,
+recording/crash readers and actual frontend navigation/rendering. Constrained profiles
+use one allowed CPU and 128/256/512 MiB virtual-address-space limits for five modes;
+they do not boot Debian/Ubuntu images or constrain total host RAM.
 
-Explained findings expose reference resolution against their own retained source
-records. Tests reject cross-query substitution, timestamp-only selection, stale/copied
-finding objects, invalid candidate indices, ambiguous records and mismatched recording
-hashes. Derived log indicators and historical Atop baselines keep original evidence by
-reference, with explicit missing-link counts and unchanged confidence. The integrated
-TUI benchmark includes opening a derived finding's linked evidence.
+Closeout verification on the development host:
 
-Timeline entries can open explained findings and linked source evidence directly,
-while e retains raw metadata. Main, SSH, firewall and filtered-query timelines resolve
-only to their own normalized finding lists; rule/reference/index checks and retained
-object identity reject copied, stale, invalid or cross-source positions. Tests preserve
-equal-timestamp uncertainty, selection on return and raw evidence roles. The integrated
-TUI benchmark also opens an SSH timeline finding without collecting another source.
+| Check | Result |
+| --- | --- |
+| Complete unit/integration/PTY suite | 446 tests passed |
+| Fresh-process benchmarks | All 26 cases passed over 10 iterations; integrated TUI peak RSS 39.50 MiB |
+| Constrained process acceptance | All 45 runs passed across three address-space ceilings, five modes and three iterations |
+| Read-only native operator check | 54 PASS, 0 WARN, 15 MISSING, 11 SKIP, 0 FAIL |
+| Repository security and secret checks | Baseline, diff checks and working-tree/history Gitleaks scans passed |
 
-Boot summaries are explained per selected boot in the CLI and TUI, including matched
-report counts, unavailable tails, record caps and unsupported messages. Presentation
-does not treat these as incident counts or verified causes. Tests cover source scope,
-validated immutable-ID follow-up commands, explicit TUI refresh, raw/JSON preservation
-and summary warnings when retained boot reports exist. The integrated TUI benchmark
-includes opening an incident summary before replacing it with detailed diagnosis.
+Native MISSING/SKIP results cover unverified journal assignments, unavailable system
+journal/usable authentication-firewall evidence, optional unrequested historical/crash
+sources, the noninteractive terminal and repository groups intentionally skipped by
+--live-only. Repository tests were run separately. These are coverage limits, not
+evidence of a healthy host or completed target-server acceptance. No host evidence,
+names, logs or endpoint captures are included in this record.
 
-Historical resource explanations add recording availability reasons, requested replay
-scope, coverage hints and per-sample interval/snapshot semantics without replaying or
-altering the source model. Tests preserve RESET/missing CPU values, unverified host/boot
-identity, exact originals and raw evidence roles. Benchmarks cover basic readable CLI
-replay output and opening a retained extended sample in the integrated TUI model.
+## Remaining deployment and release gates
 
-Crash-fragment interpretation separates source collection from bounded signature
-analysis and preserves UTF-8/base64 contents and metadata by reference. Tests cover
-duplicate signatures, binary/NUL/structure limits, base64 expansion of analyzable text,
-empty/unavailable sources, raw roles and unchanged CLI/JSON evidence contracts. The
-integrated TUI benchmark includes opening a retained crash fragment without another read.
+The following are outside completed software acceptance and remain open:
 
-The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
-journal records, both bounded log sources, six extended Atop samples, 32 interfaces
-and both pstore readers. It measures complete source models and actual renderer
-calls with a synthetic screen, not a screenshot of live evidence. Existing CLI modes
-continue independently. The constrained harness binds each fresh child to one allowed
-CPU, enforces RLIMIT_AS and RLIMIT_CPU, and checks the same RSS/CPU/wall budgets.
+- Operator navigation in the actual server's SSH terminal and representative sizes;
+  ordinary/admin access, retained recordings and unavailable sources must be checked
+  on the deployment host using the [server test guide](../server-check.md).
+- Actual selected Debian/Ubuntu releases and at least one small one-CPU VPS still
+  require recorded acceptance. Development-host checks and constrained processes
+  are not a substitute. Detector calibration needs labeled data before accuracy claims.
+- The owner must select/approve a license, support/version policy and exact release
+  artifacts before distribution. No publication is authorized by passing checks.
 
-## Release and deployment boundaries
-
-See [the TUI guide](../tui.md), [resource measurements](../benchmarks.md), and
-[release readiness](../release-readiness.md). A real supported Debian/Ubuntu small
-VPS still needs the documented operator smoke/SSH tests, and detection thresholds
-still need labeled-data calibration before production claims. A constrained process
-is not a substitute for kernel, distro, terminal, permission, disk-latency and workload
-variation. These open acceptance items are explicit, not marked as completed.
-
-The repository remains pre-release. The project owner must approve a project license
-before any licensed distribution. No license is selected and no release is published.
-The existing required security checks and solo-maintainer merge policy remain in
-force; no new manual GitHub setting is required by this frontend.
+See [readable results](../readable-results.md), [TUI controls](../tui.md),
+[resource measurements](../benchmarks.md) and [release readiness](../release-readiness.md).
+No new manual GitHub setting is required by this closeout; existing required security
+checks and the solo-maintainer merge policy remain in force.

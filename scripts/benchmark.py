@@ -162,6 +162,11 @@ def worker(command: str) -> dict:
         from tests.test_tui import Screen
         render(payload,io.StringIO())
         session=Session(); session.data=payload; session.choose_page(2)
+        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='observation' and row.value['key']=='network.interfaces')
+        session.open_row()
+        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='interface_samples')
+        session.open_row(); session.open_row(); draw(Screen(),session)
+        session.choose_page(2)
         session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_snapshot')
         session.open_row()
         session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_rows')

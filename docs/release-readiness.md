@@ -4,6 +4,11 @@ Faultlens has a bounded CLI/TUI implementation for review. There is no published
 application release, chosen project license or claim of production support. This
 checklist prepares the initial source-first release; it does not authorize publishing.
 
+The Phase 4 implementation and automated frontend acceptance are complete; see the
+[completion review](architecture/phase-4-acceptance.md). The deployment matrix below
+remains open until actual target-host results are recorded, separately from completed
+synthetic software acceptance.
+
 ## Run from a trusted source checkout
 
 Use Linux with Python 3.11+; the TUI also needs Python curses and a supported terminal.

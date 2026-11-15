@@ -106,6 +106,8 @@ def row_preview(row):
         preview='Retained crash fragments; boot/time/cause unverified'
     elif row.action=='crash_record':
         preview='Enter explains signature/encoding limits; e opens original fragment'
+    elif row.action=='interface_sample':
+        preview='Interface rates and comparison limits; e opens original counters'
     elif row.action=='socket_row':
         from .socket_presentation import state_meaning,binding_meaning
         preview=state_meaning(row.value)[0]+' | '+binding_meaning(row.value)[0]
@@ -235,6 +237,10 @@ class Session:
             if context=='crash_records':
                 from .crash_presentation import record_label
                 return [Row(escaped(record_label(item))[1:-1],item,'crash_record') for item in self.value]
+            if context=='interface_samples':
+                return [Row(escaped(item['interface'])[1:-1]+' | '+item['state'],item,'interface_sample') for item in self.value]
+            if context=='interface_sample':
+                return [Row(escaped(key)[1:-1],value,'inspect' if key in {'Technical details','Sample timing'} else 'explanation') for key,value in self.value.items()]
             if context in {'crash_source','crash_record'}:
                 return [Row(escaped(key)[1:-1],value,'crash_records' if key=='Retained fragments' else 'inspect'
                             if key in {'Technical details','Original content','Signature line references'} else 'explanation') for key,value in self.value.items()]
@@ -245,6 +251,9 @@ class Session:
                 return [Row(escaped(key)[1:-1],value,'socket_rows' if key=='Socket rows' else 'inspect'
                             if key=='Technical details' else 'explanation') for key,value in self.value.items()]
             if context in {'observation','finding','guide','boot_summary'}:
+                if context=='observation':
+                    return [Row(escaped(key)[1:-1],value,'interface_samples' if key=='Interface samples' else 'inspect'
+                                if key=='Technical details' else 'explanation') for key,value in self.value.items()]
                 if context=='boot_summary':
                     return [Row(escaped(key)[1:-1],value,'boot' if key=='Diagnose this boot' else 'inspect'
                                 if key=='Technical details' else 'explanation') for key,value in self.value.items()]
@@ -318,6 +327,14 @@ class Session:
             if row.action=='observation':
                 from .presentation import observation_view
                 value=observation_view(value)
+                if row.value['key']=='network.interfaces' and isinstance(row.value['value'],list):
+                    value['Interface samples']=row.value['value']
+            elif row.action=='interface_sample':
+                if inspect_only:
+                    context='inspect'
+                else:
+                    from .interface_presentation import interface_view
+                    value=interface_view(value,self.data['sample'])
             elif row.action=='boot_summary':
                 if inspect_only:
                     context='inspect'
@@ -413,6 +430,7 @@ class Session:
             'Evidence': 'Enter drills into every object/list/scalar. On a timeline entry it opens the referenced explained finding; e keeps the original timeline metadata. Long values are paged in lossless ASCII JSON form. e also inspects boot metadata; t opens only the main retained timeline. Filtered timelines remain separate inside their source views.',
             'Search': '/ enters up to 64 printable ASCII characters; Enter finds, Esc cancels, Ctrl-U clears. n/N finds the next/previous matching row or scalar line, wrapping at the ends. Literal case-insensitive search covers current row labels/previews and full direct scalar values, or the open escaped scalar. It does not filter rows, search unopened trees, collect data or interpret regular expressions.',
             'Settings': 'Session only; no system configuration or report writes. Enter toggles booleans or edits values. Esc cancels an edit; Ctrl-U clears it.',
+            'Explained views': 'Enter opens readable measurements, findings, boot summaries, interface samples, sockets, recording samples and crash fragments. Technical details retains original data. Known source views offer raw metadata through e; Full report and Evidence Explorer remain raw trees.',
             'boot_selector': 'An index from -128 to 0 or a visible 32-character lowercase hexadecimal boot ID. History selection pins the ID.',
             'sample_seconds': '0.05 to 1 second. Actual elapsed time controls counter rates.',
             'boot_count': '1 to 7 visible previous boots; include_current opts in to current boot.',
