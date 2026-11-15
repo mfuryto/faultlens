@@ -75,6 +75,9 @@ to inspect an older bounded window. Add `--since-us` to select an inclusive star
 or use it alone for a start-bounded tail. Reversed ranges are rejected; the 500-record
 cap still applies. Targeted search scope stays unchanged. See
 [historical journal windows](docs/architecture/phase-2-journal-window.md).
+[Historical CPU accounting](docs/architecture/phase-2-atop-cpu.md) separates Atop
+execution, idle, I/O-wait and steal shares. These interval measurements do not
+establish disk failure, provider contention or an incident cause.
 [Journal-driver loss findings](docs/architecture/phase-2-journal-loss.md) recognize
 structured suppression and missed-kernel-message reports in the ordinary window.
 They do not identify missing contents or establish full logging coverage.

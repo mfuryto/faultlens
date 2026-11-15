@@ -205,3 +205,12 @@ Ten fresh Linux/Python 3.14.4 children measured median wall
 maximum peak RSS 27.29 MiB. All fifteen modes passed <50 MiB RSS / <1 s CPU /
 <2 s wall budgets. Regression tests run two fresh children per mode. No real logging
 flood, kernel loss or host journal is used; native collection cost is excluded.
+
+## Historical CPU accounting — 2026-11-15
+
+The existing `diagnose-atop` mode now verifies execution, idle, I/O-wait and steal
+percentages for all 256 retained synthetic samples. Ten fresh Linux/Python
+3.14.4 children measured median wall 0.0761 s, maximum wall 0.0791 s,
+median CPU 0.0688 s and maximum peak RSS 27.84 MiB. All fifteen modes passed
+<50 MiB RSS / <1 s CPU / <2 s wall budgets. Native replay cost, live contention and
+actual recording accuracy remain outside these synthetic measurements.

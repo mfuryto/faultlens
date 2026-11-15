@@ -105,6 +105,9 @@ UTC header agreement, no duplicate labels and increasing sample times. RESET is 
 since-boot aggregate; its CPU result is null and it is excluded from temporal pairing.
 Also report null for non-advancing CPU totals, never a healthy zero. CPU busy excludes
 idle/iowait and avoids double-counting guest ticks already included in user time.
+Legacy busy includes steal. Separate execution, idle, I/O-wait and steal percentages
+are now available; see [historical CPU accounting](phase-2-atop-cpu.md) for exact
+denominators, RESET handling and interpretation limits.
 Memory total/free/cache and swap total/used are byte snapshots. Free pages are not
 MemAvailable; these fields do not establish memory pressure or an OOM cause.
 
