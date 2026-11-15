@@ -157,6 +157,13 @@ limits. Raw timelines reached through Full report/Evidence Explorer remain raw t
 
 ## Explained readings and findings
 
+Live/archived crash-evidence entries explain source availability separately from text
+analysis. Open **Retained fragments** for individual explanations, **Original content**
+for the lossless UTF-8/base64 representation, and **Technical details** for source fields.
+e opens the original source or fragment. Signature lines remain references, confidence
+stays Possible/Unknown and no time/boot/cause attribution is inferred. Neither an empty
+source nor unanalyzed bytes rule out a crash. Browsing never mounts, deletes or saves data.
+
 Diagnostics' **Recorded resource measurements** entry explains Atop availability,
 requested date/window and coverage. Open **Retained samples** for readable interval
 CPU and memory snapshots, **Reported coverage** for exact hints, or **Technical details**

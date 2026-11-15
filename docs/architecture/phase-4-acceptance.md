@@ -92,6 +92,12 @@ altering the source model. Tests preserve RESET/missing CPU values, unverified h
 identity, exact originals and raw evidence roles. Benchmarks cover basic readable CLI
 replay output and opening a retained extended sample in the integrated TUI model.
 
+Crash-fragment interpretation separates source collection from bounded signature
+analysis and preserves UTF-8/base64 contents and metadata by reference. Tests cover
+duplicate signatures, binary/NUL/structure limits, base64 expansion of analyzable text,
+empty/unavailable sources, raw roles and unchanged CLI/JSON evidence contracts. The
+integrated TUI benchmark includes opening a retained crash fragment without another read.
+
 The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
 journal records, both bounded log sources, six extended Atop samples, 32 interfaces
 and both pstore readers. It measures complete source models and actual renderer
