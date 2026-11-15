@@ -7,9 +7,9 @@ installation requests or automatic privilege escalation.
 
 | Tool | Used by | Requirement |
 | --- | --- | --- |
-| journalctl | history, diagnose, previous-boot check | Needed for these journal features; visible records depend on permissions and retention |
+| journalctl | history, incidents, diagnose, previous-boot check | Needed for these journal features; visible records depend on permissions and retention |
 | systemctl | status/check service observations | Needed for service state only |
-| systemd-analyze | check --history merged journald configuration | Optional; systemd 255+ needed for --tldr; executable discovery alone does not verify version |
+| systemd-analyze | check --history merged journald configuration | Optional; uses portable cat-config without --tldr; output compatibility is checked at collection time |
 | atop | diagnose --atop-date | Optional replay tool; recordings must already exist; Faultlens does not install or enable a recorder |
 | free, df | scripts/validate_local.py | Optional comparison tools; ordinary status reads procfs/statvfs directly |
 

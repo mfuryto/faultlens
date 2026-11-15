@@ -45,6 +45,13 @@ They emit no raw text or unit names and never adjust logging policy.
 [Historical CPU accounting](../architecture/phase-2-atop-cpu.md) uses already
 validated aggregate counters without expanding collection. Unknown/RESET totals stay
 null, negative inputs fail closed, and interval shares never upgrade causal confidence.
+[Multi-boot summaries](../architecture/phase-2-overview.md) reuse one scope-specific
+listing snapshot, query only selected immutable IDs and cap selection at seven.
+Per-boot failures remain visible without replacement or automatic optional-source replay.
+[Extended Atop replay](../architecture/phase-2-atop-extended.md) requires a separate
+explicit flag and fixed label profile. Process names/PIDs/wait channels are discarded;
+disk/interface fingerprints are not anonymity guarantees. Record pairing and cardinality
+limits fail closed before resource results are emitted.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

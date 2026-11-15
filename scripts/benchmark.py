@@ -16,14 +16,22 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner
     output = io.StringIO()
     started = time.monotonic()
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
     if command in {'diagnose-stalls', 'diagnose-clock', 'diagnose-overlay', 'diagnose-journal-loss'}:
         arguments = ['diagnose', '--json']
-    if command in {'diagnose-events', 'diagnose-review'}:
+    if command in {'diagnose-events', 'diagnose-review', 'diagnose-integrated'}:
         arguments = ['diagnose', '--system-journal', '--search-events', '--json']
+    if command == 'diagnose-extended':
+        arguments = ['diagnose', '--atop-date', '20260101', '--atop-extended', '--json']
+    if command == 'diagnose-integrated':
+        arguments.extend(['--boot-id', 'a' * 32, '--since-us', '1767225600000000',
+                          '--until-us', '1767225600000500', '--atop-date', '20260101',
+                          '--atop-extended', '--pstore', '--pstore-archive'])
+    if command == 'incidents':
+        arguments = ['incidents', '--boot-count', '7', '--json']
     if command == 'diagnose-system':
         arguments = ['diagnose', '--system-journal', '--boot-id', 'a' * 32, '--since-us', '1767225600000000', '--until-us', '1767225600000500', '--json']
     if command == 'check-history':
@@ -32,10 +40,13 @@ def worker(command: str) -> dict:
         arguments = ['diagnose', '--pstore-archive', '--json']
     if command == 'diagnose-pstore':
         arguments = ['diagnose', '--pstore', '--json']
-    runner = (SyntheticJournalLossRunner() if command == 'diagnose-journal-loss' else
+    runner = (SyntheticMaximumExtendedRunner() if command == 'diagnose-extended' else
+              SyntheticExtendedRunner() if command == 'diagnose-integrated' else
+              SyntheticOverviewRunner() if command == 'incidents' else
+              SyntheticJournalLossRunner() if command == 'diagnose-journal-loss' else
               SyntheticOverlayRunner() if command == 'diagnose-overlay' else
               SyntheticReviewRunner() if command == 'diagnose-review' else
-              SyntheticEventRunner() if command == 'diagnose-events' else
+              SyntheticEventRunner() if command in {'diagnose-events', 'diagnose-integrated'} else
               SyntheticSystemRunner() if command == 'diagnose-system' else
               SyntheticClockRunner() if command == 'diagnose-clock' else
               SyntheticStallRunner() if command == 'diagnose-stalls' else SyntheticHistoricalRunner())
@@ -49,10 +60,25 @@ def worker(command: str) -> dict:
         key = 'pstore_archive' if command == 'diagnose-pstore-archive' else 'pstore'
         if payload[key]['state'] != 'available' or len(payload[key]['records']) != 8:
             raise RuntimeError('Synthetic pstore analysis failed')
+    if command == 'incidents':
+        if (len(payload['summaries']) != 7 or any(
+                value['finding_count'] != 500 or not value['record_limit_reached']
+                for value in payload['summaries'])):
+            raise RuntimeError('Synthetic multi-boot overview failed')
     if command == 'diagnose-stalls':
         if len(payload['findings']) != 500 or {item['rule_id'] for item in payload['findings']} != {
                 'kernel.soft_lockup', 'kernel.hard_lockup', 'kernel.hung_task'}:
             raise RuntimeError('Synthetic stall analysis failed')
+    if command == 'diagnose-integrated':
+        if (any(payload[key]['state'] != 'available' for key in ('atop', 'pstore', 'pstore_archive', 'event_search'))
+                or payload['root_cause'] != 'Unknown' or len(payload['findings']) != 500
+                or payload['atop']['samples'][0]['extended']['state'] != 'available'):
+            raise RuntimeError('Synthetic integrated historical diagnosis failed')
+    if command == 'diagnose-extended':
+        value = payload['atop']['samples'][0]['extended']
+        if (len(value['disks']) != 32 or len(value['interfaces']) != 32
+                or value['processes']['reported_processes'] != 256):
+            raise RuntimeError('Synthetic maximum extended resources failed')
     if command == 'diagnose-atop':
         values = payload['atop']['samples']
         if (len(values) != 256 or any(
@@ -104,7 +130,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -113,7 +139,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

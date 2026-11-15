@@ -218,8 +218,10 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None):
+def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None, atop_extended=False):
     validate_window(since_us, until_us)
+    if type(atop_extended) is not bool or (atop_extended and atop_date is None):
+        raise ValueError('Extended resources require an explicit recording date')
     if type(search_events) is not bool:
         raise ValueError('Invalid event search option')
     if boot_id is not None:
@@ -322,5 +324,5 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         data['limitations'].append('No supported event signatures matched; the cause remains unknown.')
     if atop_date is not None:
         from .atop import attach
-        attach(data, records, runner, atop_date)
+        attach(data, records, runner, atop_date, extended=atop_extended)
     return data

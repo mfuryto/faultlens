@@ -12,9 +12,10 @@ ENVIRONMENT = {'PATH': '/usr/bin:/usr/sbin:/bin:/sbin', 'LANG': 'C', 'LC_ALL': '
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    if len(args) != 4:
+    if len(args) not in {4, 5} or (len(args) == 5 and args[4] != 'extended'):
         return 125
-    executable, descriptor, start, end = args
+    extended = len(args) == 5
+    executable, descriptor, start, end = args[:4]
     # Select a fixed executable value, never use a caller-supplied program path.
     executable = {path: path for path in ('/usr/bin/atop', '/usr/sbin/atop', '/bin/atop', '/sbin/atop')}.get(executable)
     if executable is None:
@@ -38,8 +39,9 @@ def main(argv=None):
         os.set_inheritable(int(descriptor), True)
         # Atop 2.12.1 treats -e as an explicit screen-output flag too. The parent
         # stops at a validated SEP boundary instead; never request a screen handler.
+        labels = 'CPU,MEM,SWP,DSK,NET,PRC,PRM' if extended else 'CPU,MEM,SWP'
         os.execve(executable, [executable, '-r', '/proc/self/fd/' + descriptor,
-                             '-P', 'CPU,MEM,SWP', '-b', start], ENVIRONMENT)
+                             '-P', labels, '-b', start] + (['-Z'] if extended else []), ENVIRONMENT)
     except (OSError, ValueError):
         return 125
     return 125

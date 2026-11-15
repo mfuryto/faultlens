@@ -47,6 +47,12 @@ def boot_index(value: str) -> int:
     return parsed
 
 
+def overview_count(value: str) -> int:
+    if not value.isascii() or not value.isdecimal() or len(value) > 1 or not 1 <= int(value) <= 7:
+        raise argparse.ArgumentTypeError("Boot count must be an integer from 1 to 7.")
+    return int(value)
+
+
 def boot_identity(value: str) -> str:
     from .journal import BOOT_ID
     if not isinstance(value, str) or not BOOT_ID.fullmatch(value):
@@ -67,6 +73,24 @@ def atop_date(value: str) -> str:
         return recording_date(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("Atop date must be a valid YYYYMMDD date from 1970 onward.") from exc
+
+
+def render_incidents(data, stdout):
+    print("Faultlens — read-only incidents: " + data['state'], file=stdout)
+    print("Journal scope: " + data['journal_scope']['requested'] + "; completeness unknown; no elevation.", file=stdout)
+    print(f"Selected boots: {data['selected_boot_count']}; selection cap reached: {data['selection_limit_reached']}.", file=stdout)
+    for summary in data['summaries']:
+        boot = summary['boot']
+        print(f"Boot {boot['index']}: {boot['boot_id']} — {summary['state']}", file=stdout)
+        print(f"  Records: {summary['records_examined']}; tail cap reached: {summary['record_limit_reached']}; findings: {summary['finding_count']} reports.", file=stdout)
+        print("  Finding counts: " + json.dumps(summary['finding_counts_by_rule'], ensure_ascii=True), file=stdout)
+        print("  Shutdown: " + summary['shutdown_assessment'] + "; root cause Unknown.", file=stdout)
+        print("  Collection: " + json.dumps(summary['journal_collection'], ensure_ascii=True), file=stdout)
+        print("  Last visible reference: " + json.dumps(summary['last_record'], ensure_ascii=True), file=stdout)
+        print("  Details: faultlens diagnose --boot-id " + boot['boot_id'] +
+              (" --system-journal" if data['journal_scope']['requested'] == 'system' else "") + " --json", file=stdout)
+    for limitation in data['limitations']:
+        print("Limitation: " + limitation, file=stdout)
 
 
 def render_history(data, stdout):
@@ -144,6 +168,8 @@ def render_history(data, stdout):
         resources = data.get('atop', {})
         if resources.get('state') != 'not_requested':
             print("Atop: " + resources['state'], file=stdout)
+            if 'profile' in resources:
+                print("  Profile: " + resources['profile'], file=stdout)
             if resources['state'] == 'available':
                 intervals = sorted({value['interval_s'] for value in resources['samples'] if not value['since_boot']})
                 print(f"  Samples: {len(resources['samples'])}; observed intervals (seconds): {intervals}", file=stdout)
@@ -176,7 +202,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     stderr = stderr or sys.stderr
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose"), default="status")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents"), default="status")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
     parser.add_argument("--sample-seconds", type=interval, default=0.1, help="CPU sample duration (0.05–1; status only).")
     scope = parser.add_mutually_exclusive_group()
@@ -184,6 +210,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
     scope.add_argument("--boot-id", type=boot_identity, help="Exact boot ID visible in the selected scope listing (diagnose only).")
     parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
+    parser.add_argument("--atop-extended", action="store_true", help="Opt in to disk, network and process resource rows; requires --atop-date with diagnose.")
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
     parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
     parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
@@ -191,7 +218,13 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
     parser.add_argument("--until-us", type=receipt_boundary, help="End the ordinary tail at Unix receipt-time microseconds (diagnose only; searches unchanged).")
     parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; searches unchanged).")
+    parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
+    parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
     args = parser.parse_args(argv)
+    if args.atop_extended and (args.command != 'diagnose' or args.atop_date is None):
+        parser.error("Extended resource context requires diagnose with --atop-date.")
+    if (args.boot_count is not None or args.include_current) and args.command != "incidents":
+        parser.error("Overview selection is supported only with incidents.")
     if args.since_us is not None and args.until_us is not None and args.since_us > args.until_us:
         parser.error("Journal start boundary must not exceed the end boundary.")
     if args.since_us is not None and args.command != "diagnose":
@@ -200,8 +233,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("Journal time boundaries are supported only with diagnose.")
     if args.search_events and args.command != "diagnose":
         parser.error("Targeted event search is supported only with diagnose.")
-    if args.system_journal and args.command not in {"history", "diagnose"}:
-        parser.error("System journal scope is supported only with history or diagnose.")
+    if args.system_journal and args.command not in {"history", "diagnose", "incidents"}:
+        parser.error("System journal scope is supported only with history, diagnose or incidents.")
     if args.pstore_archive and args.command != "diagnose":
         parser.error("Pstore archive analysis is supported only with diagnose.")
     if args.pstore and args.command != "diagnose":
@@ -214,10 +247,14 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         print("Faultlens supports Linux only.", file=stderr)
         return 1
     try:
-        if args.command in {"history", "diagnose"}:
+        if args.command == "incidents":
+            from .overview import incidents
+            data = incidents(runner, boot_count=args.boot_count if args.boot_count is not None else 3,
+                             system_journal=args.system_journal, include_current=args.include_current)
+        elif args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us))
+                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)
@@ -233,6 +270,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             data = report(args.command, items)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
+        elif args.command == "incidents":
+            render_incidents(data, stdout)
         elif args.command in {"history", "diagnose"}:
             render_history(data, stdout)
         else:

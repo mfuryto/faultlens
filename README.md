@@ -46,7 +46,7 @@ state. It never reads out raw log entries or claims that a directory proves reco
 `check --history` additionally inspects explicit merged journald settings, literal Atop
 defaults, log filesystem capacity and bounded recording metadata. It supplies review
 recommendations without changing settings. Configuration snapshots do not prove running
-state or retained coverage. The merged-config probe requires systemd 255+; unsupported
+state or retained coverage. The merged-config probe uses portable cat-config without --tldr; unsupported
 or inaccessible sources remain unavailable. See [preservation assessment](docs/architecture/phase-2-preservation.md).
 
 History lists accessible boot IDs. Diagnose resolves a selected boot to an immutable
@@ -75,6 +75,14 @@ to inspect an older bounded window. Add `--since-us` to select an inclusive star
 or use it alone for a start-bounded tail. Reversed ranges are rejected; the 500-record
 cap still applies. Targeted search scope stays unchanged. See
 [historical journal windows](docs/architecture/phase-2-journal-window.md).
+`incidents --boot-count 3` summarizes previous visible boots from one listing;
+`--system-journal` preserves explicit scope and `--include-current` opts in to boot 0.
+See [multi-boot overview](docs/architecture/phase-2-overview.md) and the
+[phase 2 acceptance review](docs/architecture/phase-2-acceptance.md) for delivered
+behavior, verification status and remaining product scope.
+`diagnose --atop-date YYYYMMDD --atop-extended --json` opts in to bounded
+[historical disk, network and process context](docs/architecture/phase-2-atop-extended.md).
+Names and process IDs are omitted; recorded activity does not establish a cause.
 [Historical CPU accounting](docs/architecture/phase-2-atop-cpu.md) separates Atop
 execution, idle, I/O-wait and steal shares. These interval measurements do not
 establish disk failure, provider contention or an incident cause.
