@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources, SyntheticSshRunner, SyntheticFirewallRunner
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources, SyntheticSshRunner, SyntheticFirewallRunner, SyntheticSocketRunner
     output = io.StringIO()
     started = time.monotonic()
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
@@ -56,19 +56,24 @@ def worker(command: str) -> dict:
               SyntheticSystemRunner() if command == 'diagnose-system' else
               SyntheticClockRunner() if command == 'diagnose-clock' else
               SyntheticStallRunner() if command == 'diagnose-stalls' else SyntheticHistoricalRunner())
-    if command in {'network', 'security'}:
+    if command in {'network', 'security', 'network-sockets'}:
         arguments.extend(['--sample-seconds', '0.05'])
-    sources = SyntheticNetworkSources() if command in {'network', 'security'} else SyntheticSources()
+    if command == 'network-sockets':
+        arguments = ['network', '--sockets', '--sample-seconds', '0.05', '--json']
+        runner = SyntheticSocketRunner()
+    sources = SyntheticNetworkSources() if command in {'network', 'security', 'network-sockets'} else SyntheticSources()
     code = main(arguments, sources=sources, runner=runner, stdout=output,
                 pstore_collector=SyntheticSources().pstore_snapshot,
                 pstore_archive_collector=SyntheticSources().pstore_snapshot)
     payload = json.loads(output.getvalue())
     if code != 0 or payload.get('state') == 'unavailable' or not (payload.get('observations') or payload.get('boots')):
         raise RuntimeError('Synthetic collection failed')
-    if command in {'network', 'security'}:
+    if command in {'network', 'security', 'network-sockets'}:
         if (len(payload['observations'][0]['value']) != 128 or len(payload['findings']) != 3
                 or payload['attack_assessment'] != 'Unknown'):
             raise RuntimeError('Synthetic network/security sampling failed')
+    if command == 'network-sockets' and len(payload['sockets']['rows']) != 512:
+        raise RuntimeError('Synthetic socket snapshot failed')
     if command in {'diagnose-pstore', 'diagnose-pstore-archive'}:
         key = 'pstore_archive' if command == 'diagnose-pstore-archive' else 'pstore'
         if (payload[key]['state'] != 'available' or len(payload[key]['records']) != 8
@@ -162,7 +167,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -171,7 +176,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

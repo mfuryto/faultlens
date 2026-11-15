@@ -1,6 +1,6 @@
 # Faultlens
 
-**Pre-release — bounded historical diagnostics and initial network counter analysis.** Faultlens provides local, read-only Linux
+**Pre-release — bounded historical diagnostics and initial network and socket analysis.** Faultlens provides local, read-only Linux
 system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
 There is no TUI, packaged distribution, or supported production release.
 
@@ -162,11 +162,22 @@ optional tools. Executable availability alone does not prove feature readiness.
 
 `network` and `security` take two bounded local counter snapshots for per-interface
 rates and selected TCP indicators. Confirmed counter growth never confirms an attack;
-security assessment remains Unknown. No addresses, ports, packet capture or external
-probes are collected. Opt-in SSH journal observations and local original evidence views are described in
+security assessment remains Unknown. Counter-only collection has no endpoints;
+`--sockets` adds numeric local TCP/UDP endpoints. No packet capture or external
+probes are performed. Opt-in SSH journal observations and local original evidence views are described in
 [SSH analysis](docs/architecture/phase-3-ssh.md). Opt-in [firewall log observations](docs/architecture/phase-3-firewall.md) preserve
 reported UFW labels and packet context, without claiming verified verdicts. Active
 policy inspection, broader authentication methods and attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
+
+Optional current TCP/UDP endpoints (numeric addresses and ports remain visible):
+
+```sh
+./bin/faultlens network --sockets
+./bin/faultlens security --sockets --json
+```
+
+This uses the locally installed `ss` without remote probes or elevation. A binding
+is not proof of external reachability. See [socket scope](docs/architecture/phase-3-sockets.md).
 
 ## Develop and verify
 

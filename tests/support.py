@@ -308,3 +308,11 @@ class SyntheticFirewallRunner(SyntheticSshRunner):
             '__MONOTONIC_TIMESTAMP':str(index), '__CURSOR':'i='+str(index), '_TRANSPORT':'kernel',
             'PRIORITY':'4', 'MESSAGE':text}) for index in range(501)]
         return Result('completed','\n'.join(rows),0)
+
+
+class SyntheticSocketRunner:
+    def run(self, command):
+        if command != Command.SOCKETS:
+            raise ValueError('Unexpected synthetic command')
+        return Result('completed', ''.join(
+            f'tcp ESTAB 0 0 192.0.2.1:{10000+i} 198.51.100.1:443\n' for i in range(512)), 0)
