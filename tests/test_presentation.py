@@ -16,6 +16,44 @@ from tests.test_network_analysis import NetworkSources
 
 
 class PresentationTests(unittest.TestCase):
+    def test_follow_up_commands_are_fixed_and_do_not_mutate_source_evidence(self):
+        from faultlens.incidents import diagnose
+        data=diagnose(JournalRunner([record('Kernel panic - not syncing: invented')]))
+        finding=dict(data['findings'][0],rule_id='kernel.overlay_layer_reuse',
+                     observation='Invented $(touch /tmp/never-execute) mount warning')
+        original=copy.deepcopy(finding)
+        view=finding_view(finding)
+        commands=[step for step in view['What you can do'] if step.startswith('Optional current-state')]
+        self.assertEqual(['Optional current-state check (not historical proof): findmnt --json --list -t overlay -o TARGET,OPTIONS'],commands)
+        self.assertEqual(original,finding)
+        self.assertIs(finding,view['Technical details'])
+        unknown=dict(finding,rule_id='invented; touch /tmp/never-execute')
+        self.assertFalse(any(step.startswith('Optional current-state') for step in finding_view(unknown)['What you can do']))
+
+    def test_unavailable_journal_follow_up_preserves_scope_without_elevation(self):
+        for scope,command in [('system','journalctl --system --list-boots --no-pager'),
+                              ('visible','journalctl --list-boots --no-pager')]:
+            data={'command':'history','state':'unavailable','boots':[],
+                  'journal_scope':{'requested':scope}}
+            original=copy.deepcopy(data)
+            actions=' '.join(guide(data)['What you can do'])
+            self.assertIn(command,actions)
+            self.assertIn('existing authorized access only',actions)
+            self.assertNotIn('sudo',actions)
+            self.assertEqual(original,data)
+
+    def test_optional_current_checks_are_shared_by_cli_and_tui_without_extra_collection(self):
+        data=report('status',[Observation('filesystem.root.used',96,'percent','synthetic','critical')])
+        view=observation_view(data['observations'][0])
+        self.assertIn('df --block-size=1',' '.join(view['What you can do']))
+        out=io.StringIO(); render(data,out)
+        self.assertIn('df --block-size=1',out.getvalue())
+        self.assertIn('never run automatically',out.getvalue())
+        session=Session(); session.data=data
+        session.selected=next(i for i,row in enumerate(session.rows()) if row.value is data['observations'][0])
+        session.open_row()
+        self.assertIn('df --block-size=1',' '.join(session.value['What you can do']))
+
     def test_critical_memory_explains_investigation_without_inventing_oom(self):
         data=report('status',[Observation('memory.used',96,'percent','proc','critical',
             thresholds={'warning':90,'critical':95})])
