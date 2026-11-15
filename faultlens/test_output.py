@@ -134,7 +134,7 @@ def server_summary(data):
     manual=take(lambda r:r['key']=='tui.manual_navigation' and r['state']=='SKIP')
     if manual:
         unavailable.append('Manual TUI navigation in your own terminal has not been verified by this script.')
-        actions.append('Manual check: run ./bin/faultlens tui. Try r, pages 1-8, Enter, Left, resizing, q and Ctrl-C.')
+        actions.append('Manual check: run ./bin/faultlens tui. Try r, pages 1-8, Enter, / search, n/N, Left, resizing, q and Ctrl-C.')
     skipped_repo=take(lambda r:r['key'] in REPO_NAMES and r['state']=='SKIP')
     if skipped_repo:
         unavailable.append(str(len(skipped_repo))+' automated test groups were skipped in this mode or user context.')

@@ -5,7 +5,12 @@ import re
 import sys
 
 from . import __version__
-from .tui_model import PAGES, Session, brief, escaped
+from .tui_model import PAGES, Session, escaped, row_preview
+
+
+def viewport_width(screen):
+    height,width=screen.getmaxyx()
+    return min(240,max(1,width-(24 if width>=90 and height>=15 else 0)-2))
 
 
 def put(screen, y, x, text, width, attribute=0):
@@ -28,7 +33,7 @@ def draw(screen, session):
         screen.refresh()
         return
     sidebar = 24 if width >= 90 and height >= 15 else 0
-    content_width = min(240, width-sidebar-2)
+    content_width = viewport_width(screen)
     put(screen, 0, 0, 'Faultlens ' + __version__ + ' | READ-ONLY | ' + PAGES[session.page], width-1, curses.A_REVERSE)
     if sidebar:
         for i, title in enumerate(PAGES):
@@ -51,7 +56,7 @@ def draw(screen, session):
     if session.stack and not isinstance(session.value, (dict, list)):
         text = escaped(session.value)
         total = max(1, (len(text)+content_width-1)//content_width)
-        session.scroll = max(0, min(session.scroll, max(0, total-lines)))
+        session.scroll = max(0, min(session.scroll, total-1))
         for index in range(lines):
             offset = (session.scroll+index)*content_width
             put(screen, 3+index, sidebar, text[offset:offset+content_width], content_width)
@@ -60,22 +65,7 @@ def draw(screen, session):
         session.selected = max(0, min(session.selected, len(rows)-1))
         top = (session.selected//lines)*lines
         for i, row in enumerate(rows[top:top+lines]):
-            if row.action=='observation':
-                from .presentation import reading
-                preview=escaped(reading(row.value))[1:-1]
-            elif row.action=='guide':
-                preview=escaped(row.value['Summary'])[1:-1]
-            elif row.action=='finding':
-                preview=escaped(row.value['confidence']+' report; cause '+row.value.get('cause_confidence','Unknown'))[1:-1]
-            elif row.action=='explanation':
-                text=(row.value[0] if row.value else 'No additional items') if isinstance(row.value,list) else row.value
-                preview=escaped(str(text))[1:-1]+(' (Enter for all '+str(len(row.value))+')' if isinstance(row.value,list) and len(row.value)>1 else '')
-            elif row.action=='setting' and type(row.value) is bool:
-                preview='On' if row.value else 'Off'
-            elif row.action=='setting' and row.value=='':
-                preview='Not selected'
-            else:
-                preview=brief(row.value)
+            preview=row_preview(row)
             label = row.label + ': ' + preview
             put(screen, 3+i, sidebar, label, content_width,
                 curses.A_REVERSE if top+i == session.selected else 0)
@@ -84,18 +74,18 @@ def draw(screen, session):
             put(screen, 3, sidebar, 'No items in this view. r collects on source pages; 7 explores the latest report.', content_width)
     put(screen, height-3, sidebar, position, content_width)
     put(screen, height-2, 0, session.notice, width-1)
-    put(screen, height-1, 0, 'q quit | ? help | 1-8/Tab pages | r refresh | Enter detail | Left back | t timeline | Up/Down/PgUp/PgDn', width-1)
+    put(screen, height-1, 0, 'q quit | / search n/N next/prev | ? help | 1-8/Tab pages | r refresh | Enter detail | Left back | t timeline', width-1)
     screen.refresh()
 
 
-def edit(screen, key, value):
-    """Small ASCII session-option editor; no command, filename or report export prompt."""
+def edit(screen, key, value, *, verb='save'):
+    """Bounded ASCII input; no command, filename or report export prompt."""
     import curses
     text = str(value)
     while True:
         height, width = screen.getmaxyx()
         put(screen, max(0, height-2), 0, ' ' * max(0, width-1), width-1)
-        put(screen, max(0, height-2), 0, key + ' = ' + text + ' [Enter save, Esc cancel, Ctrl-U clear]', width-1)
+        put(screen, max(0, height-2), 0, key + ' = ' + text + ' [Enter '+verb+', Esc cancel, Ctrl-U clear]', width-1)
         screen.refresh()
         char = screen.get_wch()
         if char in ('\n', '\r', curses.KEY_ENTER):
@@ -127,6 +117,11 @@ def handle(screen, session, key):
         session.help()
     elif key == 't':
         session.timeline()
+    elif key == '/':
+        text=edit(screen,'Find literal text',session.search_text,verb='find')
+        if text is not None: session.find(text,width=viewport_width(screen))
+    elif key in ('n','N'):
+        session.find(reverse=key=='N',width=viewport_width(screen))
     elif key == 'r':
         session.notice = 'Collecting read-only evidence... Ctrl-C interrupts; optional sources can take several seconds.'
         draw(screen, session)
@@ -156,7 +151,7 @@ def handle(screen, session, key):
             if key == curses.KEY_HOME:
                 session.scroll = 0
             elif key == curses.KEY_END:
-                width = min(240, max(1, screen.getmaxyx()[1]-(24 if screen.getmaxyx()[1] >= 90 and screen.getmaxyx()[0] >= 15 else 0)-2))
+                width = viewport_width(screen)
                 session.scroll = len(escaped(session.value))//width
             else:
                 session.scroll = max(0, session.scroll+step)

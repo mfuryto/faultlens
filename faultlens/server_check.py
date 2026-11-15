@@ -151,7 +151,7 @@ def terminal_rows():
         except (curses.error,OSError,ValueError):
             result.append(row('tui.current_terminal','MISSING','Terminal capability lookup failed.'))
     result.append(row('tui.manual_navigation','SKIP','Human SSH/keyboard acceptance requires an interactive check.',
-                      'Run faultlens tui; test r, pages 1-8, Enter, Left, resize, q and Ctrl-C. Automated PTY coverage is in the unit suite.'))
+                      'Run faultlens tui; test r, pages 1-8, Enter, / search, n/N, Left, resize, q and Ctrl-C. Automated PTY coverage is in the unit suite.'))
     return result
 
 

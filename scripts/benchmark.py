@@ -44,6 +44,11 @@ def worker(command: str) -> dict:
             raise RuntimeError('Evidence navigation copied or lost the report')
         for size in ((24,100),(10,40)):
             draw(Screen(size=size), session)
+        session.find('collected_at')
+        session.open_row()
+        session.find('2026',width=38)
+        session.find(width=38)
+        draw(Screen(size=(10,40)),session)
         usage = resource.getrusage(resource.RUSAGE_SELF)
         return {'collection_wall_seconds': time.monotonic()-started,
                 'cpu_seconds': usage.ru_utime+usage.ru_stime, 'peak_rss_mib': usage.ru_maxrss/1024}

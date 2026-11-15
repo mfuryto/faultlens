@@ -36,6 +36,59 @@ class Screen:
 
 
 class SessionTests(unittest.TestCase):
+    def test_literal_search_wraps_without_filtering_collecting_or_copying_evidence(self):
+        session=Session()
+        evidence={'alpha':'one needle','nested':{'hidden':'needle'},'omega':'another NEEDLE'}
+        session.stack=[(evidence,'Invented evidence',0,0)]
+        with patch.object(session,'refresh',side_effect=AssertionError('No search collection')):
+            session.find('needle')
+            self.assertEqual(0,session.selected)
+            session.find(); self.assertEqual(2,session.selected)
+            session.find(); self.assertEqual(0,session.selected)
+            session.find(reverse=True); self.assertEqual(2,session.selected)
+            self.assertEqual(3,len(session.rows()))
+            self.assertIs(evidence,session.value)
+            self.assertIs(evidence['nested'],session.rows()[1].value)
+            session.find('hidden')
+            self.assertIn('No match',session.notice)
+            self.assertEqual(2,session.selected)
+            session.find('[')
+            self.assertIn('No match',session.notice)
+
+    def test_scalar_search_uses_full_escaped_value_and_wraps_by_line(self):
+        session=Session()
+        value='a'*100+'NEEDLE'+'b'*100+'needle'+'\x1b]52;c;payload\x07'
+        session.stack=[(value,'Invented scalar',0,0)]
+        session.find('needle',width=20); self.assertEqual(5,session.scroll)
+        session.find(width=20); self.assertEqual(10,session.scroll)
+        session.find(width=20); self.assertEqual(5,session.scroll)
+        session.find(reverse=True,width=20); self.assertEqual(10,session.scroll)
+        session.find('\\u001b',width=20); self.assertGreater(session.scroll,0)
+        self.assertIs(value,session.value)
+        session.find('needle',width=7)
+        self.assertEqual(101//7,session.scroll)
+
+    def test_search_validation_empty_view_and_clear_leave_evidence_unchanged(self):
+        session=Session()
+        session.find(); self.assertIn('Search cleared',session.notice)
+        session.find('anything'); self.assertIn('No match',session.notice)
+        for query in ('x'*65,'\x1b','\n','\u202e',12):
+            with self.assertRaises(ValueError): session.find(query)
+            self.assertEqual('anything',session.search_text)
+        session.find(''); self.assertEqual('',session.search_text)
+
+    def test_search_matches_readable_units_and_settings_without_changing_them(self):
+        from faultlens.models import Observation,report
+        session=Session()
+        session.data=report('status',[Observation('memory.total',2*1024**3,'bytes','synthetic')])
+        session.find('GiB')
+        self.assertEqual('observation',session.rows()[session.selected].action)
+        session.choose_page(7)
+        settings=session.settings
+        session.find('Off')
+        self.assertEqual(False,session.rows()[session.selected].value)
+        self.assertIs(settings,session.settings)
+
     def session(self):
         return Session(sources=SyntheticNetworkSources(), runner=SyntheticPhase3Runner(),
             pstore_collector=SyntheticSources().pstore_snapshot,
@@ -149,6 +202,26 @@ class SessionTests(unittest.TestCase):
 
 
 class TerminalTests(unittest.TestCase):
+    def test_search_editor_cancel_clear_keys_and_scalar_resize(self):
+        from faultlens.tui import draw,handle,viewport_width
+        session=Session()
+        value='a'*100+'needle'+'b'*100+'NEEDLE'
+        session.stack=[(value,'Invented scalar',0,0)]
+        with patch.object(session,'refresh',side_effect=AssertionError('No hidden collection')):
+            handle(Screen(tuple('needle\n')),session,'/')
+            self.assertEqual('needle',session.search_text)
+            self.assertEqual(101//74,session.scroll)
+            draw(Screen(),session)
+            handle(Screen(),session,'n'); self.assertEqual(207//74,session.scroll)
+            draw(Screen(),session)
+            handle(Screen(),session,'N'); self.assertEqual(101//74,session.scroll)
+            handle(Screen(('\x1b',)),session,'/'); self.assertEqual('needle',session.search_text)
+            handle(Screen(('\x15','\n')),session,'/'); self.assertEqual('',session.search_text)
+            screen=Screen(tuple('needle\n'),size=(10,40))
+            handle(screen,session,'/'); draw(screen,session)
+            self.assertEqual(101//viewport_width(screen),session.scroll)
+            self.assertIs(value,session.value)
+
     def test_draw_keys_resize_scalar_paging_and_no_automatic_refresh(self):
         import curses
         from faultlens.tui import draw, handle, loop
@@ -252,7 +325,7 @@ raise SystemExit(run(sources=SyntheticSources(),runner=SyntheticRunner()))
             while b'READ-ONLY' not in output and time.monotonic()<deadline:
                 if select.select([master],[],[],0.1)[0]: output.extend(os.read(master,65536))
             self.assertIn(b'READ-ONLY',output)
-            os.write(master,b'r278')
+            os.write(master,b'r278/boot\nnN')
             fcntl.ioctl(slave,termios.TIOCSWINSZ,struct.pack('HHHH',10,40,0,0))
             process.send_signal(signal.SIGWINCH)
             if interrupt:
