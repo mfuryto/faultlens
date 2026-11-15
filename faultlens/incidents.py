@@ -218,6 +218,12 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
+def _security_result(data):
+    from .security_analysis import assess
+    assess(data)
+    return data
+
+
 def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None, atop_extended=False, search_ssh=False, show_evidence=False, search_firewall=False):
     validate_window(since_us, until_us)
     if type(show_evidence) is not bool:
@@ -276,7 +282,7 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     if data['state'] != 'available':
         data['boot_selection']['state'] = 'listing_unavailable'
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
-        return data
+        return _security_result(data)
     # Resolve the scope-local selector before candidate search or tail collection.
     selected = next((boot for boot in data['boots'] if
                      (boot['boot_id'] == boot_id if boot_id is not None else boot['index'] == boot_index)), None)
@@ -284,7 +290,7 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         data['boot_selection']['state'] = 'not_visible'
         data.update(state='unavailable')
         data['limitations'].append('The requested boot is not visible in the bounded listing for this scope. This does not prove that the boot did not occur.')
-        return data
+        return _security_result(data)
     data['boot_selection']['state'] = 'resolved'
     data.update(selected_boot=selected, state='unavailable', coverage='unavailable')
     if search_firewall:
@@ -310,7 +316,7 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
                                   'parse_state': 'not_attempted'}
     if result.state != 'completed' or result.returncode != 0:
         data['limitations'].append('Journal collection failed, timed out, exceeded the byte limit or was inaccessible.')
-        return data
+        return _security_result(data)
     try:
         records, limited, unsupported = entries(result.stdout, selected['boot_id'],
             validator=(lambda entry: (since_us is None or entry.realtime_us >= since_us) and
@@ -319,7 +325,7 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     except ValueError:
         data['journal_collection']['parse_state'] = 'invalid'
         data['limitations'].append('Journal records were malformed, ambiguous or outside the selected boot or requested time boundary.')
-        return data
+        return _security_result(data)
     if show_evidence:
         data['journal_records'] = [evidence_record(entry) for entry in records]
     data['journal_collection']['parse_state'] = 'valid' if records else 'empty'
@@ -349,4 +355,4 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     if atop_date is not None:
         from .atop import attach
         attach(data, records, runner, atop_date, extended=atop_extended)
-    return data
+    return _security_result(data)

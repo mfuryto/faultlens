@@ -12,8 +12,8 @@ from faultlens.incidents import diagnose
 from tests.test_atop import AtopRunner, EPOCH, sample
 
 
-def extended_sample(*, reset=False, rows=None):
-    text = sample(reset=reset)
+def extended_sample(*, reset=False, rows=None, timestamp=EPOCH+30, period=30):
+    text = sample(timestamp, period, reset=reset)
     header = text.split('CPU ', 1)[1].splitlines()[0].split()[:5]
     if rows is None:
         rows = [

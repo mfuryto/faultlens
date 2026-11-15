@@ -165,6 +165,22 @@ def render_history(data, stdout):
                         print("    " + text, file=stdout)
             for text in targeted.get('limitations', []):
                 print("  Limitation: " + text, file=stdout)
+        security = data.get('security_analysis')
+        if security and security['state'] != 'not_requested':
+            print('Security indicators: ' + security['state'] + '; attack/cause Unknown.', file=stdout)
+            print('  Sources: ' + json.dumps(security['sources'], ensure_ascii=True), file=stdout)
+            print('  Historical comparison: ' + json.dumps(security['historical_comparison'], ensure_ascii=True), file=stdout)
+            print(f"  Matching indicators: {security['matching_indicators']}; findings truncated: {security['findings_truncated']}.", file=stdout)
+            for finding in security['findings']:
+                print('  [' + finding['rule_id'] + '] ' + finding['title'] + ' (Possible; cause Unknown)', file=stdout)
+                print('    Observation: ' + finding['observation'], file=stdout)
+                print('    Evidence: ' + json.dumps(finding['evidence'], ensure_ascii=True, allow_nan=False), file=stdout)
+                print('    Reasoning: ' + finding['reasoning'], file=stdout)
+                print('    Thresholds: ' + json.dumps(finding['thresholds'], ensure_ascii=True), file=stdout)
+            for text in security['limitations']:
+                print('  Limitation: ' + text, file=stdout)
+            for text in security['recommendations']:
+                print('  Recommendation: ' + text, file=stdout)
         ssh = data.get('ssh_analysis')
         if ssh:
             print("SSH journal analysis: " + ssh['state'] + "; attack Unknown; completeness unknown.", file=stdout)
@@ -265,13 +281,13 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
     parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
     parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
-    parser.add_argument("--search-ssh", action="store_true", help="Inspect bounded supported SSH authentication reports in the selected boot/time scope (diagnose only).")
+    parser.add_argument("--search-ssh", action="store_true", help="Inspect supported SSH authentication reports and failure-burst indicators in the selected boot/time scope (diagnose only).")
     parser.add_argument("--until-us", type=receipt_boundary, help="End the ordinary tail at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
     parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
     parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")
-    parser.add_argument("--search-firewall", action="store_true", help="Inspect bounded kernel-tail candidates for supported firewall log forms (diagnose only).")
+    parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (diagnose only).")
     args = parser.parse_args(argv)
     if args.search_firewall and args.command != 'diagnose':
         parser.error("Firewall journal analysis is supported only with diagnose.")

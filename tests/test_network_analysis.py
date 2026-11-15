@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from faultlens.cli import main
-from faultlens.network import TCP_FIELDS, collect, tcp_extensions
+from faultlens.network import TCP_FIELDS, UDP_FIELDS, collect, tcp_extensions, udp_statistics
 from tests.support import SyntheticSources
 
 HEADER = 'Inter-| Receive | Transmit\n face |bytes packets errs drop fifo frame compressed multicast|bytes packets errs drop fifo colls carrier compressed\n'
@@ -20,10 +20,15 @@ def stats(values=(0, 0, 0, 0, 0)):
     return 'TcpExt: ' + ' '.join(TCP_FIELDS) + '\nTcpExt: ' + ' '.join(map(str, values)) + '\n'
 
 
+def udp_stats(values=(0,0,0,0,0,0)):
+    return 'Udp: ' + ' '.join(UDP_FIELDS) + '\nUdp: ' + ' '.join(map(str, values)) + '\n'
+
+
 class NetworkSources:
-    def __init__(self, devices=None, tcp=None):
+    def __init__(self, devices=None, tcp=None, udp=None):
         self.values = {'/proc/net/dev': devices or [HEADER+device(), HEADER+device(received=200, sent=400)],
-                       '/proc/net/netstat': tcp or [stats(), stats()]}
+                       '/proc/net/netstat': tcp or [stats(), stats()],
+                       '/proc/net/snmp': udp or [udp_stats(), udp_stats()]}
         self.reads = {}
 
     def read(self, path):
@@ -96,7 +101,7 @@ class NetworkAnalysisTests(unittest.TestCase):
     def test_invalid_clock_and_all_failed_sources_do_not_fabricate_rates(self):
         for times in ((10, 10), (10, 9), (10, 16), (10, float('nan'))):
             self.assertEqual('unavailable', analyze(times=times)['state'])
-        sources = NetworkSources(devices=[OSError('private')]*2, tcp=[OSError('private')]*2)
+        sources = NetworkSources(devices=[OSError('private')]*2, tcp=[OSError('private')]*2, udp=[OSError('private')]*2)
         data = analyze(sources)
         self.assertEqual('unavailable', data['state'])
         self.assertEqual([], data['findings'])
@@ -110,6 +115,22 @@ class NetworkAnalysisTests(unittest.TestCase):
         value = tcp_extensions('TcpExt: ListenDrops SyntheticUnknown\nTcpExt: 2 7\n')
         self.assertEqual(2, value['ListenDrops'])
         self.assertNotIn('SyntheticUnknown', value)
+
+    def test_udp_buffer_errors_are_independent_confirmed_counter_observations(self):
+        data = analyze(NetworkSources(udp=[udp_stats(), udp_stats((100,20,4,3,2,1))]))
+        values = {row['key']: row for row in data['observations']}
+        self.assertEqual(3, len(data['findings']))
+        self.assertEqual(2, values['network.udp.RcvbufErrors']['value']['delta'])
+        self.assertTrue(all(row['confidence'] == 'Confirmed' for row in data['findings']))
+        self.assertEqual('Unknown', data['attack_assessment'])
+        data = analyze(NetworkSources(udp=[PermissionError('restricted')]*2))
+        self.assertEqual('partial',data['state'])
+        self.assertEqual('unknown',data['observations'][0]['state'])
+        self.assertEqual(1, udp_statistics('Udp: RcvbufErrors\nUdp: 1\n')['RcvbufErrors'])
+        sentinel = 'Tcp: MaxConn InSegs\nTcp: -1 123\n'
+        self.assertEqual(2,udp_statistics(sentinel+'Udp: InDatagrams\nUdp: 2\n')['InDatagrams'])
+        for text in (sentinel.replace('-1','-2')+'Udp: InDatagrams\nUdp: 2\n', 'Udp: RcvbufErrors RcvbufErrors\nUdp: 1 2\n', 'Udp: InErrors\nUdp: -1\n'):
+            with self.assertRaises(ValueError): udp_statistics(text)
 
     def test_duplicate_unsafe_or_excessive_interfaces_fail_closed(self):
         for text in (HEADER.replace('multicast|bytes', 'changed|bytes')+device(), HEADER+device()+device(), HEADER+device('bad\x1bname'),

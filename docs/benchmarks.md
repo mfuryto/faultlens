@@ -329,3 +329,14 @@ wall time was 0.1069 s (maximum 0.1083 s), median CPU 0.0498 s and maximum RSS
 25.47 MiB on Linux/Python 3.14.4. All 23 modes passed their regression budgets.
 These figures exclude real ss startup, procfs/netlink contention and host load;
 the external-command deadline/output cap remain independent runtime controls.
+
+## Phase 3 integrated security acceptance — 2026-11-15
+
+The `phase3-security` mode uses both 500-candidate synthetic log sources and six
+contiguous extended Atop samples with 32 interfaces. It validates all independent
+source states, historical comparison, derived findings and explicit finding cap,
+rendering the real JSON CLI. Ten fresh children measured median wall 0.1532 s
+(maximum 0.1596 s), median CPU 0.1359 s and maximum RSS 46.81 MiB on
+Linux/Python 3.14.4. All 24 modes passed <50 MiB RSS / <1 s CPU / <2 s wall.
+This is a bounded synthetic regression, not a live attack detector calibration or
+a guarantee for every host. Native source execution and journal I/O are excluded.

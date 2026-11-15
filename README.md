@@ -1,6 +1,6 @@
 # Faultlens
 
-**Pre-release — bounded historical diagnostics and initial network and socket analysis.** Faultlens provides local, read-only Linux
+**Pre-release — bounded historical diagnostics, network observations and explainable security indicators.** Faultlens provides local, read-only Linux
 system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
 There is no TUI, packaged distribution, or supported production release.
 
@@ -167,7 +167,7 @@ security assessment remains Unknown. Counter-only collection has no endpoints;
 probes are performed. Opt-in SSH journal observations and local original evidence views are described in
 [SSH analysis](docs/architecture/phase-3-ssh.md). Opt-in [firewall log observations](docs/architecture/phase-3-firewall.md) preserve
 reported UFW labels and packet context, without claiming verified verdicts. Active
-policy inspection, broader authentication methods and attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
+policy inspection, broader authentication methods and verified attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
 
 Optional current TCP/UDP endpoints (numeric addresses and ports remain visible):
 
@@ -178,6 +178,22 @@ Optional current TCP/UDP endpoints (numeric addresses and ports remain visible):
 
 This uses the locally installed `ss` without remote probes or elevation. A binding
 is not proof of external reachability. See [socket scope](docs/architecture/phase-3-sockets.md).
+
+Phase 3 CLI implementation is complete within its documented source bounds.
+[Acceptance and detection rules](docs/architecture/phase-3-acceptance.md) describe
+current UDP/TCP pressure counters, SSH failure bursts, logged multi-port/UDP
+patterns and historical traffic-rate anomalies. A possible indicator is never a
+confirmed attack or root cause. Historical rules analyze only evidence explicitly
+requested with the existing options:
+
+```sh
+./bin/faultlens diagnose --previous-boot --system-journal --search-ssh --search-firewall --json
+./bin/faultlens diagnose --previous-boot --atop-date 20260101 --atop-extended --json
+```
+
+Replace the example recording date with an existing local recording. Historical
+traffic comparison needs at least six comparable contiguous samples; missing
+history remains explicit rather than generating an all-clear.
 
 ## Develop and verify
 

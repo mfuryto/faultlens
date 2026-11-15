@@ -1,4 +1,5 @@
 """Bounded current-namespace TCP/UDP observations without remote traffic."""
+from collections import Counter
 from datetime import datetime, timezone
 import ipaddress
 import re
@@ -69,7 +70,9 @@ def attach(data, runner=None):
     if result.state == 'completed' and result.returncode == 0:
         try:
             snapshot['rows'] = parse(result.stdout)
-            snapshot.update(state='available', reason=None)
+            snapshot.update(state='available', reason=None,
+                reported_state_counts=dict(sorted(Counter(row['protocol'] + '.' + row['state'] for row in snapshot['rows']).items())),
+                tcp_listener_rows=sum(row['protocol'] == 'tcp' and row['state'] == 'LISTEN' for row in snapshot['rows']))
         except (ValueError, UnicodeError):
             snapshot['reason'] = 'unsupported_or_over_limit_output'
     data['sockets'] = snapshot
