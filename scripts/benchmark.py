@@ -94,7 +94,11 @@ def worker(command: str) -> dict:
     if command == 'diagnose-extended':
         value = payload['atop']['samples'][0]['extended']
         if (len(value['disks']) != 32 or len(value['interfaces']) != 32
-                or value['processes']['reported_processes'] != 256):
+                or value['processes']['reported_processes'] != 256
+                or len(value['process_details']) != 256
+                or not payload['atop']['samples'][0]['source_records']
+                or value['disks'][0]['device'] != 'disk0'
+                or value['process_details'][0]['pid'] != 1):
             raise RuntimeError('Synthetic maximum extended resources failed')
     if command == 'diagnose-atop':
         values = payload['atop']['samples']

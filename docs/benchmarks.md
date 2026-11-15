@@ -274,3 +274,21 @@ Ten fresh Linux/Python 3.14.4 children measured median wall
 peak RSS 41.57 MiB. All twenty-one modes passed <50 MiB RSS / <1 s CPU /
 <2 s wall budgets. CI runs two children per mode. Evidence and identities are invented;
 native journal search latency and actual SSH detection accuracy are not measured.
+
+## Atop administrator identities and replay evidence — 2026-11-15
+
+Basic/extended replay now retains recorded hostnames and native sample lines. The
+maximum extended mode also verifies 256 process/thread detail records, 32 named
+disks and 32 named interfaces. Ten fresh Linux/Python 3.14.4 children measured:
+
+| Mode | Median wall s | Maximum wall s | Median CPU s | Maximum RSS MiB |
+| --- | --- | --- | --- | --- |
+| diagnose-atop | 0.0788 | 0.0828 | 0.0713 | 28.32 |
+| diagnose-extended | 0.0969 | 0.1017 | 0.0836 | 33.93 |
+| diagnose-integrated | 0.1247 | 0.1356 | 0.1117 | 38.56 |
+| diagnose-ssh | 0.1171 | 0.1201 | 0.1065 | 41.64 |
+
+All twenty-one modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. The existing
+combined SSH/admin view remains covered. These are invented sources and parser/CLI
+measurements, not native replay or target-host qualification. No host identities or
+recordings are committed or uploaded.

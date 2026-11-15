@@ -49,8 +49,9 @@ null, negative inputs fail closed, and interval shares never upgrade causal conf
 listing snapshot, query only selected immutable IDs and cap selection at seven.
 Per-boot failures remain visible without replacement or automatic optional-source replay.
 [Extended Atop replay](../architecture/phase-2-atop-extended.md) requires a separate
-explicit flag and fixed label profile. Process names/PIDs/wait channels are discarded;
-disk/interface fingerprints are not anonymity guarantees. Record pairing and cardinality
+explicit flag and fixed label profile. Process names/PIDs/wait channels and device/
+interface names are available to local administrators, with reported hostnames and
+source replay lines. Fingerprints do not verify identity. Record pairing and cardinality
 limits fail closed before resource results are emitted.
 [Phase 3 network sampling](../architecture/phase-3-network.md) reads only fixed
 namespace counter sources, validates paired columns and unique interface labels, and
@@ -141,6 +142,7 @@ not privacy redactions. No automatic save, upload or privilege escalation is add
 
 Earlier milestone identity omissions describe implemented summary/adapter limits,
 not requirements to conceal information from administrators. Full identity/evidence
-views for remaining Atop/pstore/TUI adapters remain future work. Local visibility
+views for pstore and future TUI adapters remain work; both Atop profiles now expose
+recorded hostnames/source lines, and the extended profile exposes process identities. Local visibility
 must not be confused with permission to publish host evidence in repository files,
 CI artifacts or vulnerability reports. Tests continue to use synthetic data only.

@@ -203,7 +203,10 @@ def render_history(data, stdout):
                 for text in coverage["limitations"]:
                     print("  Limitation: " + text, file=stdout)
                 print(f"  Possible temporal overlaps: {len(resources['correlations'])}; host/boot unverified; cause Unknown.", file=stdout)
-                print("  Use --json for normalized samples and overlap references.", file=stdout)
+                print("  Use --json or --show-evidence for local sample identities and original replay records.", file=stdout)
+                if 'journal_records' in data:
+                    for sample in resources['samples']:
+                        print("  Atop sample evidence: " + json.dumps(sample, ensure_ascii=True), file=stdout)
             else:
                 print("  Reason: " + resources.get('reason', 'unavailable'), file=stdout)
             for limitation in resources.get('limitations', []):

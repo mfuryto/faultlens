@@ -89,7 +89,9 @@ See [multi-boot overview](docs/architecture/phase-2-overview.md) and the
 behavior, verification status and remaining product scope.
 `diagnose --atop-date YYYYMMDD --atop-extended --json` opts in to bounded
 [historical disk, network and process context](docs/architecture/phase-2-atop-extended.md).
-Names and process IDs are omitted; recorded activity does not establish a cause.
+Disk/interface names, PID/TGID, process names and wait channels are visible locally.
+Both Atop profiles retain the recorded hostname and replay lines; use --json or
+--show-evidence to inspect them. Recorded identity/activity does not establish a cause.
 [Historical CPU accounting](docs/architecture/phase-2-atop-cpu.md) separates Atop
 execution, idle, I/O-wait and steal shares. These interval measurements do not
 establish disk failure, provider contention or an incident cause.

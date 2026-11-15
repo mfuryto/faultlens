@@ -46,13 +46,13 @@ class AtopRunner(JournalRunner):
 
 
 class AtopParserTests(unittest.TestCase):
-    def test_units_guest_exclusion_and_no_hostname_exposure(self):
+    def test_units_guest_exclusion_and_recorded_hostname(self):
         value, = samples(sample())
         self.assertEqual(20, value['cpu_busy_percent'])
         self.assertEqual(4096000, value['memory_total_bytes'])
         self.assertEqual(1638400, value['memory_free_bytes'])
         self.assertEqual(307200, value['swap_used_bytes'])
-        self.assertNotIn('synthetic.test', json.dumps(value))
+        self.assertEqual('synthetic.test', value['recorded_hostname'])
         self.assertNotIn('memory_used_percent', value)
 
     def test_reset_and_zero_ticks_are_not_localized_cpu_measurements(self):
@@ -92,7 +92,7 @@ class CorrelationTests(unittest.TestCase):
         self.assertEqual('Possible', pair['confidence'])
         self.assertEqual('Unknown', pair['cause_confidence'])
         self.assertEqual('unverified', data['atop']['boot_identity'])
-        self.assertNotIn('synthetic.test', json.dumps(data))
+        self.assertEqual('synthetic.test', data['atop']['samples'][0]['recorded_hostname'])
         _, start, end = runner.atop_calls[0]
         self.assertEqual(1800, end - start)
 

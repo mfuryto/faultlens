@@ -5,15 +5,17 @@ and process measurements from the same fixed local Atop recording and bounded wi
 Without the additional flag, the existing CPU/MEM/SWP profile is unchanged. The date
 and diagnose command are mandatory; incidents never multiplies this collection.
 
-## Collection and privacy
+## Collection and administrator visibility
 
 The isolated helper selects exactly `CPU,MEM,SWP,DSK,NET,PRC,PRM` and adds Atop's fixed
 `-Z` option for space-normalized process fields. No PRG command-line record, per-process
 network module, packet capture, arbitrary label, command or path is requested. Native
-output can contain names and wait channels in bounded memory, but they are never
-printed or persisted. Process IDs/names and wait channels are discarded. Disk and
-interface names become SHA-256 references for local sample comparison, not proof of
-identity or anonymity. Guessable names can still be matched to their fingerprints.
+output, including names and wait channels, is now inspectable locally. Process
+PID/TGID, names, states and wait channels are preserved alongside measurements. Disk
+and interface names are exposed; existing fingerprints remain for comparison, not
+anonymity or identity verification. Every validated sample retains the recorded
+hostname and native replay lines. No automatic persistence or upload is introduced.
+See [administrator Atop views](phase-3-atop-admin.md) for exact semantics.
 
 All original descriptor/path protections, no-new-privileges, 64 MiB native address
 space, two-second CPU/wall limits, output cap of 256 KiB and no file/core output apply.
@@ -41,11 +43,12 @@ optional tools never reconstructs evidence that was not recorded.
 | PRC + PRM | Reported process count, excluded threads, exited count, aggregate CPU seconds, major faults and memory/swap snapshots | Only paired reported process rows; shared pages can be counted repeatedly |
 
 Thread rows are excluded from process totals to avoid adding a process aggregate to
-its threads. Exited rows remain counted, but their resource values are excluded:
+its threads. Exited rows remain counted, but their resource values are excluded from aggregates:
 accounting/lifetime semantics need not localize those values to the sampled interval. Empty process/device/interface sets are labeled as unreported rows,
 not proof that no activity occurred. RESET groups are validated but extended interval
-measurements are excluded. No individual process identification or responsible-workload
-attribution is attempted from anonymized aggregates.
+measurements are excluded from interval aggregates. Per-record identities and reported
+resources remain inspectable, including RESET, thread and exited rows. A PID/name is
+not proof of a persistent process instance or a responsible workload.
 
 These measurements belong to the referenced sample interval. Existing correlations
 can indicate Possible wall-clock overlap with a journal finding; they never prove

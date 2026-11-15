@@ -57,10 +57,10 @@ class AtopCpuTests(unittest.TestCase):
         self.assertEqual('Unknown', data['root_cause'])
         self.assertEqual('Unknown', data['shutdown_assessment'])
 
-    def test_cli_json_exposes_accounting_without_raw_host_or_messages(self):
+    def test_cli_json_exposes_accounting_and_recorded_source_identity(self):
         output = io.StringIO()
         main(['diagnose', '--atop-date', '20260101', '--json'], runner=AtopRunner(), stdout=output)
         value = json.loads(output.getvalue())['atop']['samples'][0]
         self.assertEqual([20, 80, 0, 0], [value[key] for key in KEYS])
-        self.assertNotIn('synthetic.test', output.getvalue())
+        self.assertEqual('synthetic.test', value['recorded_hostname'])
         self.assertIn('not proof of provider contention', output.getvalue())

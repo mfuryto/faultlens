@@ -89,8 +89,10 @@ no-new-privileges guard fails. Pipes and the original recording descriptor are c
 Resource exhaustion or unsupported raw data yields
 unavailable context. Do not widen limits or permissions automatically to mask failures.
 By default only CPU/MEM/SWP system records are requested; process, command-line, disk-device,
-network-address and cgroup records are not requested. Raw output/stderr and source
-hostnames never appear in Faultlens reports. Native source code is not vendored.
+network-address and cgroup records are not requested. Both profiles now retain the
+recorded hostname and validated native replay lines for local administrator inspection
+through --json or --show-evidence. Native stderr is not rendered by this adapter.
+Native source code is not vendored. See [administrator Atop views](phase-3-atop-admin.md).
 
 ## Format and measurement semantics
 

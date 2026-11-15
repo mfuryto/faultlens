@@ -1,4 +1,4 @@
-"""Invented extended Atop rows; no process names or host recordings in fixtures."""
+"""Invented extended Atop rows; no real process identities or host recordings in fixtures."""
 import contextlib
 import io
 import json
@@ -38,7 +38,7 @@ class ExtendedRunner(AtopRunner):
 
 
 class ExtendedAtopTests(unittest.TestCase):
-    def test_checked_units_and_protocol_fields_have_no_names_or_pids(self):
+    def test_checked_units_and_protocol_fields_preserve_administrator_identities(self):
         value, = samples(extended_sample(), extended=True)
         extra = value['extended']
         self.assertEqual(2048, extra['disks'][0]['read_bytes'])
@@ -50,7 +50,49 @@ class ExtendedAtopTests(unittest.TestCase):
         self.assertEqual(7168, extra['processes']['swap_bytes_sum_snapshot'])
         self.assertEqual(3, extra['processes']['major_page_faults'])
         for marker in ('private-process', 'private-wchan', 'syntheticdisk', 'syntheticnic', 'synthetic.test'):
-            self.assertNotIn(marker, json.dumps(value))
+            self.assertIn(marker, json.dumps(value))
+
+    def test_local_process_details_preserve_identity_units_and_native_records(self):
+        value, = samples(extended_sample(), extended=True)
+        details, = value['extended']['process_details']
+        self.assertEqual(42, details['pid'])
+        self.assertEqual(42, details['tgid'])
+        self.assertEqual('private-process', details['name'])
+        self.assertEqual('private-wchan', details['wait_channel'])
+        self.assertEqual('recorded_interval', details['measurement_scope'])
+        self.assertTrue(details['included_in_aggregate'])
+        self.assertEqual(3, details['reported_cpu_seconds'])
+        self.assertEqual(20480, details['reported_resident_bytes'])
+        self.assertEqual('syntheticdisk', value['extended']['disks'][0]['device'])
+        self.assertEqual('syntheticnic', value['extended']['interfaces'][0]['interface'])
+        self.assertEqual('synthetic.test', value['recorded_hostname'])
+        self.assertEqual(extended_sample().splitlines(), value['source_records'])
+
+    def test_thread_exited_and_reset_rows_remain_inspectable_without_entering_totals(self):
+        for text, scope in ((extended_sample().replace('42 y', '42 n'), 'recorded_interval'),
+                            (extended_sample().replace('private-process S', 'private-process E'), 'exited_accounting_unlocalized'),
+                            (extended_sample(reset=True), 'since_boot')):
+            value, = samples(text, extended=True)
+            details, = value['extended']['process_details']
+            self.assertEqual(scope, details['measurement_scope'])
+            self.assertFalse(details['included_in_aggregate'])
+            self.assertEqual(42, details['pid'])
+            self.assertEqual(3, details['reported_cpu_seconds'])
+            self.assertEqual(text.splitlines(), value['source_records'])
+
+    def test_text_admin_view_preserves_values_but_escapes_format_controls(self):
+        name = 'synthetic\u202eprocess'
+        text = extended_sample().replace('private-process', name)
+        output = io.StringIO()
+        self.assertEqual(0, main(['diagnose', '--atop-date', '20260101', '--atop-extended',
+                                 '--show-evidence'], runner=ExtendedRunner(text), stdout=output))
+        self.assertIn('Atop sample evidence:', output.getvalue())
+        self.assertIn('syntheticdisk', output.getvalue())
+        self.assertIn('syntheticnic', output.getvalue())
+        self.assertNotIn('\u202e', output.getvalue())
+        self.assertIn('\\u202e', output.getvalue())
+        value, = samples(text, extended=True)
+        self.assertEqual(name, value['extended']['process_details'][0]['name'])
 
     def test_basic_profile_rejects_extended_rows_instead_of_silent_collection(self):
         with self.assertRaises(ValueError):
@@ -152,7 +194,7 @@ class ExtendedAtopTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             window_boundary(bytearray(text.replace('PRM ', 'BAD ').encode()), EPOCH+30, extended=True)
 
-    def test_cli_requires_explicit_date_and_omits_private_resource_labels(self):
+    def test_cli_requires_explicit_date_and_shows_resource_labels(self):
         for args in (['diagnose', '--atop-extended'], ['incidents', '--atop-extended'],
                      ['status', '--atop-extended', '--atop-date', '20260101']):
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
@@ -162,7 +204,7 @@ class ExtendedAtopTests(unittest.TestCase):
         output = io.StringIO()
         self.assertEqual(0, main(['diagnose', '--atop-date', '20260101', '--atop-extended', '--json'],
                                 runner=ExtendedRunner(), stdout=output))
-        self.assertNotIn('private-process', output.getvalue())
+        self.assertIn('private-process', output.getvalue())
         self.assertEqual('extended', json.loads(output.getvalue())['atop']['profile'])
 
     def test_helper_rejects_arbitrary_profile_before_any_native_execution(self):
