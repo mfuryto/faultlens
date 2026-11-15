@@ -154,3 +154,8 @@ inferring missing contents, a contiguous loss interval or the cause of a failure
 
 The integrated [phase 2 acceptance review](phase-2-acceptance.md) records delivered
 baseline behavior, target validation gaps and remaining broader product requirements.
+
+The initial summary-only display has since gained a local administrator evidence
+view: `diagnose --show-evidence` includes retained original MESSAGE values and raw
+cursors. See [SSH/admin evidence views](phase-3-ssh.md). Earlier summary omissions
+are not a requirement to anonymize the final administrator interface.

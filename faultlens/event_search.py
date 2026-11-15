@@ -2,7 +2,7 @@
 from dataclasses import asdict
 
 from .candidate_review import explain
-from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, entries
+from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, entries, evidence_record
 from .reconstruction import timeline
 
 QUERIES = ('kernel_warnings', 'systemd_events')
@@ -33,7 +33,9 @@ def _valid_candidate(entry, query):
             and entry.message_id in {UNIT_START_FAILED, SHUTDOWN_REQUEST})
 
 
-def search(runner, boot_id, *, system=False):
+def search(runner, boot_id, *, system=False, show_evidence=False):
+    if type(show_evidence) is not bool:
+        raise ValueError('Invalid evidence view option')
     if not isinstance(boot_id, str) or not BOOT_ID.fullmatch(boot_id) or type(system) is not bool:
         raise ValueError('Invalid event search scope')
     from .incidents import analyze
@@ -44,6 +46,8 @@ def search(runner, boot_id, *, system=False):
                 'returncode': result.returncode, 'parse_state': 'not_attempted', 'candidates_examined': 0,
                 'record_limit_reached': False, 'unsupported_messages_in_response': 0,
                 'candidate_window': None, 'findings': [], 'timeline': [], 'candidate_review': None}
+        if show_evidence:
+            item['records'] = []
         results.append(item)
         if result.state != 'completed' or result.returncode != 0:
             item['reason'] = 'collection_unavailable'
@@ -54,6 +58,8 @@ def search(runner, boot_id, *, system=False):
         except ValueError:
             item.update(parse_state='invalid', reason='invalid_or_unexpected_candidates')
             continue
+        if show_evidence:
+            item['records'] = [evidence_record(entry) for entry in records]
         findings, matched = [], []
         for entry in records:
             matches = [finding for finding in analyze([entry])

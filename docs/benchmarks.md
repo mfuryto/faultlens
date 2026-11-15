@@ -264,3 +264,13 @@ All twenty modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. Network mode
 include the real requested 0.05-second sleep but use invented counters; they generate
 no traffic and exclude live procfs latency. CI runs two children per mode. Production
 VPS accuracy, actual attack detection and distribution qualification remain unverified.
+
+## SSH and local administrator evidence — 2026-11-15
+
+The twenty-first mode combines 500 SSH findings/original records, 500 ordinary
+journal records and both 500-candidate filtered views with local evidence enabled.
+Ten fresh Linux/Python 3.14.4 children measured median wall
+0.1320 s, maximum wall 0.1392 s, median CPU 0.1195 s and maximum
+peak RSS 41.57 MiB. All twenty-one modes passed <50 MiB RSS / <1 s CPU /
+<2 s wall budgets. CI runs two children per mode. Evidence and identities are invented;
+native journal search latency and actual SSH detection accuracy are not measured.

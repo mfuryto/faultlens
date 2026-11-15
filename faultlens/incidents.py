@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
-from .journal import BOOT_ID, JOURNAL_DROPPED, JOURNAL_MISSED, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries, validate_window
+from .journal import BOOT_ID, JOURNAL_DROPPED, JOURNAL_MISSED, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries, evidence_record, validate_window
 from .models import report
 from .reconstruction import describe, timeline
 
@@ -218,12 +218,16 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None, atop_extended=False):
+def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None, atop_extended=False, search_ssh=False, show_evidence=False):
     validate_window(since_us, until_us)
+    if type(show_evidence) is not bool:
+        raise ValueError('Invalid evidence view option')
     if type(atop_extended) is not bool or (atop_extended and atop_date is None):
         raise ValueError('Extended resources require an explicit recording date')
     if type(search_events) is not bool:
         raise ValueError('Invalid event search option')
+    if type(search_ssh) is not bool:
+        raise ValueError('Invalid SSH search option')
     if boot_id is not None:
         if not isinstance(boot_id, str) or not BOOT_ID.fullmatch(boot_id):
             raise ValueError('Invalid boot identity')
@@ -242,6 +246,8 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
                     'reason': 'not_requested' if atop_date is None else 'journal_scope_unavailable',
                     'samples': [], 'correlations': []}
     data['command'] = 'diagnose'
+    if show_evidence:
+        data['journal_records'] = []
     data['boot_selection'] = {'method': 'id' if boot_id is not None else 'index',
                               'requested': boot_id if boot_id is not None else boot_index, 'state': 'unresolved'}
     if since_us is None:
@@ -251,14 +257,17 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     data['journal_window'] = {'mode': mode, 'since_realtime_us': since_us,
                                'until_realtime_us': until_us, 'completeness': 'unknown'}
     if since_us is not None:
-        data['limitations'].append('The ordinary tail is restricted to the requested receipt-time start boundary. A record cap can still omit earlier records inside the range; targeted searches remain whole-selected-boot.')
+        data['limitations'].append('The ordinary tail is restricted to the requested receipt-time start boundary. A record cap can still omit earlier records inside the range; --search-events retains whole-selected-boot scope.')
     if until_us is not None:
-        data['limitations'].append('The ordinary tail ends at the requested journal receipt-time boundary, not the latest boot record. Targeted searches retain their whole-selected-boot scope.')
+        data['limitations'].append('The ordinary tail ends at the requested journal receipt-time boundary, not the latest boot record. The --search-events profiles retain their whole-selected-boot scope.')
     data['reconstruction'] = None
     data['journal_collection'] = None
     if search_events:
         from .event_search import unresolved
         data['event_search'] = unresolved(system=system_journal)
+    if search_ssh:
+        from .ssh import unresolved as unresolved_ssh
+        data['ssh_analysis'] = unresolved_ssh(system=system_journal, since_us=since_us, until_us=until_us)
     if data['state'] != 'available':
         data['boot_selection']['state'] = 'listing_unavailable'
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
@@ -273,9 +282,13 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         return data
     data['boot_selection']['state'] = 'resolved'
     data.update(selected_boot=selected, state='unavailable', coverage='unavailable')
+    if search_ssh:
+        from .ssh import search as search_ssh_events
+        data['ssh_analysis'] = search_ssh_events(runner, selected['boot_id'], system=system_journal,
+                                               since_us=since_us, until_us=until_us)
     if search_events:
         from .event_search import search
-        data['event_search'] = search(runner, selected['boot_id'], system=system_journal)
+        data['event_search'] = search(runner, selected['boot_id'], system=system_journal, show_evidence=show_evidence)
     if since_us is not None:
         result = runner.read_boot_window(selected['boot_id'], since_us, until_us=until_us, system=system_journal)
     elif until_us is not None:
@@ -298,6 +311,8 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         data['journal_collection']['parse_state'] = 'invalid'
         data['limitations'].append('Journal records were malformed, ambiguous or outside the selected boot or requested time boundary.')
         return data
+    if show_evidence:
+        data['journal_records'] = [evidence_record(entry) for entry in records]
     data['journal_collection']['parse_state'] = 'valid' if records else 'empty'
     kernel_count = sum(entry.transport == 'kernel' for entry in records)
     systemd_count = sum(entry.pid == '1' and entry.comm == 'systemd' for entry in records)

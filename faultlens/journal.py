@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import json
 import hashlib
+import math
 import re
 
 BOOT_ID = re.compile(r'[0-9a-f]{32}\Z')
@@ -42,11 +43,21 @@ class Entry:
     message_id: str
     message: str | None
     priority: str = ''
+    uid: str = ''
+    raw_message: object = None
 
     def reference(self) -> dict:
         return {'source': 'systemd-journal', 'boot_id': self.boot_id,
                 'realtime_us': self.realtime_us, 'monotonic_us': self.monotonic_us,
                 'cursor_sha256': hashlib.sha256(self.cursor.encode()).hexdigest() if self.cursor else None}
+
+
+def evidence_record(entry):
+    """Local administrator view; preserve original MESSAGE and an actionable cursor."""
+    return {'reference': dict(entry.reference(), cursor=entry.cursor),
+            'metadata': {'transport': entry.transport, 'uid': entry.uid, 'pid': entry.pid,
+                         'comm': entry.comm, 'message_id': entry.message_id, 'priority': entry.priority},
+            'message': entry.raw_message, 'analysis_text_available': entry.message is not None}
 
 
 def boots(text: str) -> list[Boot]:
@@ -83,6 +94,24 @@ def unique_object(pairs):
     return value
 
 
+def reject_constant(_value):
+    raise ValueError('Non-finite journal JSON constant')
+
+
+def bounded_structure(value):
+    pending = [(value, 0)]
+    while pending:
+        item, depth = pending.pop()
+        if depth > 32:
+            raise ValueError('Journal JSON structure exceeds depth limit')
+        if isinstance(item, float) and not math.isfinite(item):
+            raise ValueError('Non-finite journal JSON number')
+        if isinstance(item, dict):
+            pending.extend((child, depth+1) for child in item.values())
+        elif isinstance(item, list):
+            pending.extend((child, depth+1) for child in item)
+
+
 def timestamp(value, maximum):
     if not isinstance(value, str) or not re.fullmatch(r'[0-9]{1,20}', value):
         raise ValueError('Invalid journal timestamp')
@@ -105,7 +134,8 @@ def entries(text: str, boot_id: str, *, validator=None) -> tuple[list[Entry], bo
         if len(result) >= MAX_RECORDS + 1:
             raise ValueError('Too many journal records')
         try:
-            item = json.loads(line, object_pairs_hook=unique_object)
+            item = json.loads(line, object_pairs_hook=unique_object, parse_constant=reject_constant)
+            bounded_structure(item)
         except (ValueError, RecursionError) as exc:
             raise ValueError('Invalid journal JSON') from exc
         if not isinstance(item, dict) or item.get('_BOOT_ID') != boot_id:
@@ -117,7 +147,7 @@ def entries(text: str, boot_id: str, *, validator=None) -> tuple[list[Entry], bo
             if not isinstance(cursor, str) or not CURSOR.fullmatch(cursor) or cursor in seen:
                 raise ValueError('Invalid or duplicate journal cursor')
             seen.add(cursor)
-        for key in ('_TRANSPORT', '_PID', '_COMM', 'MESSAGE_ID', 'PRIORITY'):
+        for key in ('_TRANSPORT', '_PID', '_COMM', 'MESSAGE_ID', 'PRIORITY', '_UID'):
             if not isinstance(item.get(key, ''), str) or len(item.get(key, '')) > 128:
                 raise ValueError('Invalid journal metadata')
         if item.get('PRIORITY', '') and not re.fullmatch(r'[0-7]', item['PRIORITY']):
@@ -127,7 +157,8 @@ def entries(text: str, boot_id: str, *, validator=None) -> tuple[list[Entry], bo
             message = None
             unsupported += 1
         entry = Entry(boot_id, realtime, monotonic, cursor, item.get('_TRANSPORT', ''),
-                      item.get('_PID', ''), item.get('_COMM', ''), item.get('MESSAGE_ID', ''), message, item.get('PRIORITY', ''))
+                      item.get('_PID', ''), item.get('_COMM', ''), item.get('MESSAGE_ID', ''), message,
+                      item.get('PRIORITY', ''), item.get('_UID', ''), item.get('MESSAGE'))
         if validator is not None and not validator(entry):
             raise ValueError('Unexpected journal candidate')
         result.append(entry)

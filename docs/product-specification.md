@@ -128,6 +128,15 @@ For each finding, provide:
 
 The user must be able to inspect original logs, measurements, and technical evidence directly from the TUI.
 
+Faultlens is an administrator tool. The final local evidence views must expose
+relevant usernames, IP addresses, ports, process identities and original records
+available under the operator's existing permissions. Do not impose privacy-based
+masking or discard operational context as a product requirement. Summaries may be
+concise, but the original evidence must remain inspectable. Escaping control
+characters for terminal safety must preserve the underlying values. Keep access
+control, explicit exports and no automatic external disclosure separate from local
+administrator visibility.
+
 Never fabricate observations or present assumptions as confirmed facts.
 
 ## 4. Existing Linux tools and data sources
