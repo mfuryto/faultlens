@@ -173,8 +173,14 @@ markup or active links. Raw secondary evidence views never promote message field
 into actions. Developer/log/alternate-driver environment hooks are disabled; fatal
 errors do not render exception text or evidence locals. Terminal restoration is
 covered by real PTY quit/interrupt tests, with actual Textual Pilot navigation tests.
-No shell escape, auto-polling, persistent settings, clipboard hook, report export,
-configuration writer or runtime dependency download is introduced.
+No shell escape, auto-polling, clipboard hook, report export, host configuration
+writer or runtime dependency download is introduced. User-authorized TUI preferences
+are the sole persistent application data: fixed typed fields only, never diagnostic
+evidence. The 8 KiB versioned JSON file is owner-checked, private, opened without
+following symlinks and replaced atomically through a private directory descriptor.
+All fields validate before use; unsafe/malformed input falls back to defaults with
+a visible notice. Save failures remain visible and do not modify source evidence.
+See [preference storage](../tui.md#saving-preferences) for lifetime and file rules.
 
 The optional framework and transitive packages execute with the launching user's
 permissions. They are trusted code, not a privilege sandbox; launching as root makes

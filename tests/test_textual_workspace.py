@@ -71,8 +71,50 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(0.2,app.session.settings.sample_seconds)
             self.assertIsNone(app.job)
 
+    async def test_preference_edits_survive_restart_and_invalid_edits_do_not_change_file(self):
+        import tempfile
+        from pathlib import Path
+        from faultlens.settings_store import SettingsStore
+        with tempfile.TemporaryDirectory() as folder:
+            store=SettingsStore(Path(folder)/'config')
+            app=FaultlensApp(initial_collect=False,settings_store=store)
+            async with app.run_test(size=(100,30)) as pilot:
+                await pilot.pause(0.01); app.select_page(7)
+                await self.wait_until(pilot,lambda: app.page==7)
+                table=app.query_one('#grid-7',DataTable)
+                table.move_cursor(row=6); await pilot.press('enter')
+                self.assertFalse(app.session.settings.sockets)
+                table.move_cursor(row=2); await pilot.press('enter')
+                app.screen.query_one(Input).value='0.2'; await pilot.press('enter')
+                previous=store.path.read_bytes()
+                await pilot.press('enter'); app.screen.query_one(Input).value='nan'
+                await pilot.press('enter'); self.assertIsInstance(app.screen,ValueDialog)
+                self.assertEqual(previous,store.path.read_bytes())
+                await pilot.press('escape')
+            loaded,message=SettingsStore(store.base).load(Session().settings)
+            self.assertFalse(loaded.sockets); self.assertEqual(0.2,loaded.sample_seconds)
+            self.assertIn('loaded',message)
+
+    async def test_preference_write_failure_is_visible_without_leaking_exception_details(self):
+        from unittest.mock import Mock
+        store=Mock(); store.path='/invented/preferences/settings.json'
+        store.save.side_effect=OSError('invented-sensitive-error')
+        app=FaultlensApp(initial_collect=False,settings_store=store)
+        async with app.run_test(size=(100,30)) as pilot:
+            await pilot.pause(0.01); app.select_page(7)
+            await self.wait_until(pilot,lambda: app.page==7)
+            app.query_one('#grid-7',DataTable).move_cursor(row=6)
+            await pilot.press('enter')
+            self.assertFalse(app.session.settings.sockets)
+            self.assertIn('NOT CONFIRMED',app.settings_status)
+            self.assertNotIn('invented-sensitive-error',app.settings_status)
+            summary=str(app.query_one('#summary-7',Static).render())
+            self.assertIn('NOT CONFIRMED',summary)
+
     async def test_history_selection_pins_id_without_an_implicit_query(self):
+        from unittest.mock import Mock
         app=self.app(); app.snapshots[4]=incidents(OverviewRunner())
+        app.settings_store=Mock(); app.settings_store.path='/invented/settings.json'
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.01); app.select_page(4); await pilot.pause(0.01)
             await pilot.press('down','enter'); self.assertIsInstance(app.screen,DetailDialog)
@@ -81,6 +123,8 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(5,app.page)
             self.assertEqual(boot['boot_id'],app.session.settings.boot_selector)
             self.assertIsNone(app.job); self.assertNotIn(5,app.snapshots)
+            app.settings_store.save.assert_called_once()
+            self.assertEqual(boot['boot_id'],app.settings_store.save.call_args.args[0].boot_selector)
 
     async def test_root_and_modal_evidence_do_not_interpret_rich_or_terminal_markup(self):
         app=self.app(); value='[bold red]synthetic[/]\x1b]52;c;payload\x07\u202e'

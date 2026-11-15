@@ -5,7 +5,7 @@ import sys
 
 
 def run(*,sources=None,runner=None,sample_seconds=0.1,stderr=None,
-        pstore_collector=None,pstore_archive_collector=None):
+        pstore_collector=None,pstore_archive_collector=None,settings_store=None):
     stderr=stderr or sys.stderr
     if not getattr(sys.stdin,'isatty',lambda:False)() or not getattr(sys.stdout,'isatty',lambda:False)():
         print('TUI requires an interactive input/output terminal. Use status --json for scripts.',file=stderr)
@@ -30,12 +30,21 @@ def run(*,sources=None,runner=None,sample_seconds=0.1,stderr=None,
         pstore_collector=pstore_collector,pstore_archive_collector=pstore_archive_collector)
     session.settings=Settings.administrator_defaults(sample_seconds=sample_seconds)
     collector=None
-    if sources is not None or runner is not None or pstore_collector is not None or pstore_archive_collector is not None:
+    injected=sources is not None or runner is not None or pstore_collector is not None or pstore_archive_collector is not None
+    settings_status=''
+    if not injected or settings_store is not None:
+        from .settings_store import SettingsStore
+        try:
+            settings_store=settings_store or SettingsStore()
+            session.settings,settings_status=settings_store.load(session.settings)
+        except (OSError,ValueError,RuntimeError):
+            settings_store=None; settings_status='Preferences unavailable; changes apply to this session only.'
+    if injected:
         # Dependency injection for synthetic acceptance only, never selected by a CLI flag.
         async def collector(page,settings):
             session.settings=settings; session.choose_page(page); session.refresh(); return session.data
     try:
-        return FaultlensApp(session=session,collector=collector).run() or 0
+        return FaultlensApp(session=session,collector=collector,settings_store=settings_store,settings_status=settings_status).run() or 0
     except KeyboardInterrupt:
         print('TUI interrupted; terminal restored. No report was saved.',file=stderr)
         return 130

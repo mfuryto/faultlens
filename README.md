@@ -240,7 +240,8 @@ retain original objects. See [readable results](docs/readable-results.md).
 With interactive input/output, `./bin/faultlens` also starts the TUI; redirected
 invocation retains one-shot status behavior. Press r to collect, 1–8/Tab to choose
 pages, Enter to inspect, Left to return, ? for help and q to quit. Optional sources
-are controlled by session-only settings; nothing is persisted or reconfigured.
+are controlled by per-user preferences, saved on valid changes. Diagnostic evidence is
+not persisted and server configuration is not changed. See [preference storage](docs/tui.md#saving-preferences).
 Long original evidence remains inspectable with lossless terminal escaping.
 See [the TUI guide](docs/tui.md), [Phase 4 acceptance](docs/architecture/phase-4-acceptance.md)
 and [release readiness](docs/release-readiness.md). Real target VPS deployment

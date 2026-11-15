@@ -109,6 +109,7 @@ class DetailDialog(ModalScreen):
             source=self.entry.original; boot=source.get('boot',source)
             self.app.session.update_setting('boot_selector',boot['boot_id'])
             self.dismiss(); self.app.select_page(5)
+            self.app.persist_settings()
             self.app.notice='Boot ID selected. Diagnostics loads with the current collection options.'; self.app.update_status()
         else: self.dismiss()
 
@@ -179,14 +180,14 @@ class SourceDialog(ModalScreen):
 class ValueDialog(ModalScreen):
     BINDINGS=[Binding('escape','cancel','Cancel')]
 
-    def __init__(self,label,value,callback):
-        super().__init__(); self.label_text=label; self.value=str(value); self.callback=callback
+    def __init__(self,label,value,callback,*,persistent=False):
+        super().__init__(); self.label_text=label; self.value=str(value); self.callback=callback; self.persistent=persistent
 
     def compose(self):
         with Vertical(classes='edit-dialog'):
             yield Static(literal(self.label_text),classes='dialog-title')
             yield Input(value=self.value,max_length=64,id='value')
-            yield Static('Session only. Enter applies; Esc cancels.',id='validation',markup=False)
+            yield Static('Enter applies and saves preferences; Esc cancels.' if self.persistent else 'Session only. Enter applies; Esc cancels.',id='validation',markup=False)
             with Horizontal(classes='buttons'):
                 yield Button('Apply',id='apply',variant='primary'); yield Button('Cancel',id='cancel')
 
@@ -235,12 +236,13 @@ class FaultlensApp(App):
               Binding('right','next_tab','Next section',priority=True),
               Binding('escape','cancel','Cancel collection'),Binding('ctrl+c','interrupt','Interrupt',priority=True)]
 
-    def __init__(self,session=None,collector=None,initial_collect=True):
+    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status=''):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
         self.initial_collect=initial_collect; self.search_query=''
         self.collection_attempts={}; self.closing=False
+        self.settings_store=settings_store; self.settings_status=settings_status
 
     def _handle_exception(self,error):
         # Pinned Textual hook: never render exception locals containing admin evidence.
@@ -251,7 +253,7 @@ class FaultlensApp(App):
 
     def compose(self):
         yield Header(show_clock=False)
-        yield Static('Read-only; no elevation or configuration changes.',id='status-line',markup=False)
+        yield Static('Read-only diagnostics; no elevation. User preferences may be saved.',id='status-line',markup=False)
         with TabbedContent(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
@@ -289,6 +291,8 @@ class FaultlensApp(App):
     def populate(self,page):
         table=self.query_one('#grid-'+str(page),DataTable); selected=table.cursor_row; table.clear(columns=True)
         data=self.data(page); columns,entries=page_table(page,data,self.session.settings)
+        if page==7 and self.settings_store is not None:
+            entries=[replace(entry,cells=(*entry.cells[:2],'User preference')) for entry in entries]
         self.entries[page]=entries
         visible=list(range(len(columns)))
         if self.size.width<70 and len(columns)>2:
@@ -303,9 +307,15 @@ class FaultlensApp(App):
         for index,width in zip(visible,widths): table.add_column(columns[index],width=width)
         for index,entry in enumerate(entries): table.add_row(*(literal(entry.cells[c]) for c in visible),key=str(index))
         if entries: table.move_cursor(row=min(selected,len(entries)-1))
-        summary=('Collection options apply when opening a source section or refreshing; no server settings are changed.' if page==7 else
-                 guide(data)['Summary'] if data else 'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
-        self.query_one('#summary-'+str(page),Static).update(literal(summary))
+        if page==7:
+            summary=literal('Collection options apply on source entry or refresh; server settings are unchanged.')
+            if self.settings_status: summary.append('\n').append(literal(self.settings_status))
+            if self.settings_store is not None:
+                summary.append('\nPreferences file: ').append(literal(str(self.settings_store.path)))
+        else:
+            summary=literal(guide(data)['Summary'] if data else
+                'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
+        self.query_one('#summary-'+str(page),Static).update(summary)
 
     def update_status(self):
         data=self.data(); state='No snapshot' if data is None else data.get('state','observations; no health verdict')
@@ -313,7 +323,7 @@ class FaultlensApp(App):
         stale=(source_page in self.snapshot_options and self.snapshot_options[source_page]!=asdict(self.session.settings))
         text=TABS[self.page]+' | '+(data['command']+' | ' if data else '')+state+(' | SETTINGS CHANGED: refresh explicitly' if stale else '')
         if data: text+=' | '+str(data.get('collected_at',''))
-        self.query_one('#status-line',Static).update(literal(text+' | '+self.notice))
+        self.query_one('#status-line',Static).update(literal(text+' | '+self.notice+(' | '+self.settings_status if self.settings_status else '')))
 
     def select_page(self,page): self.query_one('#sections',TabbedContent).active='page-'+str(page)
     def action_previous_tab(self): self.select_page((self.page-1)%8)
@@ -383,15 +393,23 @@ class FaultlensApp(App):
         if entry.kind=='setting':
             key=entry.original; value=getattr(self.session.settings,key)
             if type(value) is bool:
-                self.session.update_setting(key); self.populate(7); self.update_status()
+                self.session.update_setting(key); self.persist_settings(); self.populate(7); self.update_status()
             else:
                 def save(text):
-                    self.session.update_setting(key,text); self.populate(7); self.update_status()
-                self.push_screen(ValueDialog(entry.cells[0],value,save))
+                    self.session.update_setting(key,text); self.persist_settings(); self.populate(7); self.update_status()
+                self.push_screen(ValueDialog(entry.cells[0],value,save,persistent=self.settings_store is not None))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
         elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
+
+    def persist_settings(self):
+        if self.settings_store is None: return
+        try:
+            self.settings_store.save(self.session.settings)
+            self.settings_status='Preferences saved for this user.'
+        except (OSError,ValueError,argparse.ArgumentTypeError):
+            self.settings_status='PREFERENCE SAVE NOT CONFIRMED: current session remains active; check configuration access.'
 
     def action_original(self):
         entry=self.selected()
@@ -418,7 +436,7 @@ class FaultlensApp(App):
             'Esc closes a dialog or cancels collection; e opens unchanged original evidence; r explicitly refreshes.',
             'Search moves the table cursor without filtering. q quits; Ctrl-C interrupts and restores the terminal.'],
             'Collection':['Source sections load when opened and reuse their snapshot; r refreshes. Changed options load on the next visit.',
-            'Read-only coverage defaults on. System-only journal scope and dated Atop replay remain explicit; settings are not saved between launches.',
+            'Read-only coverage defaults on. System-only journal scope and dated Atop replay remain explicit. Preferences save per user; diagnostic evidence is never saved.',
             'Tables retain the latest bounded snapshot for each source section; timestamps and changed options remain visible.'],
             'Confidence':'A reported event is not a confirmed cause. Missing evidence is not an all-clear.'}
         self.push_screen(DetailDialog(Entry(('Keyboard and evidence help',),detail,detail),None))
