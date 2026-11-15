@@ -48,17 +48,22 @@ def memory(text: str) -> dict[str, int]:
 
 def network(text: str) -> list[dict]:
     result = []
+    seen = set()
     lines = text.splitlines()
-    if len(lines) < 2 or "Inter-" not in lines[0] or "Receive" not in lines[0]:
+    if (len(text.encode()) > 262144 or len(lines) < 2
+            or ' '.join(lines[0].split()) != 'Inter-| Receive | Transmit'
+            or ' '.join(lines[1].split()) != 'face |bytes packets errs drop fifo frame compressed multicast|bytes packets errs drop fifo colls carrier compressed'):
         raise ValueError("Missing network header")
     for line in lines[2:]:
         name, separator, tail = line.rpartition(":")
         name = name.strip()
         values = tail.split()
-        if not separator or not NAME.fullmatch(name) or len(values) != 16:
+        if not separator or not NAME.fullmatch(name) or name in seen or len(values) != 16:
             raise ValueError("Invalid network counters")
+        seen.add(name)
         values = counters(values)
         result.append({"interface": name, "received_bytes": values[0], "sent_bytes": values[8],
+                       "received_packets": values[1], "sent_packets": values[9],
                        "receive_errors": values[2], "receive_drops": values[3],
                        "send_errors": values[10], "send_drops": values[11]})
         if len(result) > 128:

@@ -1,6 +1,6 @@
 # Faultlens
 
-**Pre-release — CLI foundation, journal analysis and optional Atop context.** Faultlens provides local, read-only Linux
+**Pre-release — bounded historical diagnostics and initial network counter analysis.** Faultlens provides local, read-only Linux
 system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
 There is no TUI, packaged distribution, or supported production release.
 
@@ -21,6 +21,9 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens check --json
 ./bin/faultlens check --history
 ./bin/faultlens check --history --json
+./bin/faultlens incidents --system-journal --boot-count 3
+./bin/faultlens network --json
+./bin/faultlens security --json
 ./bin/faultlens history
 ./bin/faultlens history --system-journal
 ./bin/faultlens diagnose --previous-boot
@@ -139,11 +142,17 @@ not proof of host health. See [measurement validation](docs/validation.md).
 Exit codes: 0 means a report was rendered (including partial/unavailable observations),
 1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
 and 130 means interrupted collection. Inspect observation states for warnings or gaps;
-exit 0 does not assert that the system is healthy. `health`, `network`, `security`,
-`incidents`, calendar history filters, configuration changes and the TUI are not implemented.
+exit 0 does not assert that the system is healthy. `health`, calendar history filters,
+configuration changes and the TUI are not implemented.
 
 See [dependencies and feature requirements](docs/dependencies.md) before installing
 optional tools. Executable availability alone does not prove feature readiness.
+
+`network` and `security` take two bounded local counter snapshots for per-interface
+rates and selected TCP indicators. Confirmed counter growth never confirms an attack;
+security assessment remains Unknown. No addresses, ports, packet capture or external
+probes are collected. SSH/firewall analysis and historical security detection remain
+future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
 
 ## Develop and verify
 
