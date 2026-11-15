@@ -100,7 +100,7 @@ actual remote SSH behavior and interpretation of original evidence still require
 ./bin/faultlens tui
 ```
 
-Use r, pages 1–8, Enter, Left, resize, q and Ctrl-C. A synthetic PTY and constrained
+Use r, pages 1–8, Enter, / search, n/N, Left, resize, q and Ctrl-C. A synthetic PTY and constrained
 process profiles do not replace real small-VPS/distro deployment acceptance.
 
 ## Plain-language output

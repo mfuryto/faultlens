@@ -83,6 +83,27 @@ def children(value):
     return []
 
 
+def row_preview(row):
+    """Shared bounded row representation for display and literal search."""
+    if row.action=='observation':
+        from .presentation import reading
+        preview=escaped(reading(row.value))[1:-1]
+    elif row.action=='guide':
+        preview=escaped(row.value['Summary'])[1:-1]
+    elif row.action=='finding':
+        preview=escaped(row.value['confidence']+' report; cause '+row.value.get('cause_confidence','Unknown'))[1:-1]
+    elif row.action=='explanation':
+        text=(row.value[0] if row.value else 'No additional items') if isinstance(row.value,list) else row.value
+        preview=escaped(str(text))[1:-1]+(' (Enter for all '+str(len(row.value))+')' if isinstance(row.value,list) and len(row.value)>1 else '')
+    elif row.action=='setting' and type(row.value) is bool:
+        preview='On' if row.value else 'Off'
+    elif row.action=='setting' and row.value=='':
+        preview='Not selected'
+    else:
+        preview=brief(row.value)
+    return preview
+
+
 class Session:
     def __init__(self, *, sources=None, runner=None, pstore_collector=None,
                  pstore_archive_collector=None, sample_seconds=0.1):
@@ -93,6 +114,7 @@ class Session:
         self.page, self.selected, self.scroll = 0, 0, 0
         self.data, self.snapshot_settings = None, None
         self.stack = []
+        self.search_text = ''
         self.notice = 'Read-only. Press r to collect; 1-8 choose a page. No automatic polling.'
 
     def choose_page(self, page):
@@ -255,6 +277,46 @@ class Session:
             frame=self.stack.pop()
             self.selected,self.scroll=frame[2:4]
 
+    def find(self, text=None, *, reverse=False, width=80):
+        """Find literal displayed text in this view, without filtering or walking evidence trees."""
+        fresh = text is not None
+        if fresh:
+            if not isinstance(text,str) or len(text)>64 or any(not 32<=ord(c)<=126 for c in text):
+                raise ValueError('Search requires at most 64 printable ASCII characters')
+            self.search_text = text
+        if not self.search_text:
+            self.notice = 'Search cleared. Press / to find literal text in the current view.'
+            return
+        query = self.search_text.lower()
+        direction = -1 if reverse else 1
+        if self.stack and not isinstance(self.value,(dict,list)):
+            width = max(1,min(240,width))
+            value = escaped(self.value).lower()
+            boundary = min(len(value),self.scroll*width)
+            if fresh:
+                match = value.find(query)
+            elif reverse:
+                match = value.rfind(query,0,boundary+len(query)-1)
+                if match<0: match = value.rfind(query)
+            else:
+                match = value.find(query,boundary+width)
+                if match<0: match = value.find(query)
+            if match>=0: self.scroll = match//width
+        else:
+            rows = self.rows()
+            match = -1
+            start = 0 if fresh else self.selected+direction
+            for offset in range(len(rows)):
+                index = (start+direction*offset)%len(rows)
+                row = rows[index]
+                value = row_preview(row) if isinstance(row.value,(dict,list)) else row_preview(row)+' '+escaped(row.value)
+                if query in (row.label+' '+value).lower():
+                    match = index
+                    self.selected = index
+                    break
+        self.notice = ('Match in current view; n/N moves between matching rows or scalar lines (wraps).'
+                       if match>=0 else 'No match in this view. Open an object or original value to search inside it.')
+
     def help(self):
         if len(self.stack) >= 64:
             self.notice = 'Navigation depth limit reached; use Left to return.'
@@ -263,6 +325,7 @@ class Session:
             'Navigation': '1-8 or Tab choose pages; Up/Down, j/k, PageUp/PageDown, Home/End move. Enter opens, Left returns. q quits.',
             'Collection': 'r replaces the current snapshot on source pages only. No automatic polling. Ctrl-C interrupts collection and restores the terminal.',
             'Evidence': 'Enter drills into every object/list/scalar. Long values are paged in lossless ASCII JSON form. e inspects boot metadata; t opens the retained timeline.',
+            'Search': '/ enters up to 64 printable ASCII characters; Enter finds, Esc cancels, Ctrl-U clears. n/N finds the next/previous matching row or scalar line, wrapping at the ends. Literal case-insensitive search covers current row labels/previews and full direct scalar values, or the open escaped scalar. It does not filter rows, search unopened trees, collect data or interpret regular expressions.',
             'Settings': 'Session only; no system configuration or report writes. Enter toggles booleans or edits values. Esc cancels an edit; Ctrl-U clears it.',
             'boot_selector': 'An index from -128 to 0 or a visible 32-character lowercase hexadecimal boot ID. History selection pins the ID.',
             'sample_seconds': '0.05 to 1 second. Actual elapsed time controls counter rates.',

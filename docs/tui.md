@@ -26,6 +26,8 @@ A sidebar appears from 90 columns/15 rows; narrower screens retain numbered navi
 | r | Replace the current snapshot on a source page |
 | Up/Down, j/k | Move through items or scalar lines |
 | PageUp/PageDown, Home/End | Page or jump through the current view |
+| / | Enter a literal search for the current view; Enter finds, Esc cancels, Ctrl-U clears |
+| n, N | Find the next/previous matching row or scalar line, wrapping at either end |
 | Enter | Inspect the selected item; edit/toggle a setting; select a boot for diagnosis |
 | e | Inspect a boot's metadata without selecting it, or inspect another item |
 | Left, Backspace, Esc | Return one level; Esc also cancels a setting edit |
@@ -35,6 +37,19 @@ A sidebar appears from 90 columns/15 rows; narrower screens retain numbered navi
 | Ctrl-C | Interrupt collection/application and restore the terminal |
 
 The global shortcuts apply outside the value editor; Esc cancels that editor first.
+
+Search is case-insensitive and accepts up to 64 printable ASCII characters. It matches
+row labels and readable previews, plus full direct scalar values even when their row
+preview is shortened. Open an object/list or an original message to search inside it:
+unopened evidence trees are not searched recursively. In an open scalar, search uses
+the complete lossless JSON-escaped representation; for example, search for `\u001b`
+to find an escaped ESC byte. Regular expressions and shell syntax have no special meaning.
+
+A new search starts at the first match. n/N moves between matching rows or scalar
+lines, skipping additional matches on the same scalar line. No rows or evidence are
+filtered, masked or removed. Search reads only the in-memory view and does not refresh
+sources, execute commands or save history. The query lasts only for this session.
+
 There is no automatic polling. On a source page, press r to collect, inspect the
 result, and refresh again when wanted. Collection runs synchronously: a busy message
 is drawn first, and navigation resumes when the bounded adapters return. Optional

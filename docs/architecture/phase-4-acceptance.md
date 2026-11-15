@@ -60,6 +60,11 @@ The real PTY test supplies invented collectors, drives keys, changes dimensions 
 compares terminal attributes before/after normal quit and SIGINT. No diagnostic
 collection from the CI host, failed login, attack traffic or firewall write is needed.
 
+Current-view literal search adds /, n and N without filtering evidence or collecting
+new data. Coverage includes row wraparound, readable units, complete escaped scalars,
+line navigation after resize, cancel/clear, input bounds and unchanged source references.
+The real PTY navigation also enters a search before terminal restoration checks.
+
 The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
 journal records, both bounded log sources, six extended Atop samples, 32 interfaces
 and both pstore readers. It measures complete source models and actual renderer
