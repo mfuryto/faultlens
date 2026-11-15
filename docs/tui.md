@@ -28,8 +28,8 @@ A sidebar appears from 90 columns/15 rows; narrower screens retain numbered navi
 | PageUp/PageDown, Home/End | Page or jump through the current view |
 | / | Enter a literal search for the current view; Enter finds, Esc cancels, Ctrl-U clears |
 | n, N | Find the next/previous matching row or scalar line, wrapping at either end |
-| Enter | Inspect the selected item; edit/toggle a setting; select a boot for diagnosis |
-| e | Inspect a boot's metadata without selecting it, or inspect another item |
+| Enter | Inspect the selected item; open a timeline entry's explained finding; edit/toggle a setting; select a boot for diagnosis |
+| e | Inspect original timeline metadata, a boot's metadata without selecting it, or another item |
 | Left, Backspace, Esc | Return one level; Esc also cancels a setting edit |
 | t | Open the retained main diagnosis timeline |
 | ? | Open keyboard, scope and setting help |
@@ -144,6 +144,16 @@ firewall and targeted timelines remain available within their own source objects
 they are not silently merged into a complete or causal chronology. An empty report,
 unavailable source, unknown cause or lack of matched indicators never becomes proof
 that a host is healthy or secure.
+
+Enter on a timeline entry opens its explained finding, including **Referenced source
+evidence**, **Technical details** and the unchanged **Timeline position**. Press Left
+to return to the same timeline selection; e opens only the original position metadata.
+Inside an SSH/firewall analysis or a broader-search query, open its **timeline** field
+for the same navigation within that source. The source list, finding index, rule and
+reference must match. Missing, stale or ambiguous links fall back to original metadata
+with an explanation; a similarly timed event in another source is never substituted.
+Equal timestamps keep their unresolved order and all existing confidence/coverage
+limits. Raw timelines reached through Full report/Evidence Explorer remain raw trees.
 
 ## Explained readings and findings
 

@@ -92,6 +92,8 @@ def row_preview(row):
         preview=escaped(row.value['Summary'])[1:-1]
     elif row.action=='finding':
         preview=escaped(row.value['confidence']+' report; cause '+row.value.get('cause_confidence','Unknown'))[1:-1]
+    elif row.action=='timeline_entry':
+        preview='Enter explains the referenced finding; e inspects timeline metadata'
     elif row.action=='explanation':
         text=(row.value[0] if row.value else 'No additional items') if isinstance(row.value,list) else row.value
         preview=escaped(str(text))[1:-1]+(' (Enter for all '+str(len(row.value))+')' if isinstance(row.value,list) and len(row.value)>1 else '')
@@ -207,20 +209,20 @@ class Session:
         if self.stack:
             context=self.stack[-1][4] if len(self.stack[-1])>4 else 'raw'
             if context in {'observation','finding','guide'}:
-                return [Row(escaped(key)[1:-1],value,'inspect' if key in {'Technical details','Referenced source evidence'} else 'explanation') for key,value in self.value.items()]
+                return [Row(escaped(key)[1:-1],value,'inspect' if key in {'Technical details','Referenced source evidence','Timeline position'} else 'explanation') for key,value in self.value.items()]
             if context=='explanation' and isinstance(self.value,list):
                 return [Row(str(index+1),value,'explanation') for index,value in enumerate(self.value)]
             if context=='findings':
                 return [Row(escaped(item['title'])[1:-1],item,'finding') for item in self.value]
             if context=='analysis':
-                return [Row(escaped(key),value,'findings' if key=='findings' else 'inspect') for key,value in self.value.items()]
+                return [Row(escaped(key),value,'findings' if key=='findings' else 'timeline' if key=='timeline' else 'inspect') for key,value in self.value.items()]
             if context=='event_search':
                 return [Row(escaped(key),value,'queries' if key=='queries' else 'inspect') for key,value in self.value.items()]
             if context=='queries':
                 return [Row(escaped(value['query'].replace('_',' '))[1:-1],value,'analysis') for value in self.value]
             if context=='timeline':
                 from .presentation import timeline_label
-                return [Row(escaped(timeline_label(item))[1:-1],item) for item in self.value]
+                return [Row(escaped(timeline_label(item))[1:-1],item,'timeline_entry') for item in self.value]
             return children(self.value)
         if self.page == 7:
             return [Row(SETTING_NAMES[key], getattr(self.settings, key), 'setting', key) for key in SETTING_KEYS]
@@ -264,14 +266,25 @@ class Session:
                 return
             value=row.value
             context=row.action
+            if row.action=='timeline_entry':
+                from .evidence_links import timeline_finding
+                context='inspect'
+                finding=None if inspect_only else timeline_finding(self.data,self.value,row.value)
+                if finding is not None:
+                    value,context=finding,'finding'
+                    self.notice='Timeline finding opened within its original source. Temporal order does not establish cause.'
+                elif not inspect_only:
+                    self.notice='Timeline reference could not be resolved uniquely in this source. Original metadata is shown; no finding was guessed.'
             if row.action=='observation':
                 from .presentation import observation_view
                 value=observation_view(value)
-            elif row.action=='finding':
+            elif context=='finding':
                 from .presentation import finding_view
                 from .evidence_links import resolve
+                finding=value
                 value=finding_view(value)
-                value['Referenced source evidence']=resolve(self.data,row.value)
+                value['Referenced source evidence']=resolve(self.data,finding)
+                if row.action=='timeline_entry': value['Timeline position']=row.value
             self.stack.append((value, row.label, self.selected, self.scroll, context))
             self.selected, self.scroll = 0, 0
 
@@ -327,7 +340,7 @@ class Session:
         guide = {
             'Navigation': '1-8 or Tab choose pages; Up/Down, j/k, PageUp/PageDown, Home/End move. Enter opens, Left returns. q quits.',
             'Collection': 'r replaces the current snapshot on source pages only. No automatic polling. Ctrl-C interrupts collection and restores the terminal.',
-            'Evidence': 'Enter drills into every object/list/scalar. Long values are paged in lossless ASCII JSON form. e inspects boot metadata; t opens the retained timeline.',
+            'Evidence': 'Enter drills into every object/list/scalar. On a timeline entry it opens the referenced explained finding; e keeps the original timeline metadata. Long values are paged in lossless ASCII JSON form. e also inspects boot metadata; t opens only the main retained timeline. Filtered timelines remain separate inside their source views.',
             'Search': '/ enters up to 64 printable ASCII characters; Enter finds, Esc cancels, Ctrl-U clears. n/N finds the next/previous matching row or scalar line, wrapping at the ends. Literal case-insensitive search covers current row labels/previews and full direct scalar values, or the open escaped scalar. It does not filter rows, search unopened trees, collect data or interpret regular expressions.',
             'Settings': 'Session only; no system configuration or report writes. Enter toggles booleans or edits values. Esc cancels an edit; Ctrl-U clears it.',
             'boot_selector': 'An index from -128 to 0 or a visible 32-character lowercase hexadecimal boot ID. History selection pins the ID.',
