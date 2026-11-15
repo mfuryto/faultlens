@@ -81,9 +81,10 @@ See [stabilization and product fit](../stabilization.md) for exact remaining gap
 
 Actual selected Debian/Ubuntu hosts, SSH clients and at least one small VPS still
 need operator acceptance. Labeled incident calibration, stronger boot/recording
-identity and complete shutdown verification remain separate product gaps. A license,
-supported release policy and publication require explicit owner decisions. No release
-is published or license selected here. Existing main/staging protection and required
+identity and complete shutdown verification remain separate product gaps. The owner
+has since approved GPL-3.0-or-later; see [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+A supported release policy and exact release publication still require owner decisions.
+No application release is published. Existing main/staging protection and required
 security checks remain in force; the reviewed CI policy now allows only the exact
 hash-checked optional frontend installation step.
 

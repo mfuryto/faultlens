@@ -8,7 +8,8 @@ No package is installed at application launch, and no recorder, database, daemon
 cloud service is added. The dependency is justified by actual UserDock navigation,
 widgets, focus and headless testing rather than another custom terminal renderer.
 See [third-party dependencies](third-party.md) for reviewed versions/licenses and the
-advisory-check scope. The project's own license remains undecided.
+advisory-check scope. Original Faultlens material is GPL-3.0-or-later; see
+[LICENSE](../LICENSE) and [NOTICE](../NOTICE).
 
 Native tools remain feature-specific and are never installed or enabled automatically.
 Run with existing access; unavailable evidence does not trigger privilege escalation.

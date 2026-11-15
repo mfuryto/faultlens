@@ -3,7 +3,8 @@
 Live repository controls were rechecked on 2026-11-15 during the corrected frontend
 stabilization. This is a dated audit, not continuous monitoring. The owner previously
 authorized public pre-release visibility and merging reviewed staging PRs after all
-required checks pass. No license or application release is authorized.
+required checks pass. The owner has now approved GPL-3.0-or-later; [LICENSE](../../LICENSE)
+and [NOTICE](../../NOTICE) establish that grant (approved 2026-11-16). No application release is authorized.
 
 ## Verified controls
 
@@ -41,8 +42,9 @@ absence of unknown flaws.
 
 Solo maintenance has no independent review requirement. Account 2FA/recovery and
 any additional maintainer remain owner decisions, not controls changed by this task.
-Existing public copies cannot be recalled. Project license, support policy, actual
-server acceptance and exact publication artifacts remain open release gates.
+Existing public copies cannot be recalled. The project license is GPL-3.0-or-later.
+Support policy, actual server acceptance, third-party distribution notices and exact
+publication artifacts remain open release gates.
 No new administrative GitHub setting is required for the corrected frontend.
 
 Live views: [branch protection](https://github.com/mfuryto/faultlens/settings/branches),

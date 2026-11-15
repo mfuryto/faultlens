@@ -1,8 +1,9 @@
 # Pre-publication security checklist
 
 The repository is public for pre-release review under the owner's earlier explicit
-authorization. This is separate from publishing an application release. No license
-is selected. Reviewed staging PRs may merge only after all required checks pass;
+authorization. This is separate from publishing an application release. The owner
+has approved GPL-3.0-or-later; see [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+Reviewed staging PRs may merge only after all required checks pass;
 release/tag/package publication still needs explicit owner approval.
 
 ## Release audit
@@ -20,8 +21,10 @@ release/tag/package publication still needs explicit owner approval.
   validation, terminal safety and known diagnostic limitations against the threat model.
 - [ ] Complete actual target-host/SSH acceptance and record detector scope/calibration
   limitations before support or accuracy claims.
-- [ ] Owner explicitly approves license, required third-party notices, support/version
-  policy and the exact release artifacts. Passing CI does not authorize publication.
+- [x] Owner approves GPL-3.0-or-later for original project material; preserve the
+  full license text and the project notice.
+- [ ] Review required third-party distribution notices and obtain owner approval of
+  support/version policy and exact release artifacts. Passing CI does not authorize publication.
 
 ## GitHub verification
 

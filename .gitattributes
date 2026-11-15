@@ -1,0 +1,2 @@
+# Synthetic terminal captures are generated previews, not application source.
+docs/previews/*.svg linguist-generated=true

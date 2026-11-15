@@ -1,294 +1,188 @@
-# Faultlens
+# Faultlens — Linux system monitoring and diagnostics
 
-**Pre-release — bounded historical diagnostics, network observations and explainable security indicators.** Faultlens provides local, read-only Linux
-system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
-A keyboard-driven local TUI is available. There is no packaged distribution or
-supported production release.
+Faultlens is a local Linux administration tool for system monitoring, troubleshooting
+and evidence-backed incident analysis. Its CLI and keyboard-driven TUI explain current
+measurements, retained journal events, Atop recordings and security indicators, with
+original evidence available for inspection.
 
-The terminal workspace now follows UserDock's tabs, row-based tables and modal
-navigation. See [workspace controls](docs/tui.md), [corrected acceptance](docs/architecture/phase-4-acceptance.md)
-and [what the tool solves and still lacks](docs/stabilization.md). Earlier completion
-claims for the generic curses browser are superseded by this implementation.
+**Pre-release:** source checkout only; no supported production release or packaged
+installer yet. Target: Debian/Ubuntu Server with Python 3.11+.
 
-The target is Debian/Ubuntu Server with Python 3.11+. The CLI requires no external
-Python packages. The optional Textual workspace has a complete wheel-hash lock in
-requirements-tui.txt. Neither interface uses telemetry, cloud services or a database.
+[![Security baseline](https://github.com/mfuryto/faultlens/actions/workflows/security-baseline.yml/badge.svg?branch=main)](https://github.com/mfuryto/faultlens/actions/workflows/security-baseline.yml)
+[![CodeQL](https://github.com/mfuryto/faultlens/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/mfuryto/faultlens/actions/workflows/codeql.yml)
 
-Install the optional workspace in an isolated environment:
+[Quickstart](#quickstart) · [CLI examples](#cli-examples) · [Documentation](#documentation) ·
+[Contributing](CONTRIBUTING.md) · [GPL-3.0-or-later](LICENSE)
 
-```sh
+![Faultlens Linux diagnostic terminal workspace with explained system measurements; synthetic demonstration data](docs/previews/workspace-system.svg)
+
+## Why Faultlens?
+
+- **Local and read-only diagnostics.** No telemetry, cloud services, remote probes,
+  database or Faultlens daemon. Existing permissions determine which sources are visible.
+- **Understandable results.** Readings and findings explain what was observed, what it
+  can mean, confidence, limitations and follow-up. Technical details remain accessible.
+- **Administrator evidence.** Original names, addresses, ports, logs and collected
+  crash fragments remain visible without privacy masking. Terminal controls are escaped.
+- **Bounded collection.** Fixed command arguments, output/time limits and cancellation
+  reduce overhead while investigating an already troubled server.
+- **A useful terminal workspace.** Source tabs load when opened, details open in dialogs,
+  and per-user preferences survive restarts. The CLI remains independent of TUI packages.
+
+## Features
+
+| Area | What you can inspect |
+| --- | --- |
+| System monitoring | CPU activity and load, RAM/swap, root filesystem capacity, device/interface counters, visible process count and selected service state |
+| Recording readiness | Optional tool availability, journal/Atop services, retention configuration and recording inventory |
+| Boot and incident history | Accessible boot IDs, multi-boot summaries, bounded journal tails, targeted kernel/systemd searches and chronology |
+| Historical performance | Existing Atop CPU, memory, swap and optional disk/network/process recordings, with explicit replay and coverage limits |
+| Network and security | Current TCP/UDP pressure counters and local sockets; selected-boot SSH/firewall reports and Possible historical indicators |
+| Crash evidence | Supported live pstore and systemd-pstore archive fragments, original content and panic-signature observations |
+| CLI and TUI | Readable explanations, technical details, JSON output, keyboard navigation and saved collection preferences |
+
+Security's live network overview and selected-boot SSH/firewall diagnostics are separate
+sources. No matched indicator is an **Unknown assessment**, not an all-clear.
+See [what Faultlens solves and still lacks](docs/stabilization.md).
+
+## Quickstart
+
+Use a trusted checkout as its ordinary, non-root owner. Linux and Python 3.11+ are
+required. The optional terminal workspace installs from an exact wheel-hash lock:
+
+```bash
+git clone https://github.com/mfuryto/faultlens.git
+cd faultlens
 python3 -m venv .venv
 .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-tui.txt
 .venv/bin/python bin/faultlens tui
-# Alternatively activate this environment before using ./bin/faultlens:
-# . .venv/bin/activate
 ```
 
-## Run from source
+If Python's `venv` module is unavailable, use your distribution's virtual-environment
+package. Faultlens never installs packages or enables services at launch.
 
-From a trusted checkout, as an ordinary user:
+For CLI-only use, no external Python packages are required:
 
-```sh
-./bin/faultlens
+```bash
 ./bin/faultlens status
-./bin/faultlens status --json
-./bin/faultlens status --sample-seconds 0.2
-./bin/faultlens check
-./bin/faultlens check --json
+./bin/faultlens --help
+```
+
+### Terminal navigation
+
+| Key | Action |
+| --- | --- |
+| Left / Right | Change section; source data loads automatically |
+| Up / Down | Select a row |
+| Enter / Esc | Open details / return |
+| r | Refresh or retry collection |
+| e | Inspect original retained evidence |
+| ? / q | Help / quit |
+
+Preferences save on valid changes to `~/.config/faultlens/settings.json`, or under
+`XDG_CONFIG_HOME` when configured. Accounts have separate preferences. Diagnostic
+reports and logs are not saved automatically. See [workspace setup and controls](docs/tui.md).
+
+## CLI examples
+
+```bash
+# Current resources, optional tools and recording readiness
+./bin/faultlens status
 ./bin/faultlens check --history
-./bin/faultlens check --history --json
-./bin/faultlens incidents --system-journal --boot-count 3
-./bin/faultlens network --json
-./bin/faultlens security --json
-./bin/faultlens history
-./bin/faultlens history --system-journal
-./bin/faultlens diagnose --boot 0 --system-journal --search-firewall --json
-./bin/faultlens diagnose --boot 0 --system-journal --search-ssh --json
-./bin/faultlens diagnose --boot 0 --system-journal --show-evidence --json
-./bin/faultlens diagnose --previous-boot
-./bin/faultlens diagnose --previous-boot --pstore
-./bin/faultlens diagnose --previous-boot --pstore-archive --json
-./bin/faultlens diagnose --boot -2 --json
-./bin/faultlens diagnose --boot 0 --system-journal --json
-./bin/faultlens diagnose --boot 0 --system-journal --search-events --json
-./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
-```
 
-`python3 -m faultlens` is an equivalent entry point from the repository root. The
-launcher can also be invoked by absolute path from another directory. No installation
-or root access is required. Python source imports may create normal bytecode caches;
-the launcher disables them. Faultlens does not save reports or change system settings.
-
-Status covers sampled aggregate CPU, load, RAM/swap, root filesystem capacity,
-cumulative per-device I/O and interface counters, visible process count, kernel/boot
-information and the systemd manager state where available. `check` inspects optional
-utilities, journal directory presence, visible prior boots, and journald/atop service
-state. It never reads out raw log entries or claims that a directory proves recording.
-
-`check --history` additionally inspects explicit merged journald settings, literal Atop
-defaults, log filesystem capacity and bounded recording metadata. It supplies review
-recommendations without changing settings. Configuration snapshots do not prove running
-state or retained coverage. The merged-config probe uses portable cat-config without --tldr; unsupported
-or inaccessible sources remain unavailable. See [preservation assessment](docs/architecture/phase-2-preservation.md).
-
-History lists accessible boot IDs. Diagnose resolves a selected boot to an immutable
-ID and analyzes at most 500 accessible tail records for specific kernel OOM, panic,
-I/O/ext4 error, supported watchdog/blocked-task and OverlayFS reuse reports, and
-structured systemd event signatures. Findings retain references,
-reasoning, confidence and limitations. Raw journal messages are processed in bounded memory. `--show-evidence` exposes
-retained original messages and cursors locally; summaries remain concise. The SSH
-view includes identities and original candidate records. Nothing is saved or
-uploaded automatically. Missing evidence and root causes
-remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md)
-and [kernel stall report rules](docs/architecture/phase-2-stall-rules.md).
-Detector findings show checked reported measurements without task names or PID;
-they do not establish a whole-system freeze or a cause.
-[OverlayFS findings](docs/architecture/phase-2-overlayfs-rule.md) confirm a historical
-layer-reuse warning, not an identified container or active current mount conflict.
-Diagnose also reports the retained journal window, finding positions and clock-mapping
-variation. Long intervals between records are not classified as missing logs or downtime.
-See [chronology and coverage](docs/architecture/phase-2-reconstruction.md).
-The default journal scope is everything accessible to the current user; it can lack
-system evidence. `--system-journal` explicitly selects accessible system journals for
-both listing and diagnosis without granting access. Use history with the same flag
-when selecting boot indices. `diagnose --boot-id` can instead select an exact listed
-identity across index changes; it cannot be combined with the other boot selectors.
-See [stable boot selection](docs/architecture/phase-2-boot-selection.md).
-`--until-us` can end the ordinary tail at a reference's exact `realtime_us` value
-to inspect an older bounded window. Add `--since-us` to select an inclusive start,
-or use it alone for a start-bounded tail. Reversed ranges are rejected; the 500-record
-cap still applies. Targeted search scope stays unchanged. See
-[historical journal windows](docs/architecture/phase-2-journal-window.md).
-`incidents --boot-count 3` summarizes previous visible boots from one listing;
-`--system-journal` preserves explicit scope and `--include-current` opts in to boot 0.
-See [multi-boot overview](docs/architecture/phase-2-overview.md) and the
-[phase 2 acceptance review](docs/architecture/phase-2-acceptance.md) for delivered
-behavior, verification status and remaining product scope.
-`diagnose --atop-date YYYYMMDD --atop-extended --json` opts in to bounded
-[historical disk, network and process context](docs/architecture/phase-2-atop-extended.md).
-Disk/interface names, PID/TGID, process names and wait channels are visible locally.
-Both Atop profiles retain the recorded hostname and replay lines; use --json or
---show-evidence to inspect them. Recorded identity/activity does not establish a cause.
-[Historical CPU accounting](docs/architecture/phase-2-atop-cpu.md) separates Atop
-execution, idle, I/O-wait and steal shares. These interval measurements do not
-establish disk failure, provider contention or an incident cause.
-[Journal-driver loss findings](docs/architecture/phase-2-journal-loss.md) recognize
-structured suppression and missed-kernel-message reports in the ordinary window.
-They do not identify missing contents or establish full logging coverage.
-Source counts and safe collection status are reported;
-completeness remains unknown. See [journal scope](docs/architecture/phase-2-journal-scope.md).
-`--search-events` adds two bounded selected-boot searches for kernel warning/error
-candidates and supported structured systemd events. Results appear separately in
-`event_search`; filtered spans are not continuous coverage. See [targeted search limits](docs/architecture/phase-2-targeted-search.md).
-Each query also supplies `candidate_review` with recorded priority counts, reasons
-for non-matches and at most 20 normalized example references. Unclassified does not
-mean harmless; raw messages are not shown. See [candidate review](docs/architecture/phase-2-candidate-review.md).
-
-`--atop-date YYYYMMDD` optionally reads a protected local recording through the
-installed Atop tool, adding CPU/memory/swap samples and Possible wall-time overlaps.
-It never asserts shared host/boot identity or a root cause. Atop remains optional;
-without this explicit flag it is not invoked. See [Atop setup and limits](docs/architecture/phase-2-atop.md).
-Recording begins only after Atop installation; old measurements cannot be recreated.
-Filename-date gaps appear in `check --history`; replayed sample intervals add Possible
-coverage gaps to `diagnose --atop-date`. Neither proves a recorder outage or continuity.
-
-`diagnose --pstore` optionally inspects bounded live pstore records for panic signatures.
-It shows redacted references, never raw crash text, and does not associate records with
-the selected boot. Access denial or no visible records does not exclude a crash.
-No extra package, root execution or system changes are required by Faultlens; restricted
-records remain unavailable. See [coverage and pstore scope](docs/architecture/phase-2-coverage-pstore.md).
-`--pstore-archive` separately requests bounded raw records from the fixed systemd
-archive; it can be combined with `--pstore`. Reconstructed copies and unsupported
-layouts are excluded. See [archive scope](docs/architecture/phase-2-pstore-archive.md).
-
-Evidence can be sensitive even in summary form. Output stays on your terminal/stdout;
-review it before manually redirecting or sharing it. No automatic exports or uploads
-exist. Missing/denied/malformed sources are explicitly unavailable, not healthy zeros.
-JSON includes units, source, confidence, explanations, thresholds and limitations.
-CPU/network counters may reflect a host or namespace rather than cgroup limits.
-
-For an optional local consistency check against trusted `free`, `df`, `uname`'s
-kernel interface and the Linux boot clock:
-
-```sh
-python3 scripts/validate_local.py
-python3 scripts/validate_local.py --json
-```
-
-The comparison prints only PASS/MISMATCH/UNAVAILABLE and fixed explanations, never
-raw machine values. It saves nothing and does not run automatically in CI. Validation
-exit codes are separate: 0 means all eight comparisons matched within documented
-tolerances, 1 means a mismatch, 2 means incomplete/unsupported validation, and 130
-means interrupted. A mismatch can reflect collection-time differences; a pass is
-not proof of host health. See [measurement validation](docs/validation.md).
-
-One-shot CLI exit codes: 0 means a report was rendered (including partial/unavailable observations),
-1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
-and 130 means interrupted collection. Inspect observation states for warnings or gaps;
-exit 0 does not assert that the system is healthy. TUI exit 0 means orderly exit.
-`health` aliases check; calendar history filters and configuration changes remain unimplemented. The TUI now exposes the existing
-read-only adapters; see [terminal navigation](docs/tui.md).
-
-Pstore and its systemd archive now expose collected relative filenames, file metadata
-and original content locally. Use --json or --show-evidence for full content;
-binary/expansion-heavy content is losslessly base64-encoded. Collection and signature
-analysis availability are separate. See [pstore admin views](docs/architecture/phase-3-pstore-admin.md).
-
-See [dependencies and feature requirements](docs/dependencies.md) before installing
-optional tools. Executable availability alone does not prove feature readiness.
-
-`network` and `security` take two bounded local counter snapshots for per-interface
-rates and selected TCP indicators. Confirmed counter growth never confirms an attack;
-security assessment remains Unknown. Counter-only collection has no endpoints;
-`--sockets` adds numeric local TCP/UDP endpoints. No packet capture or external
-probes are performed. Opt-in SSH journal observations and local original evidence views are described in
-[SSH analysis](docs/architecture/phase-3-ssh.md). Opt-in [firewall log observations](docs/architecture/phase-3-firewall.md) preserve
-reported UFW labels and packet context, without claiming verified verdicts. Active
-policy inspection, broader authentication methods and verified attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
-
-Optional current TCP/UDP endpoints (numeric addresses and ports remain visible):
-
-```sh
+# Current network counters and local numeric socket endpoints
 ./bin/faultlens network --sockets
-./bin/faultlens security --sockets --json
-```
+./bin/faultlens security --sockets
 
-This uses the locally installed `ss` without remote probes or elevation. A binding
-is not proof of external reachability. See [socket scope](docs/architecture/phase-3-sockets.md).
+# Accessible boot history and a selected-boot journal investigation
+./bin/faultlens history
+./bin/faultlens diagnose --boot 0 --search-events --search-ssh --search-firewall
 
-Phase 3 CLI implementation is complete within its documented source bounds.
-[Acceptance and detection rules](docs/architecture/phase-3-acceptance.md) describe
-current UDP/TCP pressure counters, SSH failure bursts, logged multi-port/UDP
-patterns and historical traffic-rate anomalies. A possible indicator is never a
-confirmed attack or root cause. Historical rules analyze only evidence explicitly
-requested with the existing options:
+# Existing historical recordings and crash evidence
+./bin/faultlens diagnose --previous-boot --atop-date YYYYMMDD --atop-extended
+./bin/faultlens diagnose --previous-boot --pstore --pstore-archive
 
-```sh
-./bin/faultlens diagnose --previous-boot --system-journal --search-ssh --search-firewall --json
-./bin/faultlens diagnose --previous-boot --atop-date 20260101 --atop-extended --json
-```
-
-Replace the example recording date with an existing local recording. Historical
-traffic comparison needs at least six comparable contiguous samples; missing
-history remains explicit rather than generating an all-clear.
-
-## Understand readings and findings
-
-Default CLI results and the TUI explain what was observed, what it can mean and
-what to investigate next. Missing evidence is distinct from a failure; confirmed
-reports are distinct from confirmed causes. Original identities and measurements
-remain inspectable without privacy masking.
-
-```sh
-./bin/faultlens status
+# Machine-readable report or additional technical details
+./bin/faultlens status --json
 ./bin/faultlens status --details
-./bin/faultlens diagnose --previous-boot --show-evidence --json
 ```
 
-Use --details for the existing technical text view, --json for the unchanged
-structured schema, and --show-evidence for retained ordinary journal originals.
-Optional sources still require their existing flags. In the TUI, open Summary and
-next steps or select a reading/finding; Technical details and Evidence Explorer
-retain original objects. See [readable results](docs/readable-results.md).
+Replace `YYYYMMDD` with an existing recording date; installing Atop cannot recreate
+past measurements. Add `--system-journal` to explicitly select accessible system
+journals. This flag grants no access: an ordinary user's visible logs may contain
+personal evidence only. Faultlens never elevates itself.
 
-## Interactive terminal interface
+Journal features need `journalctl`; socket snapshots use `ss`; historical replay uses
+an existing Atop installation and recordings. Missing tools or access make the affected
+source unavailable. You do not need to install every optional utility.
+See [feature dependencies](docs/dependencies.md) and the [full CLI reference](docs/cli-reference.md).
 
-```sh
-./bin/faultlens tui
+## Evidence and limitations
+
+- A confirmed recorded event is not a confirmed cause. Missing logs, zero findings
+  or an empty crash archive cannot rule out a freeze, crash or attack.
+- Journal analysis and searches are bounded; the ordinary tail retains at most 500
+  records. Coverage and selected boot/source identity matter.
+- Atop host/boot identity remains unverified. The current 30-minute replay window can
+  be too short for the six-sample historical comparison with ten-minute recordings.
+- Current counters and socket bindings do not establish external reachability,
+  effective firewall policy or a comprehensive intrusion assessment.
+- Real target-server/SSH acceptance and detector calibration remain open. Synthetic
+  tests exercise known behavior; passing tests do not prove a healthy server.
+
+Review source scope and originals before acting. Output may contain sensitive
+administrator evidence; review it before manually sharing or redirecting it.
+
+## Test your server
+
+After installing the optional workspace requirements, run as the checkout owner:
+
+```bash
+.venv/bin/python scripts/server_check.py
 ```
 
-With interactive input/output, `./bin/faultlens` also starts the TUI; redirected
-invocation retains one-shot status behavior. Source tabs load when opened. Left/Right
-changes sections, Up/Down selects rows, Enter opens details and Esc returns. Use r to
-refresh, ? for help and q to quit. Optional sources
-are controlled by per-user preferences, saved on valid changes. Diagnostic evidence is
-not persisted and server configuration is not changed. See [preference storage](docs/tui.md#saving-preferences).
-Long original evidence remains inspectable with lossless terminal escaping.
-See [the TUI guide](docs/tui.md), [Phase 4 acceptance](docs/architecture/phase-4-acceptance.md)
-and [release readiness](docs/release-readiness.md). Real target VPS deployment
-acceptance and owner-approved licensing remain gates before production publication.
+The summary separates what worked, what could not be verified and any follow-up.
+Use `--details` for individual checks or `--json` for structured output. The script
+is read-only and does not configure your server. See [server testing](docs/server-check.md).
 
-## Combined server checks
+## Documentation
 
-```sh
-python3 scripts/server_check.py
+| Start here | Reference |
+| --- | --- |
+| Setup, keys and saved preferences | [Terminal workspace](docs/tui.md) |
+| Commands, exit codes and collection bounds | [CLI reference](docs/cli-reference.md) |
+| Meaning, confidence and next steps | [Reading results](docs/readable-results.md) |
+| Tools and optional integrations | [Dependencies](docs/dependencies.md) |
+| Known gaps and development priorities | [Stabilization plan](docs/stabilization.md) |
+| Architecture, source trust and security boundaries | [Threat model](docs/security/architecture.md) |
+| Reproducible measurements and resource tests | [Benchmarks](docs/benchmarks.md) |
+| Deployment and release gates | [Release readiness](docs/release-readiness.md) |
+| Detailed design and acceptance history | [Product specification](docs/product-specification.md) |
+
+## Development and contributions
+
+Develop on `staging`; reviewed changes reach `main` only after required security checks
+pass. Keep Git and development tests under the checkout owner. Tests use synthetic
+evidence and do not require access to real system logs.
+
+```bash
+.venv/bin/python -m unittest discover -s tests -q
+.venv/bin/python scripts/security_check.py
+.venv/bin/python scripts/benchmark.py --iterations 10
+.venv/bin/python scripts/vps_acceptance.py --iterations 3
 ```
 
-Run as the non-root checkout owner. The default read-only summary explains what
-worked, what could not be tested and what follow-up may be needed. Related gaps are grouped without hiding failures.
-Use --details for every technical check or --json for structured results. The script
-does not install tools or change server configuration. Optional --atop-date/--pstore,
---live-only, --json and --details are documented in [server testing](docs/server-check.md).
-Repository checks are automatically skipped when run as root or a non-owner.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing. Never commit real logs,
+credentials, local preferences or diagnostic reports. Report suspected vulnerabilities
+privately using [SECURITY.md](SECURITY.md), rather than a public issue containing evidence.
 
-## Develop and verify
+## License
 
-Use only `staging` and `main`; PRs to main require the baseline, analysis and CodeQL
-findings checks. Run development checks as the user who owns the checkout, without
-root. The tests and benchmarks use synthetic data and do not require access to real
-system logs. Git can refuse a checkout owned by another user; switch to its owner
-instead of changing repository trust or permissions just to run the checks.
-Synthetic tests never collect diagnostics from the CI host.
+Copyright (C) 2026 mfuryto and Faultlens contributors.
 
-```sh
-python3 -m unittest discover -s tests -v
-python3 scripts/security_check.py
-python3 scripts/benchmark.py --iterations 10
-python3 scripts/vps_acceptance.py --iterations 3
-```
-
-Security checks inspect tracked files and all locally reachable Git history. Stage new
-files before running the tracked-file scan; fetch all refs before a publication audit.
-No dependency installation is needed. Benchmark methodology and initial measurements
-are in [resource benchmarks](docs/benchmarks.md).
-
-Read [contributing](CONTRIBUTING.md), [private vulnerability reporting](SECURITY.md),
-[product specification](docs/product-specification.md),
-[Phase 1 decisions and limitations](docs/architecture/phase-1.md),
-[threat model](docs/security/architecture.md), and
-[repository controls](docs/security/hardening-status.md).
-
-## Licensing
-
-No license has been selected or granted. Do not assume permission to redistribute.
-A license requires explicit owner approval before a licensed release.
+Faultlens is free software under the **GNU General Public License, version 3 or any
+later version** (`GPL-3.0-or-later`). You may redistribute and modify it under those
+terms. It comes **without warranty**, including implied merchantability or fitness
+for a particular purpose. See [LICENSE](LICENSE) for the full terms and [NOTICE](NOTICE)
+for the project grant. [Third-party dependencies](docs/third-party.md) retain their
+respective licenses.

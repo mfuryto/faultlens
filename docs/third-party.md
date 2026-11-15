@@ -21,8 +21,9 @@ repository token permissions; it does not execute source builds or unpinned acti
 Versions, hashes and license declarations were reviewed from the official PyPI wheels
 and their dist-info license files. No upstream implementation is vendored. Installing
 wheels retains their license files; any future bundled distribution must preserve
-required notices. These upstream licenses do not select or grant a license for
-Faultlens itself. The owner has not selected a project license.
+required notices. Faultlens original material is licensed under GPL-3.0-or-later;
+see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). This project grant does not
+replace upstream licenses or remove their notice obligations.
 
 On 2026-11-15, pip-audit checked all nine exact requirements and reported no known
 vulnerabilities. This is a dated advisory check, not proof against unknown issues.
