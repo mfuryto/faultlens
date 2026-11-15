@@ -309,3 +309,14 @@ All twenty-one modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. Integrat
 coverage includes both maximum-sized sources alongside journal/search/Atop analysis.
 No host crash files are used; actual firmware/backend latency, non-atomic filesystem
 behavior and supported-target qualification remain outside synthetic measurements.
+
+## Firewall-labelled kernel reports — 2026-11-15
+
+The twenty-second mode verifies 500 firewall reports/original candidates alongside
+500 SSH candidates, both existing filtered queries and ordinary journal evidence.
+Ten fresh Linux/Python 3.14.4 children measured median wall
+0.1402 s, maximum wall 0.1442 s, median CPU 0.1290 s and maximum
+peak RSS 48.25 MiB. All twenty-two modes passed <50 MiB RSS / <1 s CPU /
+<2 s wall budgets. Ordered field pairs and compact timeline references avoid copying
+packet context into every timeline entry. All traffic/logs are invented; native
+journal latency, real firewall behavior and attack detection are not measured.

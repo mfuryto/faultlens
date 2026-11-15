@@ -218,7 +218,7 @@ def history(runner=None, *, system_journal=False):
     return data
 
 
-def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None, atop_extended=False, search_ssh=False, show_evidence=False):
+def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=False, search_events=False, boot_id=None, until_us=None, since_us=None, atop_extended=False, search_ssh=False, show_evidence=False, search_firewall=False):
     validate_window(since_us, until_us)
     if type(show_evidence) is not bool:
         raise ValueError('Invalid evidence view option')
@@ -226,6 +226,8 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         raise ValueError('Extended resources require an explicit recording date')
     if type(search_events) is not bool:
         raise ValueError('Invalid event search option')
+    if type(search_firewall) is not bool:
+        raise ValueError('Invalid firewall search option')
     if type(search_ssh) is not bool:
         raise ValueError('Invalid SSH search option')
     if boot_id is not None:
@@ -268,6 +270,9 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     if search_ssh:
         from .ssh import unresolved as unresolved_ssh
         data['ssh_analysis'] = unresolved_ssh(system=system_journal, since_us=since_us, until_us=until_us)
+    if search_firewall:
+        from .firewall import unresolved as unresolved_firewall
+        data['firewall_analysis'] = unresolved_firewall(system=system_journal, since_us=since_us, until_us=until_us)
     if data['state'] != 'available':
         data['boot_selection']['state'] = 'listing_unavailable'
         data['limitations'].append('Boot selection could not be resolved from the available listing; no fallback boot was queried.')
@@ -282,6 +287,10 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         return data
     data['boot_selection']['state'] = 'resolved'
     data.update(selected_boot=selected, state='unavailable', coverage='unavailable')
+    if search_firewall:
+        from .firewall import search as search_firewall_events
+        data['firewall_analysis'] = search_firewall_events(runner, selected['boot_id'], system=system_journal,
+                                                        since_us=since_us, until_us=until_us)
     if search_ssh:
         from .ssh import search as search_ssh_events
         data['ssh_analysis'] = search_ssh_events(runner, selected['boot_id'], system=system_journal,

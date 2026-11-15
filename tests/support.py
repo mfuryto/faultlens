@@ -296,3 +296,15 @@ class SyntheticSshRunner(SyntheticEventRunner):
                 '_UID':'0', '_PID':'42', '_COMM':'sshd', '_TRANSPORT':'syslog', 'PRIORITY':'6',
                 'MESSAGE':'Failed password for invalid user synthetic-admin from 192.0.2.7 port 2222 ssh2'}))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticFirewallRunner(SyntheticSshRunner):
+    """Maximum invented kernel candidates with a UFW-style packet report."""
+    def read_firewall_candidates(self, boot_id, *, system=False, since_us=None, until_us=None):
+        import json
+        text = ('[UFW BLOCK] IN=synthetic0 OUT= SRC=192.0.2.7 DST=198.51.100.8 '
+                'LEN=60 PROTO=TCP SPT=1234 DPT=22 SYN')
+        rows = [json.dumps({'_BOOT_ID':boot_id, '__REALTIME_TIMESTAMP':str(1767225600000000+index),
+            '__MONOTONIC_TIMESTAMP':str(index), '__CURSOR':'i='+str(index), '_TRANSPORT':'kernel',
+            'PRIORITY':'4', 'MESSAGE':text}) for index in range(501)]
+        return Result('completed','\n'.join(rows),0)
