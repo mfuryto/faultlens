@@ -248,3 +248,19 @@ Ten fresh Linux/Python 3.14.4 children per mode measured:
 All eighteen modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. The synthetic
 maximums measure parser/CLI overhead, not native replay or real recording compatibility.
 Target-host qualification remains necessary; no real crash or load injection is used.
+
+## Phase 3 network/security sampling — 2026-11-15
+
+Two new modes each exercise 128 interfaces, measured short-interval rates and three
+supported TCP counter-growth findings while attack assessment remains Unknown.
+Ten fresh Linux/Python 3.14.4 children per mode measured:
+
+| Mode | Median wall s | Maximum wall s | Median CPU s | Maximum RSS MiB |
+| --- | --- | --- | --- | --- |
+| network | 0.1016 | 0.1035 | 0.0412 | 24.24 |
+| security | 0.1007 | 0.1031 | 0.0422 | 24.25 |
+
+All twenty modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. Network modes
+include the real requested 0.05-second sleep but use invented counters; they generate
+no traffic and exclude live procfs latency. CI runs two children per mode. Production
+VPS accuracy, actual attack detection and distribution qualification remain unverified.

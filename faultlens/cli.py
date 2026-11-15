@@ -202,9 +202,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     stderr = stderr or sys.stderr
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents"), default="status")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security"), default="status")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
-    parser.add_argument("--sample-seconds", type=interval, default=0.1, help="CPU sample duration (0.05–1; status only).")
+    parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/network/security).")
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
@@ -247,7 +247,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         print("Faultlens supports Linux only.", file=stderr)
         return 1
     try:
-        if args.command == "incidents":
+        if args.command in {'network', 'security'}:
+            from .network import collect
+            data = collect(sources, command=args.command, sample_seconds=args.sample_seconds)
+        elif args.command == "incidents":
             from .overview import incidents
             data = incidents(runner, boot_count=args.boot_count if args.boot_count is not None else 3,
                              system_journal=args.system_journal, include_current=args.include_current)
@@ -270,6 +273,23 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             data = report(args.command, items)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
+        elif args.command in {'network', 'security'}:
+            print("Faultlens — read-only " + args.command + ": " + data['state'], file=stdout)
+            print("Namespace: current; attack assessment Unknown; completeness unknown.", file=stdout)
+            print("Sample: " + json.dumps(data['sample'], ensure_ascii=True), file=stdout)
+            for observation in data['observations']:
+                print(safe_text(observation['key'] + ": " + json.dumps(observation['value'], ensure_ascii=True)), file=stdout)
+                if observation['state'] == 'unavailable':
+                    print("  Unavailable: " + observation['explanation'], file=stdout)
+            for finding in data['findings']:
+                print("[WARNING] " + finding['title'] + "; Confirmed counter growth; attack Unknown.", file=stdout)
+                print("  Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
+                print("  Reasoning: " + finding['reasoning'], file=stdout)
+                print("  Thresholds: " + json.dumps(finding['thresholds'], ensure_ascii=True), file=stdout)
+                for text in finding['limitations'] + finding['recommendations']:
+                    print("  " + text, file=stdout)
+            for text in data['limitations']:
+                print("Limitation: " + text, file=stdout)
         elif args.command == "incidents":
             render_incidents(data, stdout)
         elif args.command in {"history", "diagnose"}:

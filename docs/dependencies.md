@@ -20,6 +20,9 @@ there is no blanket installation command or need to install every optional tool.
 Atop recording and rotation require a separately managed service; installing a tool
 does not recreate past measurements. Do not change sampling without measuring overhead.
 
+The initial network/security commands read fixed procfs counters directly and need
+no additional tool or package. They do not inspect socket endpoints or firewall policy.
+
 Faultlens currently does not invoke sosreport, sar, ip, ss, nstat or nft. They are
 excluded from dependency observations until an implemented feature needs them.
 In particular, sosreport collection is not required and could gather substantially

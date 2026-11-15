@@ -260,3 +260,22 @@ class SyntheticMaximumExtendedRunner(SyntheticExtendedRunner):
             rows += [('PRC', f'{pid} synthetic S 100 2 1 0 20 0 0 0 0 {pid} y 0 _ 0 -3 -2 0 0'),
                      ('PRM', f'{pid} synthetic S 4096 20 10 0 0 0 0 0 0 0 0 0 {pid} y 0 0 -3 -2 -3 -2')]
         return Result('completed', extended_sample(rows=rows), 0)
+
+
+class SyntheticNetworkSources(SyntheticSources):
+    """Maximum interface set and invented supported TCP indicator growth."""
+    def __init__(self):
+        super().__init__()
+        self.network_reads = {}
+
+    def read(self, path, limit=262144):
+        if path not in {'/proc/net/dev', '/proc/net/netstat'}:
+            return super().read(path, limit)
+        index = self.network_reads.get(path, 0)
+        self.network_reads[path] = index+1
+        if path == '/proc/net/netstat':
+            return ('TcpExt: SyncookiesSent SyncookiesRecv SyncookiesFailed ListenOverflows ListenDrops\n'
+                    + 'TcpExt: ' + ' '.join(str(index) for _ in range(5)) + '\n')
+        header = self.values['/proc/net/dev'].splitlines()[:2]
+        rows = [f'net{number}: {100+index} 10 0 0 0 0 0 0 {200+index} 20 0 0 0 0 0 0' for number in range(128)]
+        return '\n'.join(header+rows)+'\n'

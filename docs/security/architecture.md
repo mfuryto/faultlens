@@ -52,6 +52,11 @@ Per-boot failures remain visible without replacement or automatic optional-sourc
 explicit flag and fixed label profile. Process names/PIDs/wait channels are discarded;
 disk/interface fingerprints are not anonymity guarantees. Record pairing and cardinality
 limits fail closed before resource results are emitted.
+[Phase 3 network sampling](../architecture/phase-3-network.md) reads only fixed
+namespace counter sources, validates paired columns and unique interface labels, and
+uses measured monotonic durations. Source failures remain independent; counter growth
+never establishes an attack. No endpoints, packet capture, remote probe or policy write
+is introduced.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 
