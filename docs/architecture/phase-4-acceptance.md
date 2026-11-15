@@ -35,7 +35,8 @@ Reads stay serialized and cancelled/failed attempts do not create retry loops.
 Native filesystem calls retain the documented kernel-uninterruptible-I/O limitation.
 
 One latest snapshot per source section is retained. A section is dropped before its
-replacement; evidence and historical-security views share references. Times, report
+replacement; Evidence shares source references while current Security remains separate
+from cached historical diagnoses. Times, report
 commands and changed-option notices remain visible. No permanent diagnostic cache or background
 polling is introduced. Validated per-user TUI preferences are saved separately, never
 source evidence; see [preference storage](../tui.md#saving-preferences).
@@ -85,3 +86,17 @@ supported release policy and publication require explicit owner decisions. No re
 is published or license selected here. Existing main/staging protection and required
 security checks remain in force; the reviewed CI policy now allows only the exact
 hash-checked optional frontend installation step.
+
+## Security coverage stabilization
+
+Security no longer relies on finding rows alone. A zero-match live sample retains
+coverage, counter availability, socket state and an Unknown attack assessment. A
+separate navigation row opens existing selected-boot SSH/firewall diagnostics without
+changing source settings. Loading/cancel/failure rows, original evidence and empty
+source-view explanations are tested through the actual UI, including 40x10 layout
+and immediate navigation after the first status result.
+
+The synthetic acceptance matrix includes stable counters, positive supported growth,
+partial/unavailable counters, unrequested/unavailable/empty/listening sockets, preserved
+originals and historical/current scope separation. It is behavioral validation, not
+real-incident detector calibration or a security guarantee.

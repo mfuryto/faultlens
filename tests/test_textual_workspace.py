@@ -290,6 +290,57 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause(0.01); app._handle_exception(RuntimeError('invented sensitive evidence'))
         self.assertFalse(app._exit_renderables)
 
+    async def test_security_no_matches_has_coverage_sockets_and_separate_history_navigation(self):
+        from tests.test_network_analysis import analyze
+        from faultlens.sockets import attach
+        from faultlens.commands import Result
+        data=analyze(command='security'); attach(data,SocketRunner(Result('completed','',0)))
+        app=self.app(); app.snapshots[3]=data
+        session=Session(sources=SyntheticNetworkSources(),runner=SyntheticPhase3Runner())
+        session.choose_page(5); session.refresh(); historical=session.data; app.snapshots[5]=historical
+        original=copy.deepcopy(data); options=asdict(app.session.settings)
+        async with app.run_test(size=(100,30)) as pilot:
+            await pilot.pause(0.01); app.select_page(3)
+            await self.wait_until(pilot,lambda: app.page==3)
+            table=app.query_one('#grid-3',DataTable); self.assertGreater(table.row_count,3)
+            await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
+            self.assertIn('Unknown',app.screen.entry.detail['Summary'])
+            await pilot.press('e'); self.assertIs(data,app.screen.value)
+            await pilot.press('escape','escape')
+            index=next(i for i,row in enumerate(app.entries[3]) if row.kind=='sockets')
+            table.move_cursor(row=index); await pilot.press('enter')
+            self.assertIsInstance(app.screen,SourceDialog)
+            self.assertEqual(0,app.screen.query_one(DataTable).row_count)
+            self.assertTrue(app.screen.query_one('#source-empty',Static).display)
+            await pilot.press('escape')
+            index=next(i for i,row in enumerate(app.entries[3]) if row.kind=='diagnostics_link')
+            table.move_cursor(row=index); await pilot.press('enter')
+            await self.wait_until(pilot,lambda: app.page==5)
+            self.assertIs(historical,app.data()); self.assertIs(data,app.data(3))
+            self.assertEqual(options,asdict(app.session.settings)); self.assertEqual(original,data)
+
+    async def test_security_loading_cancel_and_errors_are_visible_without_historical_fallback(self):
+        started=asyncio.Event()
+        async def slow(page,settings):
+            if page==3: started.set(); await asyncio.Event().wait()
+            return status_report()
+        app=FaultlensApp(collector=slow); app.snapshots[5]=status_report()
+        async with app.run_test(size=(40,10)) as pilot:
+            await self.wait_until(pilot,lambda: app.job is None and 0 in app.snapshots)
+            app.select_page(3); await asyncio.wait_for(started.wait(),3)
+            self.assertIsNone(app.data(3)); self.assertEqual('Loading',app.entries[3][0].cells[1])
+            await pilot.press('escape'); await self.wait_until(pilot,lambda: app.job is None)
+            self.assertEqual('Cancelled',app.entries[3][0].cells[1])
+            for error in (OSError('invented private source'),RuntimeError('invented private error')):
+                async def fail(page,settings): raise error
+                app.collector=fail; await pilot.press('r')
+                await self.wait_until(pilot,lambda: app.job is None and app.collection_states.get(3)=='failed')
+                self.assertEqual('Unavailable',app.entries[3][0].cells[1])
+                self.assertNotIn('invented private',app.notice)
+                await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
+                self.assertIn('No security or health conclusion',app.screen.entry.detail['What it means'])
+                await pilot.press('escape')
+
     async def test_original_json_cannot_promote_itself_to_settings_or_finding_actions(self):
         app=self.app(); original={'kind':'setting','rule_id':'kernel.panic','value':'untrusted','callback':'untrusted'}
         before=copy.deepcopy(app.session.settings)

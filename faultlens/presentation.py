@@ -281,6 +281,17 @@ def guide(data):
         summary='Some evidence was collected, but other parts could not be verified. Review the coverage limits before drawing conclusions.'
     else:
         summary='Readings were collected without a matched warning in the checked data. This is not a complete health or security verdict.'
+    if data['command']=='security':
+        if groups:
+            summary='Supported network counters increased; review the observations. Attack assessment remains Unknown.'
+        elif data.get('state')=='unavailable':
+            summary='Current network evidence is unavailable; no security assessment can be made.'
+        elif data.get('state')=='partial':
+            summary='Current network coverage is incomplete; no supported indicator was reported. Attack assessment remains Unknown.'
+        else:
+            summary='No supported network indicator matched this short sample. Attack assessment remains Unknown.'
+        meaning.append('Security checks current network counters and optional local sockets. SSH authentication history, firewall logs, effective firewall policy and external reachability are not inspected by this command.')
+        actions.append('Use Diagnostics for the selected boot, or diagnose with explicit boot/scope and --search-ssh --search-firewall, to review accessible historical logs separately.')
     if data['command']=='status':
         meaning.append('These are current local readings. A short sample cannot reconstruct earlier overload or a freeze.')
         if any(item['key']=='cpu.load_average' and item['value'] is not None for item in observations):

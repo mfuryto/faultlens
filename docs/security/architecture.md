@@ -162,8 +162,8 @@ and unverified host/boot identity never become an all-clear or a confirmed attac
 
 [The corrected frontend](../architecture/phase-4-acceptance.md) uses optional
 Textual tabs, domain tables and modal screens. A bounded latest snapshot per source
-section is cached in memory, with shared references for evidence and historical
-security views. Collection uses a cancellable fixed-argument CLI child, a 60-second
+section is cached in memory, with shared references for Evidence. Current Security
+never substitutes a retained historical diagnosis for its live network report. Collection uses a cancellable fixed-argument CLI child, a 60-second
 outer deadline and bounded stdout/stderr; native sources keep their tighter limits.
 It never elevates. Kernel-uninterruptible I/O remains an OS limitation, not a promise
 that every blocked filesystem call can be terminated on a hard deadline.

@@ -63,7 +63,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | System | Current measurements, values and source states; Enter explains each reading |
 | Health | Tool/service/recording readiness observations; missing data is not host failure |
 | Network | Interface rates and protocol counters; explicitly requested sockets open a separate endpoint table |
-| Security | Current indicators, or retained diagnosis findings when no current-security snapshot exists; the status line names the actual report |
+| Security | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
 | History | Visible boots, examined/unexamined status, report counts and retained-record counts; Select boot pins its ID and opens Diagnostics, which loads the selected boot |
 | Diagnostics | Grouped reports and separate journal/security/recording/crash sources; open groups to inspect individual reports |
 | Evidence | Explicit access to complete original report/source trees |
@@ -77,8 +77,8 @@ meaning, confidence and next steps. Original and Records open retained evidence.
 Raw trees are secondary inspection tools, never the main navigation model.
 
 The workspace retains at most one bounded snapshot per six source sections. Replacing
-a section drops its prior report first; Evidence shares references and Security may
-share the diagnosis reference. Timestamps, actual report command and changed-option
+a section drops its prior report first; Evidence shares source references. Security
+uses its own current report and never falls back to a cached diagnosis. Timestamps, actual report command and changed-option
 notices distinguish stale or differently scoped results. No diagnostic snapshots or evidence are persisted.
 
 ## Safety and acceptance
@@ -158,3 +158,23 @@ closed. No preference migration or diagnostic export is performed.
 
 A supplied initial TUI sample duration seeds first-launch defaults; a saved preference
 takes precedence. Use Settings to update that duration for later launches.
+
+## Security coverage and empty results
+
+Security checks a short current-network-namespace counter sample and requested local
+sockets. With no matched indicators, it still shows readable counter coverage, socket
+source state and the Unknown attack assessment. Available/partial/unavailable describes
+source collection, not a safe/compromised verdict. Original readings remain accessible.
+
+The SSH and firewall history row opens Diagnostics using the existing selected boot,
+journal scope and search toggles. The row shows whether each search is On/Off. It does
+not change preferences, query another boot or reuse historical findings as live network
+observations. Disabled searches and missing journal access remain separate limitations.
+
+Loading, cancellation and unsuccessful collection have their own visible rows even
+when no snapshot exists. Esc cancels; r retries after cancellation/failure. Collection
+starts after the first screen layout so immediate navigation is not reset by tab setup.
+Empty source tables describe this view only: unclassified original records may still
+exist; s explains source coverage and e opens originals.
+
+![Security workspace without warnings, using invented data](previews/workspace-security.svg)

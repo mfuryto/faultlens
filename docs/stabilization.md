@@ -56,6 +56,21 @@ runs on Ubuntu 24.04. Containers share a host kernel; actual target-server/SSH a
 small-VPS workload acceptance remain open. Dependency vulnerability scans are dated
 checks, not a guarantee against unknown flaws.
 
+## Completed security-workspace stabilization
+
+A live Security report with zero findings previously rendered an empty table. The
+workspace now keeps coverage, readable counter counts, socket state, Unknown attack
+assessment and a separate selected-boot SSH/firewall navigation row visible. It never
+substitutes cached historical diagnosis findings for a live report. Loading, cancelled
+and failed collections have explicit states; original unclassified evidence remains
+available when a source's finding table is empty.
+
+Immediate tab navigation waits for first-frame initialization before startup collection.
+Synthetic normal/positive/missing/partial/source-error cases and actual compact UI
+navigation verify the behavior. A native read-only development-host sample with zero
+findings rendered five overview rows and retained Unknown. This does not establish
+actual target-server acceptance or detector calibration; those gates remain open below.
+
 ## Next acceptance and priorities
 
 1. Use the corrected workspace on the actual server through SSH; check the known
