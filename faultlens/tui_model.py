@@ -207,7 +207,7 @@ class Session:
         if self.stack:
             context=self.stack[-1][4] if len(self.stack[-1])>4 else 'raw'
             if context in {'observation','finding','guide'}:
-                return [Row(escaped(key)[1:-1],value,'inspect' if key=='Technical details' else 'explanation') for key,value in self.value.items()]
+                return [Row(escaped(key)[1:-1],value,'inspect' if key in {'Technical details','Referenced source evidence'} else 'explanation') for key,value in self.value.items()]
             if context=='explanation' and isinstance(self.value,list):
                 return [Row(str(index+1),value,'explanation') for index,value in enumerate(self.value)]
             if context=='findings':
@@ -240,7 +240,8 @@ class Session:
                     Row('Full report', self.data)])
         if self.page in {0, 1, 2, 3} and command != 'diagnose':
             return [summary]+[Row('[' + item['state'].upper() + '] ' + escaped(name(item))[1:-1], item, 'observation')
-                    for item in self.data['observations']] + [Row('Full report', self.data)]
+                    for item in self.data['observations']] + ([Row('Explained findings',self.data['findings'],'findings')]
+                    if self.data.get('findings') else []) + [Row('Full report', self.data)]
         keys = ('security_analysis', 'ssh_analysis', 'firewall_analysis') if self.page == 3 else (
             'findings', 'timeline', 'reconstruction', 'journal_records', 'security_analysis',
             'ssh_analysis', 'firewall_analysis', 'event_search', 'atop', 'pstore', 'pstore_archive')
@@ -268,7 +269,9 @@ class Session:
                 value=observation_view(value)
             elif row.action=='finding':
                 from .presentation import finding_view
+                from .evidence_links import resolve
                 value=finding_view(value)
+                value['Referenced source evidence']=resolve(self.data,row.value)
             self.stack.append((value, row.label, self.selected, self.scroll, context))
             self.selected, self.scroll = 0, 0
 

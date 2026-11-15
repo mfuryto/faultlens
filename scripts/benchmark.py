@@ -37,6 +37,16 @@ def worker(command: str) -> dict:
                 len(session.data['security_analysis']['findings']) != 32):
             raise RuntimeError('Synthetic TUI evidence collection failed')
         draw(Screen(),session)
+        if command=='tui-diagnostic':
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.value is session.data['security_analysis'])
+            session.open_row()
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='findings')
+            session.open_row(); session.open_row()
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.label=='Referenced source evidence')
+            session.open_row()
+            if not any(ref['Retained source evidence'] for ref in session.value['References']):
+                raise RuntimeError('Synthetic finding references did not resolve')
+            draw(Screen(),session)
         session.choose_page(6)
         session.selected = 1
         session.open_row()

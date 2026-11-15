@@ -109,6 +109,24 @@ only collected when their source is explicitly enabled. The UI never runs sudo.
 A selected finding exposes its complete observation, evidence, source references,
 reasoning, thresholds, confidence, limitations and recommendations. Arrays and
 objects are browsed by reference rather than serialized into one huge screen buffer.
+
+In an explained finding, open **Referenced source evidence**, then **References**.
+Each reference shows its resolution and **Retained source evidence**. Open an entry's
+**Original evidence** to inspect the complete retained journal record or Atop sample.
+Source locations identify the original list; wrappers hold direct references, not
+copies or newly collected data. Current network findings are also available through
+**Explained findings** on the Network/Security pages; their counter measurements are
+embedded in the finding reference rather than linked to invented raw captures.
+
+Journal links stay inside the finding's source list and require a matching candidate
+index plus reference fields, or a unique matching cursor hash and reference fields.
+Receipt timestamps alone do not select records. Derived SSH/firewall indicators
+follow only their declared source candidate indices and boot ID. Historical Atop
+indicators link their observed and baseline sample indices only within the same
+captured-output hash; this does not verify recording host/boot identity. Missing or
+ambiguous references are reported explicitly without borrowing records from another
+query. Unresolved links do not establish that the underlying event did not occur.
+
 Original logs, usernames, IPs, ports, process identities and packet context remain
 visible when collected under existing permissions. Binary pstore evidence retains
 its existing lossless encoding and hashes.

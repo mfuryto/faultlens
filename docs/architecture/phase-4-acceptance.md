@@ -65,6 +65,13 @@ new data. Coverage includes row wraparound, readable units, complete escaped sca
 line navigation after resize, cancel/clear, input bounds and unchanged source references.
 The real PTY navigation also enters a search before terminal restoration checks.
 
+Explained findings expose reference resolution against their own retained source
+records. Tests reject cross-query substitution, timestamp-only selection, stale/copied
+finding objects, invalid candidate indices, ambiguous records and mismatched recording
+hashes. Derived log indicators and historical Atop baselines keep original evidence by
+reference, with explicit missing-link counts and unchanged confidence. The integrated
+TUI benchmark includes opening a derived finding's linked evidence.
+
 The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
 journal records, both bounded log sources, six extended Atop samples, 32 interfaces
 and both pstore readers. It measures complete source models and actual renderer
