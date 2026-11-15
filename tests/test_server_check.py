@@ -146,14 +146,17 @@ class ServerCheckTests(unittest.TestCase):
     def test_cli_summary_json_and_terminal_escaping(self):
         data=collect()
         data['checks'][0]['message']='invented\x1b]52;payload\x07\u202e'
-        for options in ([],['--json']):
+        for options in ([],['--json'],['--details']):
             out=io.StringIO()
             with patch('scripts.server_check.check_server',return_value=data),contextlib.redirect_stdout(out):
                 self.assertEqual(0,main(options))
             self.assertNotIn('\x1b',out.getvalue())
             self.assertNotIn('\u202e',out.getvalue())
-            if options:
+            if '--json' in options:
                 self.assertEqual(data,json.loads(out.getvalue()))
+            if '--details' in options:
+                self.assertIn('Technical details',out.getvalue())
+                self.assertIn('\\u001b',out.getvalue())
         with contextlib.redirect_stderr(io.StringIO()),self.assertRaises(SystemExit): main(['--boot','1'])
 
     def test_worker_timeout_allows_nested_child_cleanup(self):

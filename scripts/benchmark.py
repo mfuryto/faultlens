@@ -201,6 +201,8 @@ def positive_iterations(value):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--json', action='store_true', help='Emit all measurements as JSON for automation.')
+    parser.add_argument('--details', action='store_true', help='Show the per-mode measurement table.')
     parser.add_argument('--iterations', type=positive_iterations, default=10)
     parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic'), help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -229,7 +231,12 @@ def main():
                                               and max(wall) < 2)
         passed = passed and values['within_regression_budget']
         summary['commands'][command] = values
-    print(json.dumps(summary, indent=2))
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        sys.path.insert(0,str(ROOT))
+        from faultlens.test_output import render_benchmark
+        render_benchmark(summary,sys.stdout,details=args.details)
     return 0 if passed else 1
 
 

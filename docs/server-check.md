@@ -18,6 +18,9 @@ read using the current user's existing permissions. No diagnostic report is save
 
 ## Reading the result
 
+The default view uses plain-language groups. --details and --json retain the
+following technical state codes:
+
 | State | Meaning |
 | --- | --- |
 | PASS | This check completed or its source responded; not a host-health/security verdict |
@@ -29,7 +32,8 @@ read using the current user's existing permissions. No diagnostic report is save
 A native worker failure is not automatically a confirmed software bug. Missing
 history/permissions and empty SSH/firewall evidence do not fail the program tests.
 An empty source can verify adapter behavior but cannot exercise positive detections.
-The summary includes advice, totals and an overall PASS/ATTENTION/FAIL state. Exit 0
+Structured results retain advice, totals and an overall PASS/ATTENTION/FAIL state;
+--details shows these technical counts alongside the plain-language summary. Exit 0
 means no FAIL rows, including ATTENTION; exit 1 means at least one failed check,
 2 means invalid arguments/platform, and 130 means interruption. A zero exit code
 never asserts a healthy or attack-free server. Review SKIP and MISSING rows as well.
@@ -98,3 +102,28 @@ actual remote SSH behavior and interpretation of original evidence still require
 
 Use r, pages 1–8, Enter, Left, resize, q and Ctrl-C. A synthetic PTY and constrained
 process profiles do not replace real small-VPS/distro deployment acceptance.
+
+## Plain-language output
+
+The default view groups related results into **What worked**, **What could not be
+tested or verified**, and **What you may need to do**. Failures and observations
+requiring review have their own visible section. Individual passing checks and
+technical identifiers do not overwhelm the default view.
+
+For example, several missing explicit journald assignments produce one explanation:
+defaults may apply, but their effective values were not verified. This is not an
+instruction to change journald. An unavailable system journal is explained separately
+from an empty accessible SSH/firewall query; a failed listing does not by itself
+prove permission denial. Optional historical/crash tests and manual TUI verification
+remain visibly untested, rather than being silently treated as passed.
+
+Actions distinguish review of real failures/warnings from optional evidence coverage.
+A summary never recommends changing configuration merely to remove a MISSING row.
+Skipped repository tests are not described as successful software tests. Missing
+requirements remain visible, and genuine warnings/failures are never folded into
+harmless default-setting explanations.
+
+`--details` adds every original technical check, its state and advice, exact counts,
+limitations and optional bounded repository failure excerpts after the plain summary.
+`--json` retains the existing structured schema and classifications. Grouping changes
+presentation only: checks, counts, collection, permissions and exit codes are unchanged.
