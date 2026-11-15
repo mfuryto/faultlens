@@ -24,6 +24,10 @@ def status_report():
 
 class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self): asyncio.get_running_loop().slow_callback_duration=2
+    async def wait_until(self,pilot,condition):
+        async with asyncio.timeout(3):
+            while not condition(): await pilot.pause(0.01)
+
     def app(self):
         app=FaultlensApp(initial_collect=False); app.snapshots[0]=status_report(); return app
 
@@ -122,11 +126,13 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         async def collect(page,settings): calls.append((page,asdict(settings))); return status_report()
         app=FaultlensApp(collector=collect)
         async with app.run_test(size=(100,30)) as pilot:
-            await pilot.pause(0.05)
+            await self.wait_until(pilot,lambda: 0 in app.snapshots and app.job is None)
             self.assertEqual([0],[page for page,options in calls])
             self.assertTrue(calls[0][1]['pstore']); self.assertTrue(calls[0][1]['sockets'])
             source=app.snapshots[0]
-            await pilot.press('right','left'); self.assertIs(source,app.snapshots[0])
+            await pilot.press('right')
+            await self.wait_until(pilot,lambda: 1 in app.snapshots and app.job is None)
+            await pilot.press('left'); self.assertIs(source,app.snapshots[0])
             self.assertEqual([0,1],[page for page,options in calls])
             for page in range(2,8):
                 app.select_page(page)
@@ -134,10 +140,12 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
                     while app.page!=page or app.job is not None or (page<6 and page not in app.snapshots):
                         await pilot.pause(0.01)
             self.assertEqual(list(range(6)),[page for page,options in calls])
-            app.select_page(1); await pilot.pause(0.05)
+            app.select_page(1)
+            await self.wait_until(pilot,lambda: app.page==1 and app.job is None)
             self.assertEqual(6,len(calls))
             app.session.update_setting('sample_seconds','0.2')
-            app.select_page(0); await pilot.pause(0.05)
+            app.select_page(0)
+            await self.wait_until(pilot,lambda: app.snapshot_options.get(0,{}).get('sample_seconds')==0.2 and app.job is None)
             self.assertEqual(0,calls[-1][0]); self.assertEqual(0.2,calls[-1][1]['sample_seconds'])
 
     async def test_tab_loading_waits_for_active_read_and_only_loads_the_current_tab(self):
@@ -155,7 +163,8 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             app.select_page(1); await pilot.pause(0.01)
             app.select_page(2); await pilot.pause(0.01)
             self.assertEqual([0],calls)
-            release.set(); await pilot.pause(0.1)
+            release.set()
+            await self.wait_until(pilot,lambda: 2 in app.snapshots and app.job is None)
             self.assertEqual([0,2],calls); self.assertIn(2,app.snapshots)
 
     async def test_failed_tab_read_does_not_retry_until_refresh_or_changed_options(self):
@@ -164,10 +173,14 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             calls.append(page); raise OSError('synthetic unavailable source')
         app=FaultlensApp(collector=collect)
         async with app.run_test(size=(100,30)) as pilot:
-            await pilot.pause(0.05); self.assertEqual([0],calls)
-            await pilot.press('right','left'); await pilot.pause(0.05)
+            await self.wait_until(pilot,lambda: calls==[0] and app.job is None)
+            await pilot.press('right')
+            await self.wait_until(pilot,lambda: calls==[0,1] and app.job is None)
+            await pilot.press('left')
+            await self.wait_until(pilot,lambda: app.page==0)
             self.assertEqual([0,1],calls)
-            await pilot.press('r'); await pilot.pause(0.05)
+            await pilot.press('r')
+            await self.wait_until(pilot,lambda: calls==[0,1,0] and app.job is None)
             self.assertEqual([0,1,0],calls); self.assertIsNone(app.job)
 
     async def test_cancel_stops_loading_without_starting_the_waiting_tab(self):
