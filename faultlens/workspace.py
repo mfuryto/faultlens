@@ -1,0 +1,144 @@
+"""Domain tables for the UserDock-style workspace; originals are retained by reference."""
+from dataclasses import dataclass
+
+from .presentation import (reading,name,observation_view,finding_view,guide,finding_groups,
+                           boot_summary_view,boot_summary_label,timeline_label,escaped)
+from .tui_model import PAGES,SETTING_KEYS,SETTING_NAMES
+from .interface_presentation import interface_view,measurements
+from .socket_presentation import row_view as socket_view,row_label as socket_label
+from .recording_presentation import recording_view,sample_view,sample_label
+from .crash_presentation import source_view,record_view,record_label
+
+TABS=('System','Health','Network','Security','History','Diagnostics','Evidence','Settings')
+
+
+@dataclass(frozen=True)
+class Entry:
+    cells: tuple
+    original: object
+    detail: dict | None = None
+    kind: str = 'detail'
+
+
+def finding_entry(item,source):
+    return Entry((item['title'],item['confidence'],source,item['observation']),item,None,'finding')
+
+
+def source_entries(data):
+    result=[]
+    for key,title in (('ssh_analysis','SSH reports'),('firewall_analysis','Firewall reports'),
+                      ('event_search','Broader event search'),('atop','Recorded resources'),
+                      ('pstore','Live crash evidence'),('pstore_archive','Archived crash evidence')):
+        if key not in data: continue
+        source=data[key]
+        result.append(Entry((title,source['state'],key,'Open retained source results'),source,None,key))
+    return result
+
+
+def page_table(page,data,settings):
+    """Return domain columns/rows, never a primary JSON field browser."""
+    if page==7:
+        return ('Collection option','Value','Scope'),[
+            Entry((SETTING_NAMES[key],('On' if getattr(settings,key) else 'Off') if type(getattr(settings,key)) is bool
+                   else str(getattr(settings,key) or 'Not selected'),'Session only'),key,None,'setting') for key in SETTING_KEYS]
+    if data is None: return ('Item','Value','Status'),[]
+    if page in {0,1}:
+        return ('Measurement','Value','Status'),[
+            Entry((name(item),reading(item),item['state']),item,observation_view(item),'observation')
+            for item in data.get('observations',[])]
+    if page==2:
+        entries=[]
+        for item in data.get('observations',[]):
+            if item['key']=='network.interfaces' and isinstance(item['value'],list):
+                for row in item['value']:
+                    entries.append(Entry((row['interface'],measurements(row)[0],row['state'],'Interface traffic'),row,
+                                         interface_view(row,data['sample'])))
+            else:
+                entries.append(Entry((name(item),reading(item),item['state'],'Protocol counter'),item,observation_view(item)))
+        if 'sockets' in data:
+            entries.append(Entry(('Local sockets',str(len(data['sockets']['rows']))+' retained rows',data['sockets']['state'],
+                                  'Open numeric endpoints'),data['sockets'],None,'sockets'))
+        return ('Interface / counter','Reading','Status','Evidence'),entries
+    if page==4:
+        summaries={row['boot']['boot_id']:row for row in data.get('summaries',[])}
+        rows=[]
+        for boot in data.get('boots',[]):
+            summary=summaries.get(boot['boot_id'])
+            detail=boot_summary_view(summary) if summary else {'Observed':'Boot visible; not examined in this overview',
+                'What it means':'Visibility does not establish complete retained history. Select this boot for an explicit diagnosis.'}
+            rows.append(Entry((str(boot['index']),summary['state'] if summary else 'Not examined',
+                str(summary['finding_count']) if summary and summary['state']=='available' else 'Unverified',
+                str(summary['records_examined']) if summary and summary['state']=='available' else 'Unverified',boot['boot_id']),
+                summary or boot,detail,'boot'))
+        return ('Boot','Evidence','Matched reports','Retained records','Boot ID'),rows
+    if page in {3,5}:
+        entries=[]
+        for representative,count,source in finding_groups(data):
+            members=_group_members(data,representative,source)
+            entries.append(Entry((representative['title'],representative['confidence'],source,
+                                  str(count)+' matched reports; not distinct incidents'),members,None,'finding_group'))
+        if page==5:
+            entries.append(Entry(('Selected boot chronology',data.get('state','unknown'),'Main retained tail',
+                str(data.get('records_examined',0))+' records; not a complete boot'),data,None,'timeline'))
+        entries.extend(source_entries(data))
+        return ('Finding / evidence','Confidence / state','Source','Meaning'),entries
+    # Evidence is an explicit, secondary entry to complete source originals.
+    entries=[Entry(('Full original report',data['command'],'All retained fields'),data,None,'raw')]
+    for entry in source_entries(data):
+        entries.append(Entry((entry.cells[0],entry.cells[1],'Complete retained source'),entry.original,None,'raw'))
+    return ('Evidence source','Report / state','Contents'),entries
+
+
+def _group_members(data,representative,source):
+    if source=='main': values=data.get('findings',[])
+    elif source.startswith('event_search.'):
+        query=source.removeprefix('event_search.')
+        values=next((v['findings'] for v in data['event_search']['queries'] if v['query']==query),[])
+    else: values=data[source]['findings']
+    return [item for item in values if (item['rule_id'],item['confidence'],item['severity'])==
+            (representative['rule_id'],representative['confidence'],representative['severity'])]
+
+
+def source_table(entry,data):
+    source=entry.original
+    if entry.kind=='finding_group':
+        return 'Matched reports (not independent incidents)',('Finding','Confidence','Source','Meaning'),[
+            finding_entry(row,entry.cells[2]) for row in source]
+    if entry.kind=='sockets':
+        return 'Local sockets',('Protocol','State','Local endpoint','Peer endpoint'),[
+            Entry((row['protocol'].upper(),row['state'],row['local']['original'],row['peer']['original']),row,socket_view(row))
+            for row in source['rows']]
+    if entry.kind=='atop':
+        return 'Recorded resource samples',('Sample','UTC interval','Scope'),[
+            Entry((str(row['sample_index']),sample_label(row),'Host/boot unverified'),row,sample_view(row)) for row in source['samples']]
+    if entry.kind in {'pstore','pstore_archive'}:
+        return 'Crash fragments',('Fragment','Signature confidence','Relative path'),[
+            Entry((record_label(row),row['confidence'],row.get('relative_path') or 'Not retained'),row,record_view(row)) for row in source['records']]
+    if entry.kind=='event_search':
+        return 'Broader journal searches',('Search','State','Candidate records','Matched reports'),[
+            Entry((row['query'],row['state'],str(row['candidates_examined']),str(len(row['findings']))),row,None,'analysis') for row in source['queries']]
+    if entry.kind=='timeline':
+        from .evidence_links import timeline_finding
+        entries=[]
+        for row in source.get('timeline',[]):
+            finding=timeline_finding(data,source['timeline'],row)
+            detail=finding_view(finding) if finding is not None else {
+                'Meaning':'Reference could not be resolved in its original source; no finding was guessed.'}
+            detail['Timeline position']=row
+            entries.append(Entry((timeline_label(row),row['rule_id'],row['relative_order']),
+                                 finding if finding is not None else row,detail,'finding' if finding is not None else 'detail'))
+        return 'Selected boot timeline',('Position','Rule','Order'),entries
+    return 'Recorded findings',('Finding','Confidence','Source','Meaning'),[
+        Entry((row['title'],row['confidence'],entry.cells[0],row['observation']),row,finding_view(row),'finding') for row in source.get('findings',[])]
+
+
+def detail_text(detail):
+    """Prose only; nested originals are opened separately rather than serialized here."""
+    lines=[]
+    for key,value in detail.items():
+        if key in {'Technical details','Original content','Signature line references'}: continue
+        lines.append(key)
+        if isinstance(value,list): lines.extend('  - '+escaped(v) for v in value if not isinstance(v,(dict,list)))
+        elif not isinstance(value,dict): lines.append('  '+escaped(value))
+        lines.append('')
+    return '\n'.join(lines)

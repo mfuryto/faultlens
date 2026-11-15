@@ -133,26 +133,23 @@ def live_probe(name, *, boot=0, atop_date=None, pstore=False):
 
 
 def terminal_rows():
-    try:
-        import curses
-    except ImportError:
-        return [row('tui.curses','MISSING','Python curses support is unavailable.','Explicit CLI commands still work.')]
-    result=[row('tui.curses','PASS','Python curses imported.')]
-    terminal = os.environ.get('TERM','')
+    from importlib.metadata import version,PackageNotFoundError
+    try: installed=version('textual')
+    except PackageNotFoundError:
+        return [row('tui.textual','MISSING','Optional Textual frontend is unavailable.',
+                    'Use the reviewed requirements-tui.txt in an isolated environment. The CLI remains usable.')]
+    result=[row('tui.textual','PASS' if installed=='8.2.8' else 'MISSING',
+                'Reviewed Textual frontend is installed.' if installed=='8.2.8' else 'Frontend version differs from the reviewed lock.')]
+    terminal=os.environ.get('TERM','')
     if not getattr(sys.stdin,'isatty',lambda:False)() or not getattr(sys.stdout,'isatty',lambda:False)():
-        result.append(row('tui.current_terminal','SKIP','Current input/output is not an interactive terminal.',
-                          'Launch faultlens tui directly in an SSH PTY to verify the real client.'))
-    elif terminal == 'dumb' or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.-]{0,63}',terminal):
+        result.append(row('tui.current_terminal','SKIP','Current input/output is not an interactive terminal.'))
+    elif terminal=='dumb' or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.-]{0,63}',terminal):
         result.append(row('tui.current_terminal','MISSING','TERM is absent or unsupported.'))
-    else:
-        try:
-            curses.setupterm(term=terminal,fd=sys.stdout.fileno())
-            result.append(row('tui.current_terminal','PASS','Current terminal capabilities loaded; no terminal modes changed.'))
-        except (curses.error,OSError,ValueError):
-            result.append(row('tui.current_terminal','MISSING','Terminal capability lookup failed.'))
-    result.append(row('tui.manual_navigation','SKIP','Human SSH/keyboard acceptance requires an interactive check.',
-                      'Run faultlens tui; test r, pages 1-8, Enter, / search, n/N, Left, resize, q and Ctrl-C. Automated PTY coverage is in the unit suite.'))
+    else: result.append(row('tui.current_terminal','PASS','Interactive terminal declared; actual rendering requires manual acceptance.'))
+    result.append(row('tui.manual_navigation','SKIP','Human SSH/navigation acceptance requires an interactive check.',
+                      'Run .venv/bin/python bin/faultlens tui; test Left/Right tabs, Up/Down rows, Enter, Esc, e, r, resize, q and Ctrl-C.'))
     return result
+
 
 
 def run_worker(name, *, boot=0, atop_date=None, pstore=False):
@@ -199,18 +196,18 @@ def check_server(*, live_only=False, boot=0, atop_date=None, pstore=False, detai
     uid=os.geteuid() if uid is None else uid
     owner=ROOT.stat().st_uid if owner is None else owner
     checks=terminal()
-    missing_curses=any(value['key']=='tui.curses' and value['state']=='MISSING' for value in checks)
+    missing_frontend=any(value['key']=='tui.textual' and value['state']=='MISSING' for value in checks)
     missing_git=shutil.which('git',path='/usr/bin:/usr/sbin:/bin:/sbin') is None
     for name in WORKERS:
         if name in REPOSITORY and (live_only or uid==0 or uid!=owner):
             checks.append(row('repository.'+name,'SKIP',
                 'Repository tests skipped by --live-only.' if live_only else
                 'Repository checks must run as the non-root checkout owner; no Git trust exception was added.',
-                'Run python3 scripts/server_check.py as the checkout owner.'))
+                'Run .venv/bin/python scripts/server_check.py as the checkout owner.'))
             continue
-        if (missing_curses and name in {'unit','benchmark','profiles'}) or (missing_git and name in {'unit','policy'}):
+        if (missing_frontend and name in {'unit','benchmark','profiles'}) or (missing_git and name in {'unit','policy'}):
             checks.append(row('repository.'+name,'MISSING','Complete repository acceptance requires '+
-                ('Python curses' if missing_curses and name in {'unit','benchmark','profiles'} else 'Git')+'.',
+                ('reviewed Textual frontend' if missing_frontend and name in {'unit','benchmark','profiles'} else 'Git')+'.',
                 'Explicit live CLI probes remain independent; no dependency was installed.'))
             continue
         if progress:

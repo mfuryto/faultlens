@@ -1,5 +1,9 @@
 # Phase 3 implementation and acceptance
 
+This records the bounded Phase 3 CLI scope. The current optional frontend and its
+dependencies are reviewed in [corrected frontend acceptance](phase-4-acceptance.md)
+and [stabilization](../stabilization.md), superseding earlier UI assumptions.
+
 Reviewed: 2026-11-15. The four Phase 3 CLI priorities are implemented within the
 bounded source contracts below. Faultlens remains pre-release; this is not a claim
 of complete intrusion detection, production deployment acceptance or completion of

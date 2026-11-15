@@ -1,87 +1,52 @@
 # Pre-publication security checklist
 
-The owner explicitly authorized public visibility after a clean-content audit on
-2026-11-11. The repository is now public for pre-release review; no application
-release is published. No license is selected. Do not publish releases automatically. Owner-authorized
-PR merges require all administrative security checks to pass.
-The historical private-plan limitations below describe the initial audit, not the
-current configuration. See [hardening status](hardening-status.md) for current settings.
+The repository is public for pre-release review under the owner's earlier explicit
+authorization. This is separate from publishing an application release. No license
+is selected. Reviewed staging PRs may merge only after all required checks pass;
+release/tag/package publication still needs explicit owner approval.
 
-## Repository and history
+## Release audit
 
-- [ ] Review all branches, tags, commit messages, author email metadata, reachable
-  blobs, releases, attachments, issues, PRs, wikis, Pages, packages and Actions artifacts.
-- [ ] Run the baseline checks with all refs fetched; supplement with a maintained
-  secret scanner and manual review. Revoke exposed credentials before history repair.
-  Local scans cannot inspect deleted remote refs, GitHub caches, or existing clones.
-- [ ] Confirm no real host logs, captures, reports, personal data, internal addresses,
-  credentials, local environments, binaries or unsafe fixtures are committed.
-- [ ] Approve a license explicitly and review third-party notices before release.
-- [ ] Verify actual implementation against the threat model; document remaining gaps.
+- [ ] Recheck live controls against [hardening status](hardening-status.md); do not
+  rely on initial/private-plan snapshots or future-tense instructions from old audits.
+- [ ] Review branches/tags, author metadata, reachable history, releases, packages,
+  artifacts, issues/PR attachments and other public surfaces for sensitive material.
+- [ ] Run repository/history secret checks with all authorized refs fetched; revoke
+  exposed credentials before any history repair. Existing clones/caches/deleted refs
+  are outside local scanner coverage.
+- [ ] Confirm no real host logs, reports, captures, private identifiers, credentials,
+  local environments, native recordings or unsafe fixtures are in the source manifest.
+- [ ] Audit the exact dependency lock, source/byte/output bounds, native command
+  validation, terminal safety and known diagnostic limitations against the threat model.
+- [ ] Complete actual target-host/SSH acceptance and record detector scope/calibration
+  limitations before support or accuracy claims.
+- [ ] Owner explicitly approves license, required third-party notices, support/version
+  policy and the exact release artifacts. Passing CI does not authorize publication.
 
-## Manual GitHub settings
+## GitHub verification
 
-Paths refer to repository Settings. Availability depends on the private-repository plan.
+- [ ] Visibility still matches the owner's decision; unused deployment surfaces stay
+  disabled unless separately approved. Do not change visibility to obtain plan features.
+- [ ] Main protection applies to administrators, requires baseline/analyze/CodeQL and
+  blocks force pushes/deletion. Staging remains protected against force/deletion while
+  allowing the authorized direct development and synchronization workflow.
+- [ ] Actions retain the reviewed allowlist, complete SHA pins and least-privilege
+  workflow tokens. Pull-request approvals by workflows remain disabled.
+- [ ] Dependency alerts, secret scanning/push protection and private vulnerability
+  reporting remain active. Test the private reporting route without posting real secrets.
+- [ ] Update automation respects the two-branch policy. Review/re-hash dependency
+  changes on staging; never disable a required check to make a PR merge.
+- [ ] Review collaborator access, owner 2FA/passkeys and recovery arrangements. A
+  solo-maintainer policy does not provide independent review or account recovery.
+- [ ] Audit secrets, deploy keys, hooks, environments and artifact/log retention;
+  additions require a concrete use and review. No automatic release workflow is implied.
 
-- [ ] General / Danger Zone: verify visibility matches the owner's explicit decision.
-  Public visibility permits copying and forking; later visibility changes cannot recall copies.
-- [ ] General: add a truthful pre-release description; keep website empty until an
-  approved destination exists. Keep unused Pages, wiki and discussions disabled.
-- [ ] Actions / General / Actions permissions: select **Allow select actions and
-  reusable workflows**; allow GitHub-owned actions only for this baseline. If a
-  specific allowlist is supported, restrict it to `actions/checkout@*` and
-  `github/codeql-action/init@*` / `github/codeql-action/analyze@*`, with SHA pinning required.
-- [ ] Actions / General: enable **Require actions to be pinned to a full-length
-  commit SHA** if offered. The local policy remains necessary if unavailable.
-- [ ] Actions / General / Workflow permissions: retain **Read repository contents
-  and packages permissions** and leave **Allow GitHub Actions to create and approve
-  pull requests** unchecked. Set shortest practical log retention (for example 7 days).
-- [ ] Security / Advanced Security (or Code security and analysis): enable dependency
-  graph and Dependabot alerts. Keep automatic security-update PRs disabled while
-  the main/staging-only branch policy applies; review alerts and update on staging. Dependabot version updates also need the default-branch config;
-  the pip entry has nothing to update until a manifest is added. Version PR creation
-  is paused (`open-pull-requests-limit: 0`) because Dependabot creates extra branches.
-  Both ecosystem entries target staging if bot branches are approved later.
-- [ ] Security: enable secret scanning and push protection if available. If unavailable
-  for this private repository, record the gap and use local scanning plus review.
-- [ ] Security: enable private vulnerability reporting if offered and test the private
-  reporting route. Otherwise publish a verified private security contact before release.
-- [ ] Security: evaluate code scanning availability and supported language setup once
-  application code exists. Do not imply the baseline workflow provides CodeQL coverage.
-- [ ] Rules / Rulesets or Branches: current plan returns an upgrade requirement for
-  private repositories. Do not make the repository public to unlock this. If the owner
-  chooses an eligible plan, protect **main and staging**, require PRs and owner review,
-  dismiss stale approvals, require `baseline` and `analyze`, block force pushes
-  and deletions, and restrict bypasses. Verify the exact check name after a CI run.
-- [ ] Collaborators: audit least privilege, owner 2FA/passkeys and recovery access.
-  Only one administrator currently exists; independent review and recovery remain gaps.
-- [ ] Keep Actions secrets, environments, deployment keys and webhooks empty unless
-  separately justified and reviewed. Confirm no automation merges PRs or publishes.
+## Enforcement limits
 
-## Audit snapshot — 2026-11-11
-
-The fetched repository contained one commit, one 11-byte README, `main` only, no tags,
-no application, manifests, workflows or license. Author metadata used GitHub noreply
-addresses. Local reachable-history inspection found no credential material. No
-webhooks, Actions secrets, Actions variables or environments were configured.
-Description and homepage were empty; Pages, wiki and discussions were disabled.
-Private forking was allowed. Actions allowed all actions, SHA pinning was not required,
-and the workflow token was read-only with PR approvals disabled. Main was unprotected;
-rulesets returned HTTP 403 with a private-plan upgrade requirement. Vulnerability
-alerts were disabled and code scanning was not enabled. Secret scanning was disabled
-according to the preceding audit; the current metadata response did not expose its
-state, so recheck manually. This snapshot is not continuous monitoring.
-
-## Limits of automated enforcement
-
-The standard-library scanner detects selected credential formats and assignments,
-suspicious file paths, binary/oversized tracked content, and unsafe synthetic fixture
-patterns. It is not a comprehensive secret scanner or sanitization proof. Workflow
-files intentionally use a constrained JSON subset of YAML; non-JSON workflows fail
-closed. The runner image and system Python are GitHub-maintained mutable dependencies.
-The baseline requires no dependency installs, caches, or diagnostic report uploads.
-The separate CodeQL job downloads its analysis tools and uploads code-scanning findings
-using only job-scoped security-events write permission.
-A malicious contributor able to modify the checks or bypass CI can defeat them.
-CODEOWNERS and passing CI require administrative protection to enforce review;
-verify live branch protection rather than relying on this historical checklist.
+The source scanner checks selected credential patterns, sensitive paths, binary/large
+content and synthetic-fixture constraints. It is not a sanitization proof. Workflow
+files use a deliberately constrained JSON subset of YAML. The exact optional-frontend
+install is allowed only with wheel hashes and binary-only resolution; all action SHA,
+trigger and token restrictions remain enforced. CodeQL and advisory scans add coverage
+without proving complete safety. A contributor able to replace checks or bypass
+protection can defeat local enforcement; verify administrative controls separately.

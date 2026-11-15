@@ -1,5 +1,10 @@
 # Phase 2 implementation and acceptance review
 
+This is the historical Phase 2 scope review. Later network/frontend work is tracked
+in [corrected frontend acceptance](phase-4-acceptance.md) and the current
+[stabilization/product-fit review](../stabilization.md); future-tense frontend items
+below are not the current implementation status.
+
 Reviewed: 2026-11-15. The bounded, read-only historical CLI baseline is implemented.
 This is an engineering milestone, not a claim that every incident can be reconstructed,
 all product requirements are complete, or supported targets have passed deployment

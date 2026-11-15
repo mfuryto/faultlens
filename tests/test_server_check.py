@@ -96,7 +96,7 @@ class ServerCheckTests(unittest.TestCase):
         def without_ui(argv,**options):
             self.assertNotIn(argv[argv.index('--worker')+1],{'unit','benchmark','profiles'})
             return success(argv,**options)
-        data=check_server(execute=without_ui,terminal=lambda:[row('tui.curses','MISSING','Not installed.')],uid=1000,owner=1000)
+        data=check_server(execute=without_ui,terminal=lambda:[row('tui.textual','MISSING','Not installed.')],uid=1000,owner=1000)
         self.assertEqual(4,data['counts']['MISSING'])
         self.assertEqual(0,data['counts']['FAIL'])
         with patch('faultlens.server_check.shutil.which',return_value=None):

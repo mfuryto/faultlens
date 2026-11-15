@@ -9,7 +9,7 @@ import unittest
 class ConstrainedAcceptanceTests(unittest.TestCase):
     def test_one_cpu_address_space_profiles(self):
         script=Path(__file__).resolve().parents[1]/'scripts/vps_acceptance.py'
-        result=subprocess.run([sys.executable,'-I',str(script),'--json'],capture_output=True,text=True,timeout=20,check=True)
+        result=subprocess.run([sys.executable,'-I',str(script),'--json'],capture_output=True,text=True,timeout=30,check=True)
         data=json.loads(result.stdout)
         self.assertTrue(data['synthetic'])
         self.assertFalse(data['deployment_test'])

@@ -101,82 +101,23 @@ should use JSON rather than parse the new default text. No exit-code decision is
 changed: an available/partial/unavailable rendered report can still exit 0 without
 asserting host health. Read failures and invalid arguments retain their existing codes.
 
-## TUI explanations and evidence
+## UserDock-style workspace
 
-The frontend/readability engineering phase is complete; the
-[phase completion review](architecture/phase-4-acceptance.md) separates automated
-acceptance from outstanding deployment and release gates. Interface observations
-open **Interface samples** in the TUI, with measured batch timing, rates, counter
-changes and comparison limits. An interface seen only before/after sampling or with
-decreased counters is not assigned zero traffic. Virtual layers are not summed as
-host throughput, and error/drop growth is not treated as an attack or device fault.
-The readable CLI highlights positive error/drop growth; exact zero values and all
-original counters remain in TUI measurements, --details and --json. Suggested
-commands are emitted on one escaped physical line so they can be copied reliably.
+The earlier generic curses browser is replaced by Textual tabs, domain DataTables
+and modal detail/settings screens following the concrete UserDock reference. Left/Right
+switches sections; Up/Down selects rows; Enter opens details; Esc returns. The main
+workspace is not a JSON/object menu. Original evidence remains accessible through e,
+Original/Records and the explicit Evidence section.
 
-Crash evidence has separate live/archive sections that distinguish collection from
-supported signature analysis. Fragments retain Possible/Unknown confidence, relative
-paths, source metadata, signature line references and original UTF-8/base64 content.
-Binary/NUL/structure-limited fragments are not described as absent evidence. Base64
-can also bound JSON expansion of analyzable text, so encoding alone is not treated
-as analysis failure. Empty sources and excluded entries retain their scope limits.
-Duplicate fragments are not independent crash counts, and no fragment is assigned to
-the selected boot, event time or cause.
+The same observation/finding/boot/interface/socket/recording/crash explainers feed
+CLI and modal details. Source lists use bounded rendering batches without removing
+records. The workspace retains one latest snapshot per source section, with command,
+time and changed-option provenance. Startup reads status only; r explicitly collects
+other sections and Esc cancels without elevating or changing server configuration.
 
-In TUI Diagnostics, open **Live crash evidence** or **Archived crash evidence**, then
-**Retained fragments**. Each fragment explains its analysis and encoding; **Original
-content** and **Technical details** expose retained data directly. e opens the original
-source/fragment. Browsing does not collect, decode to files, mount, delete or change
-archiving. CLI --json/--show-evidence and raw report trees retain complete originals.
-
-Historical resources now have a **Recorded resources** section in the default CLI:
-requested recording date/window, retained sample count, possible interval gaps,
-overlaps, RESET samples and reason-specific unavailable states. Sample timestamps
-are shown in UTC; requested filename dates/windows are selection context rather than
-verified event dates or incident boundaries. No samples outside the window are inferred.
-CPU execution/iowait/steal and legacy busy shares remain interval accounting, with
-RESET/missing shares shown as not comparable instead of zero. Free/cache/swap values
-remain snapshots, not MemAvailable or proof of pressure. Exact originals remain in
-technical views, and recording host/boot identity remains unverified.
-
-In TUI Diagnostics, **Recorded resource measurements** opens a recording explanation,
-**Reported coverage** and **Retained samples**. Each sample opens readable measurements
-and its original **Technical details**; e opens the original recording/sample directly.
-Browsing never replays a recording or changes the selected window/profile. Extended
-disk/network/process data and native source lines remain complete in raw technical views.
-
-The incidents overview now explains each selected boot separately: retained-record
-counts, matched source reports and their meanings, unavailable evidence, record caps
-and unclassifiable messages. A matched report in a boot summary prevents the overall
-explanation from saying there was no matched warning. Counts are not independent
-incidents; absent patterns do not establish healthy boots. Eligible boots beyond the
-requested selection are explicitly described as unexamined. Summary coverage does
-not include filtered searches, SSH/firewall analyses, Atop replay or crash readers.
-
-Optional CLI follow-up commands pin the validated immutable boot ID and preserve
-visible/system journal scope. They do not run automatically. In Incident History,
-open **Boot summaries**, choose a boot and open **Diagnose this boot** to select its
-ID; press r explicitly to collect a fresh diagnosis with current session options.
-The previous overview remains in memory until that refresh. Technical details retain
-the original summary, and e on a summary opens it directly. Raw report trees and JSON
-remain unchanged; presentation does not collect more evidence or merge boots.
-
-The source pages start with **Summary and next steps**. Measurement rows have plain
-names and readable values; Enter opens **Observed**, **What it means**, **What you can
-do**, confidence, limits and **Technical details**. Normalized finding lists similarly
-open explained findings with a direct reference to the original finding. Advice and
-limits can be opened and paged without losing their underlying fields.
-
-The Diagnostics and Security pages expose explained source findings. Main timeline
-rows show time relative to the first retained record, not boot start; equal-timestamp
-ordering stays unresolved. Gaps do not establish lost logging, downtime or a freeze.
-The Evidence Explorer and Full report entries remain complete raw trees, preserving
-all original collected identities, messages, binary encodings and metadata. Session
-settings have readable labels but retain the same typed keys and collection behavior.
-
-Only normalized observation/finding locations receive diagnostic explanations.
-Original message objects are never duck-typed into trusted guidance, even if an
-original JSON message contains fields named rule_id, confidence or recommendations.
-All terminal data is escaped reversibly; prose is never interpreted as terminal markup,
-shell commands or configuration instructions to execute automatically. The frontend
-retains one report and browses source values by reference rather than copying evidence.
+Source values remain literal escaped text, never Rich markup, terminal sequences or
+commands. Search moves the cursor without filtering evidence. Exact originals,
+metadata, UTF-8/base64 content, identities and endpoints remain available. Framework
+developer/log/export hooks are disabled. See [controls and setup](tui.md),
+[corrected frontend acceptance](architecture/phase-4-acceptance.md) and
+[stabilization/product gaps](stabilization.md) for scope and actual acceptance evidence.

@@ -28,6 +28,15 @@ class SecurityPolicyTests(unittest.TestCase):
     def test_reviewed_workflow(self):
         self.assertEqual([], policy.workflow_errors(json.dumps(self.workflow).encode()))
 
+    def test_frontend_install_cannot_drop_hashes_or_allow_source_builds(self):
+        command=self.workflow['jobs']['baseline']['steps'][2]['run']
+        for flag in ('--require-hashes','--only-binary=:all:'):
+            self.reject(lambda w:w['jobs']['baseline']['steps'][2].update(run=command.replace(flag,'')))
+        self.assertEqual([],policy.dependency_errors((ROOT/'requirements-tui.txt').read_bytes()))
+        for value in (b'textual>=8',b'-e attacker',b'--extra-index-url https://example.test',
+                      b'textual==8.2.8 --hash=sha256:bad'):
+            self.assertTrue(policy.dependency_errors(value))
+
     def test_unpinned_or_foreign_action(self):
         for action in ('actions/checkout@v7', 'actions/checkout@' + 'a' * 39,
                        'attacker/checkout@' + 'a' * 40):

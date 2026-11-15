@@ -5,12 +5,24 @@ system observations and dependency/logging checks. Journal-only analysis is an i
 A keyboard-driven local TUI is available. There is no packaged distribution or
 supported production release.
 
-Phase 4 implementation and automated frontend acceptance are complete. See the
-[completion review](docs/architecture/phase-4-acceptance.md) for delivered scope and
-the remaining real-server, license and release gates.
+The terminal workspace now follows UserDock's tabs, row-based tables and modal
+navigation. See [workspace controls](docs/tui.md), [corrected acceptance](docs/architecture/phase-4-acceptance.md)
+and [what the tool solves and still lacks](docs/stabilization.md). Earlier completion
+claims for the generic curses browser are superseded by this implementation.
 
-The initial target is Debian/Ubuntu Server with Python 3.11+. No external Python
-packages, telemetry, network service, database or daemon are required. The TUI uses Python curses without extra pip packages; the CLI remains independent.
+The target is Debian/Ubuntu Server with Python 3.11+. The CLI requires no external
+Python packages. The optional Textual workspace has a complete wheel-hash lock in
+requirements-tui.txt. Neither interface uses telemetry, cloud services or a database.
+
+Install the optional workspace in an isolated environment:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-tui.txt
+.venv/bin/python bin/faultlens tui
+# Alternatively activate this environment before using ./bin/faultlens:
+# . .venv/bin/activate
+```
 
 ## Run from source
 
