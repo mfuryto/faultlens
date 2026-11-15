@@ -44,6 +44,14 @@ def worker(command: str) -> dict:
             raise RuntimeError('Synthetic TUI evidence collection failed')
         draw(Screen(),session)
         if command=='tui-diagnostic':
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='recording')
+            session.open_row()
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='recording_samples')
+            session.open_row(); session.open_row()
+            if session.value['Technical details'] is not session.data['atop']['samples'][0]:
+                raise RuntimeError('Recording interpretation copied or lost the sample')
+            draw(Screen(),session)
+            session.choose_page(5)
             session.selected=next(i for i,row in enumerate(session.rows()) if row.value is session.data['ssh_analysis'])
             session.open_row()
             session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='timeline')
@@ -153,6 +161,9 @@ def worker(command: str) -> dict:
         if session.value['Technical details'] is not payload['sockets']['rows'][0]:
             raise RuntimeError('Socket explanation copied or lost the original row')
         draw(Screen(),session)
+    if command=='diagnose-atop':
+        from faultlens.presentation import render
+        render(payload,io.StringIO())
     if command in {'diagnose-pstore', 'diagnose-pstore-archive'}:
         key = 'pstore_archive' if command == 'diagnose-pstore-archive' else 'pstore'
         if (payload[key]['state'] != 'available' or len(payload[key]['records']) != 8

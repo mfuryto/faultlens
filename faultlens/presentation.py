@@ -424,6 +424,17 @@ def render(data,out):
             for text in detail['What it means']: line(out,text,'    ')
             for step in detail['What you can do']: line(out,'Next: '+step,'    ')
             for text in detail['Evidence limits']: line(out,'Limit: '+text,'    ')
+    if data.get('atop',{}).get('state') not in {None,'not_requested'}:
+        from .recording_presentation import recording_view,sample_label,sample_measurements
+        source=data['atop']; detail=recording_view(source)
+        print('\nRecorded resources',file=out)
+        line(out,detail['Observed'],'  ')
+        for text in detail['What it means']: line(out,text,'  ')
+        for sample in source['samples']:
+            line(out,sample_label(sample),'  ')
+            line(out,'Recorded host: '+sample.get('recorded_hostname','Not retained'),'    ')
+            line(out,'; '.join(sample_measurements(sample)),'    ')
+        for text in detail['Evidence limits']: line(out,'Limit: '+text,'  ')
     for title in ('What the evidence means','What you can do','Important limits'):
         if view[title]:
             print('\n'+title,file=out)

@@ -157,6 +157,13 @@ limits. Raw timelines reached through Full report/Evidence Explorer remain raw t
 
 ## Explained readings and findings
 
+Diagnostics' **Recorded resource measurements** entry explains Atop availability,
+requested date/window and coverage. Open **Retained samples** for readable interval
+CPU and memory snapshots, **Reported coverage** for exact hints, or **Technical details**
+for all original data, extended fields and source lines. e opens the original object.
+Missing/RESET shares are not presented as zero. A possible gap or overlap does not
+establish missing logging, a freeze or attribution to the selected boot.
+
 On Network/Security pages, explicitly requested sockets have a **Socket snapshot**
 entry. Open **Socket rows**, then a row, for state/binding explanations and unchanged
 **Technical details**. e on a socket snapshot/row opens the original object directly.
