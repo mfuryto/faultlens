@@ -19,6 +19,33 @@ def worker(command: str) -> dict:
     from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources, SyntheticSshRunner, SyntheticFirewallRunner, SyntheticSocketRunner, SyntheticPhase3Runner
     output = io.StringIO()
     started = time.monotonic()
+    if command in {'tui-status', 'tui-diagnostic'}:
+        from faultlens.tui_model import Session
+        from faultlens.tui import draw
+        from tests.test_tui import Screen
+        session = Session(sources=SyntheticNetworkSources(), runner=SyntheticPhase3Runner(),
+            pstore_collector=SyntheticSources().pstore_snapshot,
+            pstore_archive_collector=SyntheticSources().pstore_snapshot)
+        if command == 'tui-diagnostic':
+            session.choose_page(5)
+            for key in ('search_ssh', 'search_firewall', 'pstore', 'pstore_archive'):
+                session.update_setting(key)
+            session.update_setting('atop_date','20260101')
+            session.update_setting('atop_extended')
+        session.refresh()
+        if command == 'tui-diagnostic' and (len(session.data['journal_records']) != 500 or
+                len(session.data['security_analysis']['findings']) != 32):
+            raise RuntimeError('Synthetic TUI evidence collection failed')
+        session.choose_page(6)
+        session.selected = 1
+        session.open_row()
+        if session.value is not session.data:
+            raise RuntimeError('Evidence navigation copied or lost the report')
+        for size in ((24,100),(10,40)):
+            draw(Screen(size=size), session)
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        return {'collection_wall_seconds': time.monotonic()-started,
+                'cpu_seconds': usage.ru_utime+usage.ru_stime, 'peak_rss_mib': usage.ru_maxrss/1024}
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
     if command in {'diagnose-stalls', 'diagnose-clock', 'diagnose-overlay', 'diagnose-journal-loss'}:
         arguments = ['diagnose', '--json']
@@ -175,7 +202,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -184,7 +211,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

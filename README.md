@@ -2,11 +2,11 @@
 
 **Pre-release — bounded historical diagnostics, network observations and explainable security indicators.** Faultlens provides local, read-only Linux
 system observations and dependency/logging checks. Journal-only analysis is an initial milestone, not full incident reconstruction.
-There is no TUI, packaged distribution, or supported production release.
+A keyboard-driven local TUI is available. There is no packaged distribution or
+supported production release.
 
 The initial target is Debian/Ubuntu Server with Python 3.11+. No external Python
-packages, telemetry, network service, database or daemon are required. `prompt_toolkit`
-remains the preferred future TUI candidate; it is not installed by this foundation.
+packages, telemetry, network service, database or daemon are required. The TUI uses Python curses without extra pip packages; the CLI remains independent.
 
 ## Run from source
 
@@ -146,11 +146,12 @@ tolerances, 1 means a mismatch, 2 means incomplete/unsupported validation, and 1
 means interrupted. A mismatch can reflect collection-time differences; a pass is
 not proof of host health. See [measurement validation](docs/validation.md).
 
-Exit codes: 0 means a report was rendered (including partial/unavailable observations),
+One-shot CLI exit codes: 0 means a report was rendered (including partial/unavailable observations),
 1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
 and 130 means interrupted collection. Inspect observation states for warnings or gaps;
-exit 0 does not assert that the system is healthy. `health`, calendar history filters,
-configuration changes and the TUI are not implemented.
+exit 0 does not assert that the system is healthy. TUI exit 0 means orderly exit.
+`health` aliases check; calendar history filters and configuration changes remain unimplemented. The TUI now exposes the existing
+read-only adapters; see [terminal navigation](docs/tui.md).
 
 Pstore and its systemd archive now expose collected relative filenames, file metadata
 and original content locally. Use --json or --show-evidence for full content;
@@ -195,6 +196,21 @@ Replace the example recording date with an existing local recording. Historical
 traffic comparison needs at least six comparable contiguous samples; missing
 history remains explicit rather than generating an all-clear.
 
+## Interactive terminal interface
+
+```sh
+./bin/faultlens tui
+```
+
+With interactive input/output, `./bin/faultlens` also starts the TUI; redirected
+invocation retains one-shot status behavior. Press r to collect, 1–8/Tab to choose
+pages, Enter to inspect, Left to return, ? for help and q to quit. Optional sources
+are controlled by session-only settings; nothing is persisted or reconfigured.
+Long original evidence remains inspectable with lossless terminal escaping.
+See [the TUI guide](docs/tui.md), [Phase 4 acceptance](docs/architecture/phase-4-acceptance.md)
+and [release readiness](docs/release-readiness.md). Real target VPS deployment
+acceptance and owner-approved licensing remain gates before production publication.
+
 ## Develop and verify
 
 Use only `staging` and `main`; PRs to main require the baseline, analysis and CodeQL
@@ -208,6 +224,7 @@ Synthetic tests never collect diagnostics from the CI host.
 python3 -m unittest discover -s tests -v
 python3 scripts/security_check.py
 python3 scripts/benchmark.py --iterations 10
+python3 scripts/vps_acceptance.py --iterations 3
 ```
 
 Security checks inspect tracked files and all locally reachable Git history. Stage new

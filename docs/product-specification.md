@@ -286,6 +286,9 @@ tracked in [the acceptance review](architecture/phase-3-acceptance.md).
 - Optimize memory, CPU and disk usage.
 - Prepare documentation and initial release.
 
+The Phase 4 frontend implementation and remaining target-deployment/release gates
+are documented in [the acceptance review](architecture/phase-4-acceptance.md).
+
 ## 10. Initial development instruction
 
 Before implementing major functionality:

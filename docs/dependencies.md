@@ -1,7 +1,10 @@
 # Dependencies and installation scope
 
 Faultlens runs from source on Linux with Python 3.11+. It has no external Python
-packages, mandatory recorder, database, cloud service or daemon. Run as an ordinary
+packages, mandatory recorder, database, cloud service or daemon. The optional TUI
+requires the distribution-provided Python curses component and terminal database;
+missing curses leaves the explicit CLI available. No prompt_toolkit installation is
+needed for the implemented frontend. Run as an ordinary
 user. Missing feature dependencies produce partial/unavailable observations, not
 installation requests or automatic privilege escalation.
 

@@ -159,3 +159,11 @@ recorded counts use interval normalization with RESET/gap boundaries. Fixed heur
 thresholds produce Possible indicators only. Source originals remain available;
 compact indices link to them, and the 32-finding cap is explicit. Missing evidence
 and unverified host/boot identity never become an all-clear or a confirmed attack.
+
+[The TUI frontend](../architecture/phase-4-acceptance.md) adds only on-demand
+presentation and session options. Single-snapshot navigation retains source
+references without interpreting evidence as markup. Scalars use lossless ASCII JSON,
+including controls/bidi characters, and paged originals remain inspectable. Terminal
+restoration is managed by curses.wrapper, with real PTY normal/signal regression
+coverage. There is no shell escape, background poller, persistent settings, clipboard
+hook, report export, configuration write or runtime dependency download.

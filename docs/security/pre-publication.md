@@ -2,7 +2,8 @@
 
 The owner explicitly authorized public visibility after a clean-content audit on
 2026-11-11. The repository is now public for pre-release review; no application
-release is published. No license is selected. Do not merge or release automatically.
+release is published. No license is selected. Do not publish releases automatically. Owner-authorized
+PR merges require all administrative security checks to pass.
 The historical private-plan limitations below describe the initial audit, not the
 current configuration. See [hardening status](hardening-status.md) for current settings.
 
