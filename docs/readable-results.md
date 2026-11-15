@@ -65,6 +65,12 @@ remain inspectable. No username, peer, port or original is masked for privacy.
 
 Optional socket snapshots show the collected numeric local/peer endpoints and states
 without concealing addresses. A local binding does not prove Internet reachability.
+Distinct protocol/state meanings are explained once in the CLI. Socket explanations
+distinguish TCP handshakes/closing from UDP peer associations, with no owner, application
+or attack inference. Wildcard and loopback descriptions retain exposure limits, and
+queues keep native semantics rather than a universal byte/pressure interpretation.
+Unavailable and successfully empty snapshots are explained separately. See the
+[socket interpretation contract and sources](architecture/phase-3-sockets.md#readable-interpretation).
 Missing rates after resets/interface changes are described as not comparable, never
 as zero traffic. Historical traffic comparison needs existing comparable samples;
 the frontend never invents a baseline, widens a replay window or changes recording.

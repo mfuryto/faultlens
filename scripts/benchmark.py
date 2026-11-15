@@ -139,6 +139,20 @@ def worker(command: str) -> dict:
             raise RuntimeError('Integrated security analysis failed')
     if command == 'network-sockets' and len(payload['sockets']['rows']) != 512:
         raise RuntimeError('Synthetic socket snapshot failed')
+    if command=='network-sockets':
+        from faultlens.presentation import render
+        from faultlens.tui_model import Session
+        from faultlens.tui import draw
+        from tests.test_tui import Screen
+        render(payload,io.StringIO())
+        session=Session(); session.data=payload; session.choose_page(2)
+        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_snapshot')
+        session.open_row()
+        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_rows')
+        session.open_row(); session.open_row()
+        if session.value['Technical details'] is not payload['sockets']['rows'][0]:
+            raise RuntimeError('Socket explanation copied or lost the original row')
+        draw(Screen(),session)
     if command in {'diagnose-pstore', 'diagnose-pstore-archive'}:
         key = 'pstore_archive' if command == 'diagnose-pstore-archive' else 'pstore'
         if (payload[key]['state'] != 'available' or len(payload[key]['records']) != 8
