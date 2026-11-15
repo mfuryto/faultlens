@@ -1,7 +1,8 @@
 # Phase 1: local CLI foundation
 
 Status: first implementation, pre-release. This is not the full system-status module
-or a supported incident analyzer. No license has been selected.
+or a supported incident analyzer. At that milestone no project license had been
+selected; the current grant is [GPL-3.0-or-later](../../NOTICE).
 
 ## Decisions and dependency strategy
 

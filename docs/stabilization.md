@@ -80,8 +80,9 @@ actual target-server acceptance or detector calibration; those gates remain open
 3. Prioritize a bounded longer historical window and stronger recording/boot provenance
    if the real incident workflow requires them. Then consider supported authentication
    formats, live unit failures and process/socket attribution based on actual evidence.
-4. Choose support policy, license and exact release artifacts only after acceptance.
-   No license or release publication is authorized by this engineering work.
+4. Choose support policy and exact release artifacts only after acceptance. The owner
+   has approved GPL-3.0-or-later; the license and notices are established separately.
+   Publishing an application release still requires explicit authorization.
 
 No additional feature is silently claimed as implemented. No daemon, database,
 cloud integration, automatic export, server configuration change or blanket package

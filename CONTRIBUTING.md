@@ -1,7 +1,10 @@
 # Contributing
 
 This public, pre-release repository uses English for code, documentation, comments,
-commits, branches, workflows, and pull requests. No license is granted yet.
+commits, branches, workflows, and pull requests. Faultlens is licensed under
+GPL-3.0-or-later; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Contributions to
+original project material are submitted under those same terms unless explicitly
+agreed otherwise. Preserve notices and review third-party licensing before imports.
 
 ## Branch and review policy
 
@@ -11,7 +14,7 @@ and apply dependency updates manually on staging. Main requires a pull request a
 passing baseline, analysis and CodeQL findings checks, and resolved conversations. Staging accepts
 direct development pushes; force pushes and branch deletion are blocked on both
 branches. Main keeps linear history; staging permits synchronization merges from main
-so reviewed rebase merges do not reappear in later PR diffs. This is a solo-maintainer project: independent approval and code-owner approval
+so reviewed squash merges do not reappear in later PR diffs. This is a solo-maintainer project: independent approval and code-owner approval
 are not required. The maintainer or an explicitly authorized agent may merge a PR
 only after all required checks pass. Do not bypass required checks.
 
@@ -55,7 +58,8 @@ Workflows use JSON syntax (valid YAML) so a dependency-free parser can enforce a
 narrow policy. Keep actions pinned to full verified commit SHAs. Only standard GitHub
 hosted runners and explicit read-only tokens are allowed. Never use privileged PR
 triggers, self-hosted runners, secrets, dynamic shell expressions, cache restoration,
-artifact uploads, dependency installation, or deployment in the baseline workflow.
+artifact uploads or deployment in the baseline workflow. Dependency installation
+is limited to the reviewed wheel-only, hash-locked frontend step in its isolated venv.
 The separate pinned CodeQL workflow has only job-scoped `security-events: write`
 to upload source-code analysis findings to GitHub; it does not collect diagnostic
 reports. CodeQL tooling is a justified CI-only dependency, never a runtime dependency.

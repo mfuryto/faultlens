@@ -1,7 +1,8 @@
 # Pre-release readiness and operator acceptance
 
 Faultlens has a bounded CLI/TUI implementation for review. There is no published
-application release, chosen project license or claim of production support. This
+application release or claim of production support. The owner has approved
+GPL-3.0-or-later for original project material; see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). This
 checklist prepares the initial source-first release; it does not authorize publishing.
 
 The corrected UserDock-style workspace and stabilization scope are reviewed in
@@ -31,7 +32,7 @@ If a source is unavailable, inspect existing permissions and retention locally;
 blanket root execution or changing account groups is not an automatic setup step.
 No host configuration, recorder or firewall service is installed or enabled.
 
-The combined server test entrypoint is `python3 scripts/server_check.py`; see
+The combined server test entrypoint is `.venv/bin/python scripts/server_check.py`; see
 [summary states, optional sources and root/native-only scope](server-check.md).
 
 ## Deployment acceptance matrix
@@ -50,12 +51,12 @@ host evidence outside the repository and never upload logs as a default test art
 | Historical sources absent or short | No invented baseline, crash identity, attack or root cause |
 | Synthetic complete history | Existing automated acceptance matches, with reference-backed Possible indicators |
 | Resource-constrained workload | Measure RSS/CPU/wall and whole-machine impact; compare documented targets and record deviations |
-| Session settings | Changes affect only later collection; no configuration/report files appear |
+| Saved preferences | Valid changes reload for the same user; only private typed preferences are saved, never reports or host configuration |
 
 Automated process profiles are reproducible with:
 
 ```sh
-python3 scripts/vps_acceptance.py --iterations 3
+.venv/bin/python scripts/vps_acceptance.py --iterations 3
 ```
 
 Those results constrain CPU affinity and virtual address space on the current Linux
@@ -65,7 +66,9 @@ actual target machines remains open until results are recorded and reviewed.
 
 ## Publication gates
 
-- [ ] Owner explicitly selects/approves a project license; review required notices.
+- [x] Owner approves GPL-3.0-or-later; full license text and project notice are present.
+- [ ] Review notices and corresponding-source obligations for the exact distribution,
+  including any bundled third-party dependencies.
 - [ ] Choose release/version/support policy and complete actual target deployment tests.
 - [ ] Review all known limitations and false-positive/false-negative behavior; avoid
   presenting heuristic thresholds as calibrated attack probabilities.
@@ -88,5 +91,6 @@ checkout and successful tests are required. Preserve any local work separately a
 never reset it as part of an update. Do not delete diagnostics or rewrite history.
 For rollback, use a separate trusted checkout at the previously reviewed commit and
 its documented Python/tool requirements. Faultlens creates no database, daemon,
-persistent settings or schema migration requiring rollback. Session settings disappear
-on exit; historical evidence remains managed by the existing Linux facilities.
+diagnostic evidence store or automatic settings migration requiring rollback. Per-user
+preferences persist across exits; preserve the private preference file and review schema
+compatibility before switching versions. Historical evidence remains managed by Linux.

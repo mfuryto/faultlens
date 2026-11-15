@@ -1,0 +1,20 @@
+{
+  "description": "Linux system monitoring and diagnostics with a local CLI/TUI, journal and Atop incident analysis, and explainable security indicators. Read-only by default. Pre-release.",
+  "topics": [
+    "linux",
+    "system-monitoring",
+    "system-diagnostics",
+    "linux-server",
+    "sysadmin",
+    "troubleshooting",
+    "incident-analysis",
+    "cli",
+    "tui",
+    "python",
+    "systemd",
+    "journald",
+    "atop",
+    "network-monitoring",
+    "security-analysis"
+  ]
+}

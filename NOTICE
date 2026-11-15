@@ -1,0 +1,22 @@
+Faultlens — local Linux system monitoring, diagnostics and incident analysis
+Copyright (C) 2026 mfuryto and Faultlens contributors
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Faultlens is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Faultlens is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Faultlens. If not, see <https://www.gnu.org/licenses/>.
+
+The license text is provided in LICENSE. This notice applies to the original
+Faultlens source, documentation and synthetic previews unless a file states
+otherwise. The GNU license document retains its own notice. Third-party
+packages retain their respective licenses; see docs/third-party.md.
