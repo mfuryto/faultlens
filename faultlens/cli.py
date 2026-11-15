@@ -180,6 +180,21 @@ def render_history(data, stdout):
             for text in ssh['limitations']:
                 print("  Limitation: " + text, file=stdout)
             print("  Recommendation: Review original evidence locally; no automatic SSH or firewall changes.", file=stdout)
+        firewall = data.get('firewall_analysis')
+        if firewall:
+            print("Firewall journal analysis: " + firewall['state'] + "; packet verdict/attack Unknown.", file=stdout)
+            print("  Collection: " + json.dumps({key: firewall[key] for key in ('command_state', 'returncode', 'parse_state', 'reason')}, ensure_ascii=True), file=stdout)
+            print(f"  Kernel candidates: {firewall['candidates_examined']}; cap reached: {firewall['record_limit_reached']}; unclassified: {firewall['unclassified_candidates']}.", file=stdout)
+            print("  Reported label counts: " + json.dumps(firewall['reported_label_counts'], ensure_ascii=True), file=stdout)
+            for finding in firewall['findings']:
+                print("  [" + finding['severity'].upper() + "] " + finding['title'], file=stdout)
+                print("    Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
+                print("    Reasoning: " + finding['reasoning'], file=stdout)
+            for record in firewall['records']:
+                print("  Original kernel candidate: " + json.dumps(record, ensure_ascii=True), file=stdout)
+            for text in firewall['limitations']:
+                print("  Limitation: " + text, file=stdout)
+            print("  Recommendation: Review original records and local policy; no automatic firewall changes.", file=stdout)
         if 'journal_records' in data:
             print("Retained journal evidence (local administrator view):", file=stdout)
             for record in data['journal_records']:
@@ -255,7 +270,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
     parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")
+    parser.add_argument("--search-firewall", action="store_true", help="Inspect bounded kernel-tail candidates for supported firewall log forms (diagnose only).")
     args = parser.parse_args(argv)
+    if args.search_firewall and args.command != 'diagnose':
+        parser.error("Firewall journal analysis is supported only with diagnose.")
     if args.show_evidence and args.command != 'diagnose':
         parser.error("Original journal evidence is supported only with diagnose.")
     if args.search_ssh and args.command != 'diagnose':
@@ -296,7 +314,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         elif args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended, search_ssh=args.search_ssh, show_evidence=args.show_evidence))
+                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended, search_ssh=args.search_ssh, show_evidence=args.show_evidence, search_firewall=args.search_firewall))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)

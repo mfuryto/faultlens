@@ -58,6 +58,10 @@ namespace counter sources, validates paired columns and unique interface labels,
 uses measured monotonic durations. Source failures remain independent; counter growth
 never establishes an attack. No endpoints, packet capture, remote probe or policy write
 is introduced.
+[Firewall log observations](../architecture/phase-3-firewall.md) use one fixed kernel
+tail query with strict boot/time/source validation. Configurable labels never prove
+final packet verdicts or attacks. Full original candidates and packet context stay
+inspectable locally, with terminal escaping and no policy execution or changes.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

@@ -26,6 +26,7 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens security --json
 ./bin/faultlens history
 ./bin/faultlens history --system-journal
+./bin/faultlens diagnose --boot 0 --system-journal --search-firewall --json
 ./bin/faultlens diagnose --boot 0 --system-journal --search-ssh --json
 ./bin/faultlens diagnose --boot 0 --system-journal --show-evidence --json
 ./bin/faultlens diagnose --previous-boot
@@ -163,8 +164,9 @@ optional tools. Executable availability alone does not prove feature readiness.
 rates and selected TCP indicators. Confirmed counter growth never confirms an attack;
 security assessment remains Unknown. No addresses, ports, packet capture or external
 probes are collected. Opt-in SSH journal observations and local original evidence views are described in
-[SSH analysis](docs/architecture/phase-3-ssh.md). Firewall analysis, broader
-authentication methods and historical attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
+[SSH analysis](docs/architecture/phase-3-ssh.md). Opt-in [firewall log observations](docs/architecture/phase-3-firewall.md) preserve
+reported UFW labels and packet context, without claiming verified verdicts. Active
+policy inspection, broader authentication methods and attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
 
 ## Develop and verify
 

@@ -41,6 +41,7 @@ EVENT_FILTERS = {
     'systemd_events': ('_PID=1', '_COMM=systemd', 'MESSAGE_ID=' + UNIT_START_FAILED,
                        'MESSAGE_ID=' + SHUTDOWN_REQUEST),
     'ssh_events': ('_UID=0', '_TRANSPORT=syslog', '_COMM=sshd', '_COMM=sshd-session', '_COMM=sshd-auth'),
+    'firewall_events': ('_TRANSPORT=kernel',),
 }
 TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop")
 TOOL_PURPOSES = {
@@ -182,6 +183,9 @@ class CommandRunner:
 
     def read_ssh_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
         return self._read_boot(boot_id, system=system, query='ssh_events', since_us=since_us, until_us=until_us)
+
+    def read_firewall_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
+        return self._read_boot(boot_id, system=system, query='firewall_events', since_us=since_us, until_us=until_us)
 
     def _read_boot(self, boot_id: str, *, system: bool, query=None, until_us=None, since_us=None) -> Result:
         validate_window(since_us, until_us)

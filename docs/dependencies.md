@@ -52,3 +52,7 @@ These extensions are proposals, not new installation requirements. The current
 coverage/pstore scope is documented in [the milestone](architecture/phase-2-coverage-pstore.md)
 and [archive support](architecture/phase-2-pstore-archive.md).
 Each integration needs a documented threat model, resource budget and synthetic tests.
+
+Firewall journal observations read existing kernel records through journalctl. They
+do not invoke, require installing, enable or reconfigure UFW, nftables or iptables.
+Existing logging/access controls determine whether relevant history is visible.
