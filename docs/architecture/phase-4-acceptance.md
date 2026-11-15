@@ -28,7 +28,9 @@ UserDock's account-changing operations or require administrator privileges to la
 focus, dialogs and cache provenance. `ui_collection` invokes fixed CLI arguments in
 an isolated child using the current interpreter, controlled environment, no stdin or
 shell and bounded stdout/stderr. Esc cancels and q/Ctrl-C clean up collection before
-terminal exit. Optional sources default off; only status is collected on startup.
+terminal exit. Optional sources default off; startup loads status and opening another source tab
+loads it automatically. Revisits reuse snapshots; changed options load on re-entry.
+Reads stay serialized and cancelled/failed attempts do not create retry loops.
 Native filesystem calls retain the documented kernel-uninterruptible-I/O limitation.
 
 One latest snapshot per source section is retained. A section is dropped before its
