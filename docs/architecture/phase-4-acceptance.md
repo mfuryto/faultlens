@@ -79,6 +79,13 @@ object identity reject copied, stale, invalid or cross-source positions. Tests p
 equal-timestamp uncertainty, selection on return and raw evidence roles. The integrated
 TUI benchmark also opens an SSH timeline finding without collecting another source.
 
+Boot summaries are explained per selected boot in the CLI and TUI, including matched
+report counts, unavailable tails, record caps and unsupported messages. Presentation
+does not treat these as incident counts or verified causes. Tests cover source scope,
+validated immutable-ID follow-up commands, explicit TUI refresh, raw/JSON preservation
+and summary warnings when retained boot reports exist. The integrated TUI benchmark
+includes opening an incident summary before replacing it with detailed diagnosis.
+
 The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
 journal records, both bounded log sources, six extended Atop samples, 32 interfaces
 and both pstore readers. It measures complete source models and actual renderer

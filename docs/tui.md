@@ -157,6 +157,12 @@ limits. Raw timelines reached through Full report/Evidence Explorer remain raw t
 
 ## Explained readings and findings
 
+Incident History's **Boot summaries** entry opens readable per-boot report counts,
+pattern meanings and collection limits. Select **Diagnose this boot** in an explained
+summary to pin its immutable ID, then press r on Diagnostics to request fresh evidence
+with the current session options. Selection alone does not collect. e opens a summary's
+original technical object; **Technical details** remains available inside its explanation.
+
 Source pages now start with Summary and next steps. Enter on a measurement or a
 normalized finding explains its meaning, confidence, limits and investigation steps;
 Technical details links to the unchanged original object. Guidance entries preview

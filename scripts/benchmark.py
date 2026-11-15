@@ -27,6 +27,12 @@ def worker(command: str) -> dict:
             pstore_collector=SyntheticSources().pstore_snapshot,
             pstore_archive_collector=SyntheticSources().pstore_snapshot)
         if command == 'tui-diagnostic':
+            session.choose_page(4); session.refresh()
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='boot_summaries')
+            session.open_row(); session.open_row()
+            if session.value['Technical details'] is not session.data['summaries'][0]:
+                raise RuntimeError('Boot summary navigation copied or lost the original')
+            draw(Screen(),session)
             session.choose_page(5)
             for key in ('search_ssh', 'search_firewall', 'pstore', 'pstore_archive'):
                 session.update_setting(key)

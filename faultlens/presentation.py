@@ -1,6 +1,7 @@
 """Explain existing observations without collecting, changing confidence or copying evidence."""
 from datetime import datetime, timezone
 import json
+import re
 import textwrap
 
 NAMES = {'cpu.busy':'CPU activity', 'cpu.load_average':'System load', 'memory.total':'Total RAM',
@@ -224,6 +225,42 @@ def finding_groups(data):
     return list(groups.values())
 
 
+def boot_summary_label(item):
+    prefix='Boot '+str(item['boot']['index'])+' | '
+    if item['state']!='available': return prefix+'Journal evidence unavailable'
+    count,records=item['finding_count'],item['records_examined']
+    return (prefix+str(count)+' matched report'+('s' if count!=1 else '')+' in '+str(records)
+            +' retained record'+('s' if records!=1 else ''))
+
+
+def boot_summary_view(item):
+    """Explain one retained boot summary without guessing incident count or causality."""
+    meaning=[]
+    if item['state']!='available':
+        meaning.append('No usable journal tail was retained for this boot. This does not establish absent logs, permission denial or a crash.')
+    elif item['finding_count']:
+        meaning.append('These counts describe matched source reports, not separate incidents, verified root causes or complete shutdown outcomes.')
+        for rule,count in sorted(item['finding_counts_by_rule'].items()):
+            explanation=RULE_MEANINGS.get(rule,'Recorded rule '+rule).split('. ',1)[0]
+            meaning.append(str(count)+' report'+('s' if count!=1 else '')+': '+explanation)
+    else:
+        meaning.append('No supported pattern matched this retained tail. A crash, freeze or earlier problem is not ruled out.')
+    limits=['A bounded tail is not a complete boot; first/last visible records are not boot or incident boundaries.',
+            'Root cause and complete shutdown remain unverified. Different boots do not form a shared monotonic timeline.',
+            'This overview excludes broader event searches, SSH/firewall searches, Atop replay and crash-evidence readers.']
+    if item['record_limit_reached']: limits.append('The retained-record cap was reached; earlier entries may be omitted.')
+    if item['unsupported_messages_in_response']:
+        limits.append(str(item['unsupported_messages_in_response'])+' message bodies could not be classified; no absence of events is inferred.')
+    boot_id=item['boot']['boot_id']
+    scope=item['journal_scope']['requested']
+    steps=['Inspect the original summary and its collection limits before drawing conclusions.']
+    if isinstance(boot_id,str) and re.fullmatch(r'[a-f0-9]{32}',boot_id) and scope in {'visible','system'}:
+        command='./bin/faultlens diagnose --boot-id '+boot_id+(' --system-journal' if scope=='system' else '')
+        steps.append('Optional fresh diagnosis using this boot identity and existing access: '+command)
+    return {'Observed':boot_summary_label(item),'Boot identity':boot_id,'What it means':meaning,
+            'What you can do':steps,'Evidence limits':limits,'Technical details':item}
+
+
 def guide(data):
     observations=data.get('observations',[])
     warning=sum(o['state'] in {'warning','critical'} for o in observations)
@@ -233,8 +270,10 @@ def guide(data):
     crash_warning=any(record['panic_signature_lines'] for key in ('pstore','pstore_archive') for record in data.get(key,{}).get('records',[]))
     source_gap=any(data.get(key,{}).get('state') in {'unavailable','partial'} for key in ('atop','ssh_analysis','firewall_analysis','event_search','pstore','pstore_archive'))
     source_gap |= data.get('unsupported_messages',0)>0
+    source_gap |= any(item['unsupported_messages_in_response'] for item in data.get('summaries',[]))
     source_gap |= any(data.get(key,{}).get('analysis_state') in {'unavailable','partial'} for key in ('pstore','pstore_archive'))
-    if warning or crash_warning or any(item['severity'] in {'warning','critical'} for item,count,source in groups):
+    boot_reports=any(item['finding_count'] for item in data.get('summaries',[]))
+    if warning or crash_warning or boot_reports or any(item['severity'] in {'warning','critical'} for item,count,source in groups):
         summary='Some observations or recorded reports need review. Their meaning and next steps are listed below.'
     elif data.get('state')=='unavailable':
         summary='The main evidence source was unavailable. Independently available source results are explained below; what happened remains unverified.'
@@ -267,6 +306,8 @@ def guide(data):
             meaning.append(str(len(data.get('boots',[])))+' boot entries are visible in the bounded listing.' if data['state']=='available' else 'No boot listing could be verified; this is not evidence that earlier boots are absent.')
         if data['command']=='incidents':
             meaning.append(str(data.get('selected_boot_count',0))+' boots were selected for summaries. Finding counts are reports, not separate incidents.')
+            if data.get('selection_limit_reached'):
+                meaning.append('More eligible boots were visible than requested; the remaining boots were not examined in this overview.')
             actions.append('Select a listed boot ID for a detailed diagnosis if you want to investigate that boot.')
         if data['command']=='diagnose':
             meaning.append('Retained journal records examined: '+str(data['records_examined'])+'. Root cause and complete shutdown remain unverified.')
@@ -374,6 +415,15 @@ def render(data,out):
             line(out,explanation['What it means'],'    ')
             for step in explanation['What you can do']: line(out,'Next: '+step,'    ')
         line(out,'Report counts can overlap and do not establish separate incidents or independent corroboration.')
+    if data.get('summaries'):
+        print('\nBoot summaries',file=out)
+        for item in data['summaries']:
+            detail=boot_summary_view(item)
+            line(out,detail['Observed'],'  ')
+            line(out,'Boot ID: '+detail['Boot identity'],'    ')
+            for text in detail['What it means']: line(out,text,'    ')
+            for step in detail['What you can do']: line(out,'Next: '+step,'    ')
+            for text in detail['Evidence limits']: line(out,'Limit: '+text,'    ')
     for title in ('What the evidence means','What you can do','Important limits'):
         if view[title]:
             print('\n'+title,file=out)
