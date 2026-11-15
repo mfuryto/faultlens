@@ -85,7 +85,7 @@ def trusted_tool(name: str) -> str | None:
     return None
 
 
-def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None) -> Result:
+def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None, graceful=False) -> Result:
     """Drain both pipes without communicate's unbounded in-memory buffering."""
     process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, shell=False, env=ENVIRONMENT,
@@ -118,6 +118,13 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fd
                                 return Result("window_complete", output[:boundary].decode("utf-8", errors="strict"))
             return Result("completed", output.decode("utf-8", errors="strict"), process.returncode)
     finally:
+        # Give nested acceptance workers a chance to clean their own isolated children.
+        if graceful and process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGINT)
+                process.wait(timeout=1)
+            except (ProcessLookupError, subprocess.TimeoutExpired):
+                pass
         # Also kill descendants retaining pipes after the direct child exits.
         try:
             try:
