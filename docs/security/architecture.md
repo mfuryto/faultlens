@@ -39,6 +39,9 @@ ID to bypass scope or substitutes another boot.
 bounded integer timestamps, construct fixed native arguments and revalidate all
 returned records against both inclusive requested boundaries before trimming.
 Reversed ranges fail before collection; failed queries never retry a broader range.
+[Journal-loss rules](../architecture/phase-2-journal-loss.md) require internal driver
+transport and exact structured IDs; copied application text/IDs do not suffice.
+They emit no raw text or unit names and never adjust logging policy.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 

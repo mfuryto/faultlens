@@ -195,3 +195,13 @@ Ten fresh Linux/Python 3.14.4 children measured median wall
 0.0583 s and maximum peak RSS 26.79 MiB. All fourteen modes passed
 <50 MiB RSS / <1 s CPU / <2 s wall budgets. Native journal traversal, filesystem
 latency and completeness of real incident evidence are excluded.
+
+## Journal-driver loss observations — 2026-11-15
+
+The fifteenth mode, `diagnose-journal-loss`, exercises 500 retained mixed structured
+suppression and missed-kernel-message reports with the record cap explicitly reached.
+Ten fresh Linux/Python 3.14.4 children measured median wall
+0.0573 s, maximum wall 0.0595 s, median CPU 0.0502 s and
+maximum peak RSS 27.29 MiB. All fifteen modes passed <50 MiB RSS / <1 s CPU /
+<2 s wall budgets. Regression tests run two fresh children per mode. No real logging
+flood, kernel loss or host journal is used; native collection cost is excluded.

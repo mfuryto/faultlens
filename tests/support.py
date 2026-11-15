@@ -207,3 +207,20 @@ class SyntheticOverlayRunner(SyntheticHistoricalRunner):
                                 'accessing files from both mounts will result in undefined behavior.')
             rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticJournalLossRunner(SyntheticHistoricalRunner):
+    """Maximum invented driver loss reports without provoking real log loss."""
+    def read_boot(self, boot_id):
+        import json
+        from faultlens.journal import JOURNAL_DROPPED, JOURNAL_MISSED
+        result = super().read_boot(boot_id)
+        if result.state != 'completed':
+            return result
+        rows = []
+        for index, line in enumerate(result.stdout.splitlines()):
+            value = json.loads(line)
+            value.update(_TRANSPORT='driver', MESSAGE_ID=JOURNAL_DROPPED if index % 2 else JOURNAL_MISSED,
+                         MESSAGE='Synthetic journal-driver report')
+            rows.append(json.dumps(value))
+        return Result('completed', '\n'.join(rows), 0)

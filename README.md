@@ -75,6 +75,9 @@ to inspect an older bounded window. Add `--since-us` to select an inclusive star
 or use it alone for a start-bounded tail. Reversed ranges are rejected; the 500-record
 cap still applies. Targeted search scope stays unchanged. See
 [historical journal windows](docs/architecture/phase-2-journal-window.md).
+[Journal-driver loss findings](docs/architecture/phase-2-journal-loss.md) recognize
+structured suppression and missed-kernel-message reports in the ordinary window.
+They do not identify missing contents or establish full logging coverage.
 Source counts and safe collection status are reported;
 completeness remains unknown. See [journal scope](docs/architecture/phase-2-journal-scope.md).
 `--search-events` adds two bounded selected-boot searches for kernel warning/error

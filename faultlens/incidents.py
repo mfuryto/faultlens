@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 import re
 
 from .commands import Command, CommandRunner
-from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries, validate_window
+from .journal import BOOT_ID, JOURNAL_DROPPED, JOURNAL_MISSED, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, boots, entries, validate_window
 from .models import report
 from .reconstruction import describe, timeline
 
@@ -118,9 +118,35 @@ def overlay_reuse_finding(entry):
          'Identify the owning workload before any change; do not automatically unmount, delete layers, restart services or disable protection.'))
 
 
+def journal_loss_finding(entry):
+    if entry.transport != 'driver':
+        return None
+    if entry.message_id == JOURNAL_DROPPED:
+        rule, title = 'journal.messages_suppressed', 'Journald reported suppressed messages'
+        reason = 'The journal driver recorded the structured rate-limit suppression message ID.'
+    elif entry.message_id == JOURNAL_MISSED:
+        rule, title = 'journal.kernel_messages_missed', 'Journald reported missed kernel messages'
+        reason = 'The journal driver recorded the structured missed-kernel-message ID.'
+    else:
+        return None
+    return Finding(rule, title, title + ' at the referenced receipt time.',
+        'Confirmed', 'warning', [entry.reference()], reason,
+        {'minimum_matching_records': 1},
+        ('Confirms a recorded journal-driver report, not the contents or severity of unrecorded messages.',
+         'The report time does not establish when loss began or ended, or a contiguous missing interval.',
+         'Counts, affected units and raw text are not extracted; repeated reports are not independent incident counts.',
+         'Absence of these reports does not establish complete logging; other loss mechanisms and versions can differ.',
+         'This observation does not establish a freeze, shutdown outcome or root cause.'),
+        ('Inspect the referenced record and journal retention, rate-limit and kernel logging context locally.',
+         'Review resource and log-volume impact before changing policy; Faultlens does not change logging settings.'))
+
+
 def analyze(records) -> list[Finding]:
     findings = []
     for entry in records:
+        loss = journal_loss_finding(entry)
+        if loss is not None:
+            findings.append(loss)
         overlay = overlay_reuse_finding(entry)
         if overlay is not None:
             findings.append(overlay)
