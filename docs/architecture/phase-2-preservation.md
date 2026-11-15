@@ -7,9 +7,10 @@ is replayed by this assessment and no report is saved or transmitted.
 
 ## Evidence and interpretation
 
-The fixed command `systemd-analyze cat-config --tldr systemd/journald.conf` resolves
-vendor configuration and ordered drop-ins. The comment-filtered form requires
-systemd 255 or newer. Unsupported commands, unknown boundaries, malformed structure,
+The fixed command `systemd-analyze cat-config systemd/journald.conf` resolves
+vendor configuration and ordered drop-ins. The portable form retains comments, which the bounded parser ignores without
+treating commented defaults as assignments. It avoids the newer --tldr option and
+is documented by systemd 252. Unsupported commands, unknown boundaries, malformed structure,
 byte limits or timeouts produce unavailable evidence; there is no guessed fallback.
 The parser resets section scope at each source boundary and interprets only explicit
 Storage, SystemMaxUse, SystemKeepFree, RuntimeMaxUse, RuntimeKeepFree and MaxRetentionSec
@@ -55,7 +56,7 @@ settings, dates and capacity summaries can still be sensitive; review before sha
 
 Observation JSON gains an additive `recommendations` array, also rendered in text.
 Warnings and unavailable observations do not change the existing report exit-code
-contract. Nothing in this milestone establishes root cause or completes phase 2.
+contract. Nothing in this milestone establishes root cause. See the [phase 2 acceptance review](phase-2-acceptance.md) for integrated status.
 Loaded-state verification, namespace/custom paths, rotation verification, broader archive compatibility,
 full shutdown verification and explicitly approved configuration changes remain future work.
 
@@ -63,7 +64,7 @@ Synthetic tests cover overrides, section boundaries, limits, unsupported express
 shell rejection, redaction, missing sources and unsafe metadata. The benchmark adds
 `check-history`; live smoke tests inspect only counts and states and save no host data.
 
-References: [systemd-analyze](https://www.freedesktop.org/software/systemd/man/255/systemd-analyze.html),
+References: [systemd-analyze](https://www.freedesktop.org/software/systemd/man/252/systemd-analyze.html),
 [journald configuration](https://www.freedesktop.org/software/systemd/man/258/journald.conf.html),
 [Atop service](https://github.com/Atoptool/atop/blob/master/atop.service),
 [Atop rotation](https://github.com/Atoptool/atop/blob/master/atop.daily).

@@ -40,15 +40,18 @@ def _sample(rows, reset):
             'swap_total_bytes': swap_total * page, 'swap_used_bytes': (swap_total - swap_free) * page}
 
 
-def samples(text: str) -> list[dict]:
+def samples(text: str, *, extended=False) -> list[dict]:
+    from .resource_history import LABELS, MAX_ROWS, normalize, validate_row
+    if type(extended) is not bool:
+        raise ValueError('Invalid resource profile')
     if len(text.encode('utf-8')) > 262144:
         raise ValueError('Atop output exceeds limit')
-    result, rows, reset, header, host = [], {}, False, None, None
+    result, rows, reset, header, host, extra = [], {}, False, None, None, []
     for line in text.splitlines():
         if not line.strip():
             continue
         if line == 'RESET':
-            if rows or reset:
+            if rows or extra or reset:
                 raise ValueError('Unexpected reset boundary')
             reset = True
             continue
@@ -59,12 +62,17 @@ def samples(text: str) -> list[dict]:
             if result and timestamp <= result[-1]['timestamp_s']:
                 raise ValueError('Ambiguous resource clock order')
             value = _sample(rows, reset)
+            if extended:
+                value['extended'] = normalize(extra, reset=reset, interval=interval,
+                    hz=int(rows['CPU'][0]), page=int(rows['MEM'][0]))
             value.update(sample_index=len(result), timestamp_s=timestamp, interval_s=interval)
             result.append(value)
             rows, reset, header = {}, False, None
+            extra = []
             continue
         fields = line.split()
-        if not 9 <= len(fields) <= 64 or fields[0] not in {'CPU', 'MEM', 'SWP'}:
+        allowed = {'CPU', 'MEM', 'SWP'} | (LABELS if extended else set())
+        if not 9 <= len(fields) <= 64 or fields[0] not in allowed:
             raise ValueError('Unsupported Atop record')
         label, identity, epoch, date, clock, period = fields[:6]
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,252}', identity):
@@ -77,26 +85,31 @@ def samples(text: str) -> list[dict]:
             raise ValueError('Inconsistent UTC header')
         if label in rows or (header is not None and header != (timestamp, interval)) or (host is not None and host != identity):
             raise ValueError('Mixed or duplicate sample metadata')
-        if not all(re.fullmatch(r'-?[0-9]{1,20}', field) for field in fields[6:]):
+        if label in LABELS:
+            if len(extra) >= MAX_ROWS:
+                raise ValueError('Extended resource row limit')
+            extra.append((label, validate_row(label, fields[6:])))
+        elif not all(re.fullmatch(r'-?[0-9]{1,20}', field) for field in fields[6:]):
             raise ValueError('Non-numeric resource fields')
         host, header = identity, (timestamp, interval)
-        rows[label] = fields[6:]
-    if rows or reset:
+        if label not in LABELS:
+            rows[label] = fields[6:]
+    if rows or extra or reset:
         raise ValueError('Truncated sample')
     return result
 
 
-def window_boundary(output: bytearray, end: int):
+def window_boundary(output: bytearray, end: int, *, extended=False):
     """Stop only after a complete, strictly validated sample crosses the window end."""
     position = output.rfind(b'\nSEP\n')
     if position < 0:
         return None
     boundary = position + len(b'\nSEP\n')
-    values = samples(output[:boundary].decode('utf-8', errors='strict'))
+    values = samples(output[:boundary].decode('utf-8', errors='strict'), extended=extended)
     return boundary if values and values[-1]['timestamp_s'] >= end else None
 
 
-def attach(data: dict, records, runner, date: str):
+def attach(data: dict, records, runner, date: str, *, extended=False):
     recording_date(date)
     output = {'state': 'unavailable', 'recording_date': date, 'samples': [], 'correlations': [],
               'host_identity': 'unverified', 'boot_identity': 'unverified',
@@ -110,6 +123,14 @@ def attach(data: dict, records, runner, date: str):
         'Legacy CPU busy includes steal; CPU execution excludes idle, iowait and steal. Guest ticks are not counted twice.',
         'Iowait accounting is imperfect and can decrease; its share is not disk utilization, latency or proof of storage failure.',
         'Steal is reported involuntary wait, not proof of provider contention or the cause of an incident.'])
+    output['profile'] = 'extended' if extended else 'basic'
+    if extended:
+        output['limitations'].extend([
+            'Extended disk/network counters describe reported rows only; virtual layers can double-count the same activity.',
+            'Device/interface fingerprints support local comparison, not anonymity or verified identity. Names and process IDs are omitted.',
+            'Process sums exclude thread and exited-process resources; exited rows remain counted separately. Resident memory can count shared pages repeatedly.',
+            'Process coverage depends on the recording and accounting support; no rows or zero values do not prove no activity.',
+            'Extended layout compatibility is deliberately narrow. Larger process sets can exceed limits; no automatic broader retry is attempted.'])
     data['atop'] = output
     if not records:
         output['reason'] = 'journal_scope_unavailable'
@@ -121,12 +142,12 @@ def attach(data: dict, records, runner, date: str):
     end = records[-1].realtime_us // 1000000 + 900
     start = max(0, end - WINDOW_SECONDS)
     output.update(window_start_s=start, window_end_s=end)
-    result = runner.read_atop(date, start, end)
+    result = runner.read_atop_extended(date, start, end) if extended else runner.read_atop(date, start, end)
     if result.state not in {'completed', 'window_complete'} or (result.state == 'completed' and result.returncode != 0):
         output['reason'] = 'recording_collection_unavailable'
         return
     try:
-        values = [value for value in samples(result.stdout) if start <= value['timestamp_s'] <= end]
+        values = [value for value in samples(result.stdout, extended=extended) if start <= value['timestamp_s'] <= end]
     except (ValueError, OverflowError, OSError):
         output['reason'] = 'unsupported_or_ambiguous_samples'
         return

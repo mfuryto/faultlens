@@ -224,3 +224,39 @@ class SyntheticJournalLossRunner(SyntheticHistoricalRunner):
                          MESSAGE='Synthetic journal-driver report')
             rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
+
+
+class SyntheticOverviewRunner(SyntheticHistoricalRunner):
+    """Seven invented previous boots with maximum journal tails."""
+    def __init__(self):
+        super().__init__()
+        identities = [format(index + 1, '032x') for index in range(8)]
+        self.results[Command.JOURNAL_BOOTS] = Result('completed', '\n'.join(
+            f'{-index} {identity} synthetic' for index, identity in enumerate(identities)), 0)
+
+    def read_boot(self, boot_id):
+        result = super().read_boot('a' * 32)
+        return Result(result.state, result.stdout.replace('a' * 32, boot_id), result.returncode)
+
+
+class SyntheticExtendedRunner(SyntheticEventRunner):
+    """Bounded invented resource groups; names are generated, never host-derived."""
+    def read_atop_extended(self, date, start, end):
+        from tests.test_atop_extended import extended_sample
+        text = extended_sample()
+        # The existing incident tail falls within this invented sample interval.
+        return Result('completed', text, 0)
+
+
+class SyntheticMaximumExtendedRunner(SyntheticExtendedRunner):
+    """Maximum supported device/interface/process cardinality in one sample."""
+    def read_atop_extended(self, date, start, end):
+        from tests.test_atop_extended import extended_sample
+        rows = [('NET', 'upper ' + '0 ' * 16 + '0')]
+        rows += [('DSK', f'disk{index} 0 1 2 3 4 -1 -1 0 0.00') for index in range(32)]
+        rows += [('NET', f'nic{index} 1 2 3 4 -1 0 0 0 0 0 0 0 0 0 0 0 0 0') for index in range(32)]
+        for index in range(256):
+            pid = index + 1
+            rows += [('PRC', f'{pid} synthetic S 100 2 1 0 20 0 0 0 0 {pid} y 0 _ 0 -3 -2 0 0'),
+                     ('PRM', f'{pid} synthetic S 4096 20 10 0 0 0 0 0 0 0 0 0 {pid} y 0 0 -3 -2 -3 -2')]
+        return Result('completed', extended_sample(rows=rows), 0)

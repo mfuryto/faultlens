@@ -35,6 +35,31 @@ Storage=none
         self.assertIsNone(values['RuntimeMaxUse'])
         self.assertEqual('unspecified', states['RuntimeMaxUse'])
 
+    def test_portable_commented_config_never_promotes_defaults_to_assignments(self):
+        from faultlens.commands import CATALOG
+        self.assertEqual(('systemd-analyze', ('cat-config', 'systemd/journald.conf')),
+                         CATALOG[Command.JOURNAL_CONFIG])
+        values, states = journal_config('# /etc/systemd/journald.conf\n'
+            '# /etc/systemd/journald.conf.d/ directory contains local overrides.\n'
+            '# Documentation for the synthetic default namespace\n[Journal]\n'
+            '#Storage=auto\n#SystemMaxUse=\n;MaxRetentionSec=7day\n'
+            '# /etc/systemd/journald.conf.d/30-synthetic.conf\n[Journal]\nStorage=persistent\n')
+        self.assertEqual('persistent', values['Storage'])
+        self.assertIsNone(values['SystemMaxUse'])
+        self.assertEqual('unspecified', states['MaxRetentionSec'])
+
+    def test_prose_comments_preserve_sections_but_unsupported_source_markers_fail(self):
+        values, states = journal_config('[Journal]\n'
+            '# /etc/systemd/journald.conf.d/ directory holds overrides.\nStorage=persistent\n')
+        self.assertEqual('persistent', values['Storage'])
+        for marker in ('# /unexpected/settings.conf', '# /unexpected/file name.conf',
+                       '# /etc/systemd/journald.conf.d/nested/settings.conf'):
+            with self.assertRaises(ValueError):
+                journal_config('[Journal]\nStorage=persistent\n' + marker + '\nStorage=volatile')
+        with self.assertRaises(ValueError):
+            journal_config('[Journal]\nMaxRetentionSec=1h \\\n'
+                           '# /etc/systemd/journald.conf.d/ directory holds overrides.\n30min')
+
     def test_unsupported_final_values_are_unknown_not_previous_values(self):
         values, states = journal_config('[Journal]\nStorage=persistent\nStorage=unsupported\nSystemMaxUse=\n')
         self.assertIsNone(values['Storage'])

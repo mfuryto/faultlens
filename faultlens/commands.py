@@ -30,7 +30,7 @@ CATALOG = {
     Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
     Command.REFERENCE_FILESYSTEM: ("df", ("--block-size=1", "--output=size,used,avail,pcent", "/")),
     Command.SYSTEM_STATE: ("systemctl", ("is-system-running", "--no-pager")),
-    Command.JOURNAL_CONFIG: ("systemd-analyze", ("cat-config", "--tldr", "systemd/journald.conf")),
+    Command.JOURNAL_CONFIG: ("systemd-analyze", ("cat-config", "systemd/journald.conf")),
     Command.JOURNAL_BOOTS: ("journalctl", ("--list-boots", "--no-pager", "--quiet")),
     Command.JOURNAL_SYSTEM_BOOTS: ("journalctl", ("--system", "--list-boots", "--no-pager", "--quiet")),
     Command.JOURNAL_SERVICE: ("systemctl", ("is-active", "systemd-journald.service", "--no-pager")),
@@ -47,7 +47,7 @@ TOOL_PURPOSES = {
     "df": "Optional: filesystem comparison in scripts/validate_local.py; status uses statvfs directly.",
     "systemctl": "Feature dependency: service observations in status/check; other observations remain available without it.",
     "journalctl": "Feature dependency: visible boot history and journal incident analysis.",
-    "systemd-analyze": "Optional: explicit journald configuration in check --history; requires systemd 255+ for --tldr, not verified by executable discovery.",
+    "systemd-analyze": "Optional: explicit journald configuration in check --history; uses cat-config; availability and output compatibility are checked at collection time.",
     "atop": "Optional: replay only when diagnose --atop-date is requested; historical samples require existing recordings.",
 }
 DIRECTORIES = ("/usr/bin", "/usr/sbin", "/bin", "/sbin")
@@ -127,6 +127,12 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fd
 
 class CommandRunner:
     def read_atop(self, date: str, start: int, end: int) -> Result:
+        return self._read_atop(date, start, end, extended=False)
+
+    def read_atop_extended(self, date: str, start: int, end: int) -> Result:
+        return self._read_atop(date, start, end, extended=True)
+
+    def _read_atop(self, date: str, start: int, end: int, *, extended: bool) -> Result:
         from .recordings import open_recording, recording_date
         recording_date(date)
         if (type(start) is not int or type(end) is not int or not 0 <= start <= end
@@ -142,8 +148,9 @@ class CommandRunner:
             descriptor = open_recording(date)
             helper = str(Path(__file__).with_name('_atop_exec.py').resolve())
             from .atop import window_boundary
-            return _capture([sys.executable, '-I', '-B', helper, executable, str(descriptor), *window],
-                            pass_fds=(descriptor,), end_when=lambda output: window_boundary(output, end))
+            profile = ['extended'] if extended else []
+            return _capture([sys.executable, '-I', '-B', helper, executable, str(descriptor), *window, *profile],
+                            pass_fds=(descriptor,), end_when=lambda output: window_boundary(output, end, extended=extended))
         except (OSError, ValueError, OverflowError, subprocess.SubprocessError):
             return Result("unavailable")
         finally:

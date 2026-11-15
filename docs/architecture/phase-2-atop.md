@@ -88,7 +88,7 @@ a user who already runs as root remains root. The helper refuses execution if it
 no-new-privileges guard fails. Pipes and the original recording descriptor are closed even if child cleanup fails.
 Resource exhaustion or unsupported raw data yields
 unavailable context. Do not widen limits or permissions automatically to mask failures.
-Only CPU/MEM/SWP system records are requested; process, command-line, disk-device,
+By default only CPU/MEM/SWP system records are requested; process, command-line, disk-device,
 network-address and cgroup records are not requested. Raw output/stderr and source
 hostnames never appear in Faultlens reports. Native source code is not vendored.
 
@@ -171,3 +171,6 @@ Primary references: [Atop manual](https://www.atoptool.nl/download/man_atop-1.pd
 
 See [coverage hints](phase-2-coverage-pstore.md) for the subsequent bounded filename-date
 and sample-interval gap assessments. They do not establish recording continuity.
+
+The explicit [extended profile](phase-2-atop-extended.md) adds bounded disk/network
+and process resource context; it is never enabled by the recording-date flag alone.

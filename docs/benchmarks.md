@@ -214,3 +214,37 @@ percentages for all 256 retained synthetic samples. Ten fresh Linux/Python
 median CPU 0.0688 s and maximum peak RSS 27.84 MiB. All fifteen modes passed
 <50 MiB RSS / <1 s CPU / <2 s wall budgets. Native replay cost, live contention and
 actual recording accuracy remain outside these synthetic measurements.
+
+## Integrated phase 2 and multi-boot overview — 2026-11-15
+
+Two new modes verify the bounded end-to-end workflow: seven 501-record boot tails
+reduced to summaries, and one combined diagnosis with targeted searches, receipt
+bounds, Atop and both pstore sources. Ten fresh Linux/Python 3.14.4 children
+per mode measured:
+
+| Mode | Median wall s | Maximum wall s | Median CPU s | Maximum RSS MiB |
+| --- | --- | --- | --- | --- |
+| incidents | 0.0913 | 0.0974 | 0.0849 | 24.93 |
+| diagnose-integrated | 0.1097 | 0.1113 | 0.1011 | 33.59 |
+
+All seventeen modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. Resource
+regression tests run two children per mode. Native journal traversal, access checks,
+recording decompression and kernel filesystem latency are excluded; external calls
+retain their separate deadlines and byte limits. No real crash or host fixture is used.
+
+## Extended resource context and final integrated run — 2026-11-15
+
+The eighteenth mode exercises one complete maximum-cardinality extended sample:
+32 disks, 32 interfaces and 256 paired processes. Integrated diagnosis now opts in
+to extended resources alongside targeted journal search and both pstore sources.
+Ten fresh Linux/Python 3.14.4 children per mode measured:
+
+| Mode | Median wall s | Maximum wall s | Median CPU s | Maximum RSS MiB |
+| --- | --- | --- | --- | --- |
+| diagnose-extended | 0.0888 | 0.0905 | 0.0773 | 33.36 |
+| diagnose-integrated | 0.1143 | 0.1169 | 0.1028 | 38.36 |
+| incidents | 0.0901 | 0.0933 | 0.0836 | 24.96 |
+
+All eighteen modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. The synthetic
+maximums measure parser/CLI overhead, not native replay or real recording compatibility.
+Target-host qualification remains necessary; no real crash or load injection is used.

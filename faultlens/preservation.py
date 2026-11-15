@@ -14,7 +14,7 @@ JOURNAL_KEYS = {
     'RuntimeKeepFree': ('runtime_keep_free', 'bytes'),
     'MaxRetentionSec': ('max_retention', 'seconds'),
 }
-CONFIG_SOURCE = 'systemd-analyze cat-config --tldr systemd/journald.conf'
+CONFIG_SOURCE = 'systemd-analyze cat-config systemd/journald.conf'
 CONFIG_LIMITS = ('Default namespace configuration snapshot only; loaded daemon state and flush state are not verified.',
                  'Missing explicit settings do not imply missing defaults or unbounded storage.',
                  'Configured budgets and time limits do not guarantee actual retained history.')
@@ -61,6 +61,10 @@ def journal_config(text):
             raise ValueError('Configuration structure exceeds limit')
         line = raw.strip()
         if line.startswith('# /'):
+            # cat-config includes ordinary prose comments beginning with paths.
+            # Actual sources for this fixed config end in .conf, even with spaces.
+            if not pending and not line.endswith('.conf') and re.fullmatch(r'# /[^\s]+[ \t]+[^\x00-\x1f]+', line):
+                continue
             if pending or not re.fullmatch(r'# /(?:etc|run|usr/local/lib|usr/lib|lib)/systemd/journald\.conf(?:\.d/[^/\x00-\x1f]+\.conf)?', line):
                 raise ValueError('Ambiguous configuration boundary')
             section = None

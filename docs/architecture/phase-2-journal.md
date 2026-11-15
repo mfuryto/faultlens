@@ -24,8 +24,8 @@ dependent date text is not interpreted or echoed. Indices refer to the history
 visible to the current user, not necessarily every boot that physically occurred.
 Diagnose defaults to index -1; index 0 is an explicit request to inspect the current
 visible boot. Supported selection range is -128 through 0. Boot-selection flags are
-rejected on unrelated commands. Calendar filtering (`history --last 7d`) and the
-multi-boot `incidents` overview are not implemented yet.
+rejected on unrelated commands. Calendar filtering (`history --last 7d`) is not implemented yet. The bounded multi-boot
+`incidents` overview is now implemented; see [overview scope](phase-2-overview.md).
 
 Resolve the relative index to an immutable boot ID first, then query that ID. A
 reboot between calls cannot silently change the chosen scope. Missing previous
@@ -151,3 +151,6 @@ start/end boundaries without increasing caps or falling back to the latest tail.
 [Journal-driver loss observations](phase-2-journal-loss.md) identify structured
 suppression and missed-kernel-message reports in the ordinary window, without
 inferring missing contents, a contiguous loss interval or the cause of a failure.
+
+The integrated [phase 2 acceptance review](phase-2-acceptance.md) records delivered
+baseline behavior, target validation gaps and remaining broader product requirements.
