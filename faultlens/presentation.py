@@ -49,6 +49,35 @@ RULE_MEANINGS={
     'security.historical_traffic_anomaly':'A recorded network rate rose above its short local baseline. A workload change may be legitimate; this is not proof of a flood, attack or incident cause.',
 }
 
+# Fixed local read-only suggestions. Never interpolate source-controlled text into commands.
+OBSERVATION_COMMANDS={
+    'cpu.busy':'./bin/faultlens status --details',
+    'cpu.load_average':'./bin/faultlens status --details',
+    'memory.used':'./bin/faultlens status --details',
+    'swap.used':'./bin/faultlens status --details',
+    'services.system_state':'systemctl --failed --no-pager',
+    'journal.service_active':'systemctl status systemd-journald.service --no-pager',
+    'atop.service_active':'systemctl status atop.service --no-pager',
+    'atop.recording_inventory':'./bin/faultlens health --history --details',
+}
+FINDING_COMMANDS={
+    'kernel.overlay_layer_reuse':'findmnt --json --list -t overlay -o TARGET,OPTIONS',
+    'systemd.start_job_failed':'systemctl --failed --no-pager',
+    'network.': './bin/faultlens network --sockets --details',
+    'security.port_scan_indicator':'./bin/faultlens network --sockets --details',
+    'security.udp_report_burst':'./bin/faultlens network --sockets --details',
+}
+
+
+def observation_command(key):
+    if key.startswith('filesystem.'): return 'df --block-size=1 --output=size,used,avail,pcent,target /'
+    if key.startswith('journal.config.'): return 'systemd-analyze cat-config systemd/journald.conf'
+    return OBSERVATION_COMMANDS.get(key)
+
+
+def command_step(command):
+    return 'Optional current-state check (not historical proof): '+command
+
 
 def escaped(value):
     return json.dumps(str(value),ensure_ascii=True)[1:-1]
@@ -155,6 +184,9 @@ def observation_view(item):
         meaning=item.get('explanation','A local observation, not a diagnosis of cause.')
     if not steps: steps=list(item.get('recommendations',[]))
     if not steps: steps=['No change is indicated by this reading alone. Investigate further if symptoms or other evidence call for it.']
+    if state in {'warning','critical','unavailable'} or value is None:
+        command=observation_command(key)
+        if command: steps.append(command_step(command))
     return {'Observed':reading(item),'What it means':meaning,'What you can do':steps,
             'Confidence':item['confidence'],'Evidence limits':list(item.get('limitations',[])),'Technical details':item}
 
@@ -166,9 +198,13 @@ def finding_view(item):
         meaning='A supported kernel counter increased. Legitimate load, resource limits and network settings can produce this; it is not a confirmed attack or outage.'
     if meaning is None:
         meaning=item['observation']+' The source report does not establish the underlying cause.'
+    steps=list(item['recommendations'])
+    command=FINDING_COMMANDS.get(rule)
+    if command is None and rule.startswith('network.'): command=FINDING_COMMANDS['network.']
+    if command: steps.append(command_step(command))
     return {'Observed':item['observation'],'What it means':meaning,
         'Confidence':item['confidence']+' observation; cause '+item.get('cause_confidence','Unknown'),
-        'What you can do':list(item['recommendations']),'Evidence limits':list(item['limitations']),
+        'What you can do':steps,'Evidence limits':list(item['limitations']),
         'Technical details':item}
 
 
@@ -224,6 +260,9 @@ def guide(data):
         meaning.append('Only accessible '+scope+' journal evidence was requested; selection grants no extra permission and does not prove completeness.')
         if data.get('state')=='unavailable':
             actions.append('Check the selected boot, existing journal access and retained history. The failure alone does not prove permission denial or absent history.')
+            command='journalctl '+('--system ' if scope=='system' else '')+'--list-boots --no-pager'
+            actions.append('To see the journal tool\'s own access/availability explanation, run: '+command)
+            actions.append('Use existing authorized access only. This command grants no permissions; an empty listing does not prove that no earlier boot occurred.')
         if data['command']=='history':
             meaning.append(str(len(data.get('boots',[])))+' boot entries are visible in the bounded listing.' if data['state']=='available' else 'No boot listing could be verified; this is not evidence that earlier boots are absent.')
         if data['command']=='incidents':
@@ -283,6 +322,7 @@ def guide(data):
         if data.get('sockets',{}).get('state')=='available': meaning.append('Socket bindings are visible locally; listening or wildcard addresses do not prove access from the Internet.')
         actions.append('Compare changes during the reported problem with expected workload and service capacity before considering network or firewall changes.')
     if not actions: actions.append('No configuration change follows from these readings alone. Review explained warnings and relevant source evidence if investigating a symptom.')
+    limits.append('Suggested commands are optional and never run automatically. Use a trusted checkout/tool installation and existing access; missing optional tools do not require installation. Current snapshots cannot establish past incident conditions.')
     limits.append('Readable sizes and durations are rounded; exact values and thresholds remain in technical details.')
     limits.append('Local logs and counters can be incomplete or falsified; authenticity is not established, particularly under root/kernel compromise.')
     limits.append('Source coverage is bounded and local. A confirmed report is not a confirmed cause; possible security indicators are not confirmed attacks.')

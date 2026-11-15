@@ -27,6 +27,27 @@ identity retain their source meaning; no fallback source or extra query is added
 
 ## Findings and follow-up
 
+When relevant, follow-up steps include optional read-only commands for current
+filesystem capacity, failed units, recorder/journal service state, journal configuration
+assignments, network snapshots and overlay mounts. Commands are fixed suggestions;
+host messages, unit names and mount paths are never interpolated into them. Nothing
+executes automatically. Run Faultlens commands from a trusted checkout and use trusted
+native tools with existing authorized access. Missing optional tools are not an
+instruction to install packages or change permissions.
+
+These checks describe the present host, not necessarily its condition at the time of
+a recorded incident. For example, an overlay warning suggests
+`findmnt --json --list -t overlay -o TARGET,OPTIONS`; current mounts cannot prove which
+mounts existed during an earlier warning. A failed service listing can be empty after
+a service recovered. Configuration assignments do not establish loaded settings.
+
+If the main journal source is unavailable, the summary suggests
+`journalctl --list-boots --no-pager`, retaining `--system` when system scope was selected.
+This exposes the native tool's explanation without assuming every failure means denied
+access. It does not grant access, change groups, request elevation or infer absent history.
+The same advice appears in the TUI explanation views; JSON and technical evidence stay
+unchanged.
+
 Each explained finding retains the source confidence and distinguishes the reported
 event from its cause. For example, an OOM report means the kernel reported killing a
 process because of memory shortage/limits; it does not identify why memory ran out or
