@@ -145,5 +145,9 @@ reuse without inferring a current conflict, responsible container or root cause.
 [Stable boot selection](phase-2-boot-selection.md) adds --boot-id while keeping scope-local
 listing validation, no-fallback behavior and existing index defaults.
 
-[Historical journal windows](phase-2-journal-window.md) add an explicit receipt-time
-upper boundary without increasing caps or falling back to the latest tail.
+[Historical journal windows](phase-2-journal-window.md) add explicit receipt-time
+start/end boundaries without increasing caps or falling back to the latest tail.
+
+[Journal-driver loss observations](phase-2-journal-loss.md) identify structured
+suppression and missed-kernel-message reports in the ordinary window, without
+inferring missing contents, a contiguous loss interval or the cause of a failure.
