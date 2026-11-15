@@ -9,7 +9,7 @@ import unittest
 class ResourceBudgetTests(unittest.TestCase):
     def test_synthetic_cli_stays_within_foundation_budget(self):
         script = Path(__file__).resolve().parents[1] / 'scripts/benchmark.py'
-        result = subprocess.run([sys.executable, '-I', str(script), '--iterations', '2'],
+        result = subprocess.run([sys.executable, '-I', str(script), '--iterations', '2', '--json'],
                                 capture_output=True, text=True, check=True, timeout=15)
         report = json.loads(result.stdout)
         self.assertTrue(report['synthetic'])

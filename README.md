@@ -217,9 +217,10 @@ acceptance and owner-approved licensing remain gates before production publicati
 python3 scripts/server_check.py
 ```
 
-Run as the non-root checkout owner. The read-only summary distinguishes passing
-checks, host warnings, missing evidence, skipped checks and failures. It does not
-install tools or change server configuration. Optional --atop-date/--pstore,
+Run as the non-root checkout owner. The default read-only summary explains what
+worked, what could not be tested and what follow-up may be needed. Related gaps are grouped without hiding failures.
+Use --details for every technical check or --json for structured results. The script
+does not install tools or change server configuration. Optional --atop-date/--pstore,
 --live-only, --json and --details are documented in [server testing](docs/server-check.md).
 Repository checks are automatically skipped when run as root or a non-owner.
 

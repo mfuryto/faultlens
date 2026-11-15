@@ -100,3 +100,9 @@ echoing raw stderr or paths. These errors fail the scan rather than being descri
 as a successful scan. It never adds safe.directory exceptions or changes filesystem
 permissions. Run the scan as the checkout owner if Git rejects a different user's
 ownership; no global trust setting is required for the normal owner workflow.
+
+The default comparison output uses plain metric names and distinguishes matching,
+differing and unavailable references. Timing/tolerance caveats remain visible.
+Use `--details` for technical metric identifiers and the full limitations, or retain
+`--json` for the existing structured format. Comparison rules and exit codes are
+unchanged; a difference still needs investigation rather than an assumed root cause.

@@ -11,6 +11,7 @@ from faultlens.cli import SafeArgumentParser
 
 def main():
     parser = SafeArgumentParser(description=__doc__)
+    parser.add_argument('--details', action='store_true', help='Show technical metric IDs and comparison limitations.')
     parser.add_argument('--json', action='store_true', help='Emit comparison states only; no raw host values.')
     args = parser.parse_args()
     if sys.platform != 'linux':
@@ -21,10 +22,8 @@ def main():
         if args.json:
             print(json.dumps(result, ensure_ascii=True))
         else:
-            for item in result['comparisons']:
-                print(item['key'] + ': ' + item['state'].upper())
-            for limitation in result['limitations']:
-                print('Limitation: ' + limitation)
+            from faultlens.test_output import render_comparison
+            render_comparison(result,sys.stdout,details=args.details)
         return exit_code(result)
     except KeyboardInterrupt:
         return 130

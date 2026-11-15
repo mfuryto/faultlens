@@ -368,3 +368,22 @@ address-space limits. All passed the same regression budgets; maximum RSS was
 46.29 MiB. RLIMIT_AS is not VM RAM or a cgroup memory quota. These results do not
 claim a booted target VPS, all distro versions, remote SSH behavior or production
 acceptance. See [release acceptance](release-readiness.md).
+
+## Reading performance and constrained-test output
+
+The default benchmark and VPS-process-profile output is now a short text summary
+with pass/failure counts, resource limits and investigation pointers. It does not
+imply real-server workload or actual VM deployment acceptance. Per-scenario/per-run
+measurements remain available explicitly:
+
+```sh
+python3 scripts/benchmark.py --iterations 10 --details
+python3 scripts/benchmark.py --iterations 10 --json
+python3 scripts/vps_acceptance.py --iterations 3 --details
+python3 scripts/vps_acceptance.py --iterations 3 --json
+```
+
+Automation that parsed the former default JSON must now request `--json`; its schema
+is unchanged. Internal worker responses remain JSON, and the consolidated server
+checker explicitly requests JSON from these tools. No measurements or budget rules
+are removed by the shorter display.

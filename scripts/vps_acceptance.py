@@ -19,6 +19,8 @@ PROFILES = (128, 256, 512)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--json',action='store_true',help='Emit all measurements as JSON for automation.')
+    parser.add_argument('--details',action='store_true',help='Show every constrained test run.')
     parser.add_argument('--iterations', type=int, choices=range(1, 4), default=1)
     parser.add_argument('--worker', choices=MODES, help=argparse.SUPPRESS)
     parser.add_argument('--memory-mib', type=int, choices=PROFILES, default=128, help=argparse.SUPPRESS)
@@ -55,7 +57,12 @@ def main():
                           and result['cpu_seconds'] < 1 and elapsed < 2)
                 output['profiles'].append(dict(result, mode=mode, wall_seconds=round(elapsed,4), passed=passed))
                 output['passed'] &= passed
-    print(json.dumps(output, indent=2))
+    if args.json:
+        print(json.dumps(output, indent=2))
+    else:
+        sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+        from faultlens.test_output import render_profiles
+        render_profiles(output,sys.stdout,details=args.details)
     return 0 if output['passed'] else 1
 
 

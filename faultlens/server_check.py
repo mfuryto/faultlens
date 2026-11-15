@@ -167,8 +167,8 @@ def run_worker(name, *, boot=0, atop_date=None, pstore=False):
     elif name in REPOSITORY:
         script, arguments = {
             'policy':('security_check.py',[]),
-            'benchmark':('benchmark.py',['--iterations','10']),
-            'profiles':('vps_acceptance.py',['--iterations','3']),
+            'benchmark':('benchmark.py',['--iterations','10','--json']),
+            'profiles':('vps_acceptance.py',['--iterations','3','--json']),
         }[name]
         sys.argv = [script,*arguments]
         runpy.run_path(str(ROOT/'scripts'/script),run_name='__main__')
