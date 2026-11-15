@@ -24,9 +24,11 @@ class Command(Enum):
     JOURNAL_SYSTEM_BOOTS = "journal_system_boots"
     JOURNAL_SERVICE = "journal_service"
     ATOP_SERVICE = "atop_service"
+    SOCKETS = "sockets"
 
 
 CATALOG = {
+    Command.SOCKETS: ("ss", ("-H", "-n", "-O", "-a", "-t", "-u")),
     Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
     Command.REFERENCE_FILESYSTEM: ("df", ("--block-size=1", "--output=size,used,avail,pcent", "/")),
     Command.SYSTEM_STATE: ("systemctl", ("is-system-running", "--no-pager")),
@@ -43,8 +45,9 @@ EVENT_FILTERS = {
     'ssh_events': ('_UID=0', '_TRANSPORT=syslog', '_COMM=sshd', '_COMM=sshd-session', '_COMM=sshd-auth'),
     'firewall_events': ('_TRANSPORT=kernel',),
 }
-TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop")
+TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss")
 TOOL_PURPOSES = {
+    "ss": "Optional: current TCP/UDP endpoints only with network/security --sockets.",
     "free": "Optional: memory comparison in scripts/validate_local.py; status reads procfs directly.",
     "df": "Optional: filesystem comparison in scripts/validate_local.py; status uses statvfs directly.",
     "systemctl": "Feature dependency: service observations in status/check; other observations remain available without it.",

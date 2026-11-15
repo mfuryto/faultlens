@@ -320,3 +320,12 @@ peak RSS 48.25 MiB. All twenty-two modes passed <50 MiB RSS / <1 s CPU /
 <2 s wall budgets. Ordered field pairs and compact timeline references avoid copying
 packet context into every timeline entry. All traffic/logs are invented; native
 journal latency, real firewall behavior and attack detection are not measured.
+
+## Optional socket snapshot — 2026-11-15
+
+The `network-sockets` mode renders 512 invented TCP socket rows alongside 128
+synthetic interfaces through the real JSON CLI, with ten fresh children. Median
+wall time was 0.1069 s (maximum 0.1083 s), median CPU 0.0498 s and maximum RSS
+25.47 MiB on Linux/Python 3.14.4. All 23 modes passed their regression budgets.
+These figures exclude real ss startup, procfs/netlink contention and host load;
+the external-command deadline/output cap remain independent runtime controls.

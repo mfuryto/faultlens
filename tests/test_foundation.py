@@ -84,7 +84,7 @@ class CollectorTests(unittest.TestCase):
     def test_dependencies_describe_implemented_features_only(self):
         with patch.object(self.runner, 'available', return_value=False):
             items = {i.key: i for i in check(self.sources, self.runner) if i.key.startswith('dependency.')}
-        self.assertEqual({'dependency.' + name for name in ('free', 'df', 'systemctl', 'journalctl', 'systemd-analyze', 'atop')}, set(items))
+        self.assertEqual({'dependency.' + name for name in ('free', 'df', 'systemctl', 'journalctl', 'systemd-analyze', 'atop', 'ss')}, set(items))
         self.assertIn('Optional:', items['dependency.atop'].explanation)
         self.assertIn('Feature dependency:', items['dependency.journalctl'].explanation)
         self.assertTrue(all(i.state == 'unavailable' for i in items.values()))

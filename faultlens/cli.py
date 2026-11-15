@@ -252,6 +252,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
     parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security"), default="status")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
+    parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes.")
     parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/network/security).")
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
@@ -300,6 +301,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("Preservation assessment is supported only with check.")
     if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
+    if args.sockets and args.command not in {"network", "security"}:
+        parser.error("Socket collection is supported only with network or security.")
     if (platform or sys.platform) != "linux":
         print("Faultlens supports Linux only.", file=stderr)
         return 1
@@ -307,6 +310,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         if args.command in {'network', 'security'}:
             from .network import collect
             data = collect(sources, command=args.command, sample_seconds=args.sample_seconds)
+            if args.sockets:
+                from .sockets import attach
+                attach(data, runner)
         elif args.command == "incidents":
             from .overview import incidents
             data = incidents(runner, boot_count=args.boot_count if args.boot_count is not None else 3,
@@ -334,6 +340,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             print("Faultlens — read-only " + args.command + ": " + data['state'], file=stdout)
             print("Namespace: current; attack assessment Unknown; completeness unknown.", file=stdout)
             print("Sample: " + json.dumps(data['sample'], ensure_ascii=True), file=stdout)
+            if "sockets" in data:
+                print("Sockets: " + json.dumps(data["sockets"], ensure_ascii=True), file=stdout)
             for observation in data['observations']:
                 print(safe_text(observation['key'] + ": " + json.dumps(observation['value'], ensure_ascii=True)), file=stdout)
                 if observation['state'] == 'unavailable':

@@ -15,7 +15,7 @@ LIMITATIONS = (
     'Two sequential snapshots are not atomic. Rates use the measured batch interval and can hide short peaks.',
     'Counter resets/decreases and changed interface sets prevent comparisons; reuse of a name without a decrease can be undetectable.',
     'Virtual/physical interfaces can count the same traffic; interface values must not be summed as host throughput.',
-    'No addresses, ports, payloads, socket endpoints, DNS, packet capture or remote probes are collected.',
+    'Counter sampling collects no endpoints or payloads; --sockets separately opts in to local endpoint collection. No DNS, packet capture or remote probes are used.',
     'No traffic baseline, SSH logs, firewall policy or historical security evidence is analyzed in this milestone.',
     'No supported indicator or a zero delta does not establish security. Attack and root-cause assessments remain Unknown.',
     'Root/kernel compromise can falsify counters. No sysctl, interface or firewall settings are changed.',
