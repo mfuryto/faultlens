@@ -65,8 +65,8 @@ Non-finite JSON and nesting beyond 32 levels fail closed before rendering. Origi
 cursor values allow further inspection using existing local journal access.
 
 No evidence is saved or uploaded automatically, and no extra access is granted.
-Full local visibility for the older summary-only Atop/pstore adapters and the future
-TUI remains implementation work; the product requirement is explicit that final
+Atop now has [administrator identity/source views](phase-3-atop-admin.md). Full local
+visibility for pstore and the future TUI remains implementation work; the product requirement is explicit that final
 administrator views must not impose privacy-based masking. Repository/CI fixtures
 remain synthetic, independently of what an administrator may view locally.
 

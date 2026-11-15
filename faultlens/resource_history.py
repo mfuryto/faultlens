@@ -1,4 +1,4 @@
-"""Narrow optional Atop resource prefixes; never retain names or command lines."""
+"""Checked Atop resource measurements with local administrator identities."""
 import hashlib
 import re
 
@@ -83,7 +83,7 @@ def normalize(rows, *, reset, interval, hz, page):
             if len(disks) >= 32:
                 raise ValueError('Disk resource limit')
             values = integers(fields[1:6])
-            disks.append({'device_sha256': reference(identity), 'io_milliseconds': values[0],
+            disks.append({'device': identity, 'device_sha256': reference(identity), 'io_milliseconds': values[0],
                           'read_operations': values[1], 'read_bytes': values[2] * 512,
                           'write_operations': values[3], 'write_bytes': values[4] * 512})
         elif label == 'NET':
@@ -98,7 +98,7 @@ def normalize(rows, *, reset, interval, hz, page):
                 if len(networks) >= 32:
                     raise ValueError('Network interface limit')
                 values = integers(fields[1:5] + fields[7:11])
-                networks.append(dict(interface_sha256=reference(identity), **dict(zip(
+                networks.append(dict(interface=identity, interface_sha256=reference(identity), **dict(zip(
                     ('received_packets', 'received_bytes', 'transmitted_packets', 'transmitted_bytes',
                      'receive_errors', 'transmit_errors', 'receive_drops', 'transmit_drops'), values))))
         else:
@@ -112,11 +112,21 @@ def normalize(rows, *, reset, interval, hz, page):
     if upper is None or any(set(value) != {'PRC', 'PRM'} for value in processes.values()):
         raise ValueError('Incomplete extended resource sample')
     count, threads, exited, cpu_ticks, resident, swap, faults = 0, 0, 0, 0, 0, 0, 0
-    for value in processes.values():
+    details = []
+    for pid, value in processes.items():
         cpu, memory = value['PRC'], value['PRM']
         if (cpu[2] != memory[2] or cpu[12] != memory[15] or cpu[13] != memory[16]
                 or cpu[1] != memory[1]):
             raise ValueError('Mixed process measurements')
+        scope = 'since_boot' if reset else 'exited_accounting_unlocalized' if cpu[2] == 'E' else 'recorded_interval'
+        included = not reset and cpu[13] == 'y' and cpu[2] != 'E'
+        details.append({'pid': int(pid), 'tgid': int(cpu[12]), 'name': cpu[1],
+            'state': cpu[2], 'is_process': cpu[13] == 'y', 'wait_channel': cpu[15],
+            'measurement_scope': scope, 'included_in_aggregate': included,
+            'clock_ticks_per_second': hz, 'user_cpu_ticks': int(cpu[4]), 'system_cpu_ticks': int(cpu[5]),
+            'reported_cpu_seconds': round((int(cpu[4])+int(cpu[5]))/hz, 6),
+            'reported_virtual_bytes': int(memory[4])*1024, 'reported_resident_bytes': int(memory[5])*1024,
+            'reported_swap_bytes': int(memory[14])*1024, 'reported_major_page_faults': int(memory[10])})
         if cpu[13] == 'n':
             threads += 1
             continue
@@ -130,7 +140,7 @@ def normalize(rows, *, reset, interval, hz, page):
         swap += int(memory[14]) * 1024
     if reset:
         return {'state': 'since_boot_aggregate_excluded', 'disks': [], 'interfaces': [],
-                'network_protocols': None, 'processes': None}
+                'network_protocols': None, 'processes': None, 'process_details': details}
     return {'state': 'available', 'disks': disks, 'interfaces': networks, 'network_protocols': upper,
             'processes': {'reported_processes': count, 'excluded_thread_rows': threads,
                 'state': 'available' if processes else 'no_process_rows_reported',
@@ -139,4 +149,4 @@ def normalize(rows, *, reset, interval, hz, page):
                 'major_page_faults': faults, 'coverage': 'reported_rows_only'},
             'disk_coverage': 'reported_devices_only' if disks else 'no_device_rows_reported',
             'interface_coverage': 'reported_interfaces_only' if networks else 'no_interface_rows_reported',
-            'interval_s': interval}
+            'interval_s': interval, 'process_details': details}

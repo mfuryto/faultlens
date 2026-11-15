@@ -40,7 +40,10 @@ class Phase2AcceptanceTests(unittest.TestCase):
                     self.assertEqual('unverified', data['pstore']['boot_identity'])
                     self.assertEqual('unverified', data['pstore_archive']['boot_identity'])
                     self.assertTrue(all(value['confidence'] == 'Possible' for value in data['atop']['correlations']))
-                self.assertNotIn('synthetic.test', output.getvalue())
+                if arguments[0] == 'diagnose':
+                    self.assertEqual('synthetic.test', data['atop']['samples'][0]['recorded_hostname'])
+                else:
+                    self.assertNotIn('synthetic.test', output.getvalue())
                 self.assertNotIn('synthetic kernel context', output.getvalue())
 
     def test_optional_source_failures_preserve_journal_findings(self):

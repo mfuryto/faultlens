@@ -47,6 +47,7 @@ def samples(text: str, *, extended=False) -> list[dict]:
     if len(text.encode('utf-8')) > 262144:
         raise ValueError('Atop output exceeds limit')
     result, rows, reset, header, host, extra = [], {}, False, None, None, []
+    native_records = []
     for line in text.splitlines():
         if not line.strip():
             continue
@@ -54,6 +55,7 @@ def samples(text: str, *, extended=False) -> list[dict]:
             if rows or extra or reset:
                 raise ValueError('Unexpected reset boundary')
             reset = True
+            native_records.append(line)
             continue
         if line == 'SEP':
             if set(rows) != {'CPU', 'MEM', 'SWP'} or len(result) >= MAX_SAMPLES:
@@ -62,6 +64,8 @@ def samples(text: str, *, extended=False) -> list[dict]:
             if result and timestamp <= result[-1]['timestamp_s']:
                 raise ValueError('Ambiguous resource clock order')
             value = _sample(rows, reset)
+            value['recorded_hostname'] = host
+            value['source_records'] = native_records + [line]
             if extended:
                 value['extended'] = normalize(extra, reset=reset, interval=interval,
                     hz=int(rows['CPU'][0]), page=int(rows['MEM'][0]))
@@ -69,6 +73,7 @@ def samples(text: str, *, extended=False) -> list[dict]:
             result.append(value)
             rows, reset, header = {}, False, None
             extra = []
+            native_records = []
             continue
         fields = line.split()
         allowed = {'CPU', 'MEM', 'SWP'} | (LABELS if extended else set())
@@ -94,6 +99,7 @@ def samples(text: str, *, extended=False) -> list[dict]:
         host, header = identity, (timestamp, interval)
         if label not in LABELS:
             rows[label] = fields[6:]
+        native_records.append(line)
     if rows or extra or reset:
         raise ValueError('Truncated sample')
     return result
@@ -127,7 +133,9 @@ def attach(data: dict, records, runner, date: str, *, extended=False):
     if extended:
         output['limitations'].extend([
             'Extended disk/network counters describe reported rows only; virtual layers can double-count the same activity.',
-            'Device/interface fingerprints support local comparison, not anonymity or verified identity. Names and process IDs are omitted.',
+            'Recorded host/device/interface names, process IDs/names, wait channels and source lines are available locally; they do not verify current identity or causality.',
+            'Atop -Z renders spaces in process names/wait channels as underscores. Source lines preserve that native output; command lines are not collected by this profile.',
+            'Thread, exited and RESET resource rows remain inspectable but are labeled and excluded from interval process aggregates.',
             'Process sums exclude thread and exited-process resources; exited rows remain counted separately. Resident memory can count shared pages repeatedly.',
             'Process coverage depends on the recording and accounting support; no rows or zero values do not prove no activity.',
             'Extended layout compatibility is deliberately narrow. Larger process sets can exceed limits; no automatic broader retry is attempted.'])
