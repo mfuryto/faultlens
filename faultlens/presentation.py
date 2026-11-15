@@ -431,7 +431,22 @@ def render(data,out):
     if data['command'] in {'history','incidents'}:
         for boot in data.get('boots',[]):
             line(out,'Boot '+str(boot['index'])+': '+boot['boot_id']+' (identity for detailed investigation)','  ')
-    for value in data.get('sockets',{}).get('rows',[]):
-        line(out,value['protocol'].upper()+' '+value['state']+' | local '+value['local']['original']+' | peer '+value['peer']['original'],'  ')
+    if 'sockets' in data:
+        from .socket_presentation import snapshot_view,row_label,state_meaning,binding_meaning
+        snapshot=data['sockets']
+        detail=snapshot_view(snapshot)
+        print('\nSocket snapshot',file=out)
+        line(out,detail['Observed'],'  ')
+        for text in detail['What it means']: line(out,text,'  ')
+        for text in detail['What you can do']: line(out,'Next: '+text,'  ')
+        explained=set()
+        for value in snapshot['rows']:
+            identity=(value['protocol'],value['state'])
+            if identity not in explained:
+                title,meaning=state_meaning(value)
+                line(out,value['protocol'].upper()+' '+value['state']+': '+title+'. '+meaning,'  ')
+                explained.add(identity)
+            line(out,row_label(value)+' | '+binding_meaning(value)[0],'  ')
+        line(out,'Queue values retain native semantics, not universal byte counts or pressure thresholds. Socket owners, application identity and external reachability were not collected.','  ')
     print('\nUse --details for technical measurements, references and limitations; --json for structured data.',file=out)
     print('Use diagnose --show-evidence when original journal/recording evidence is needed.',file=out)

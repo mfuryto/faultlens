@@ -96,6 +96,11 @@ def row_preview(row):
         preview='Enter explains the referenced finding; e inspects timeline metadata'
     elif row.action=='boot_summary':
         preview=escaped(row.value['boot']['boot_id'])
+    elif row.action=='socket_snapshot':
+        preview='Local socket states and endpoints; external access unverified'
+    elif row.action=='socket_row':
+        from .socket_presentation import state_meaning,binding_meaning
+        preview=state_meaning(row.value)[0]+' | '+binding_meaning(row.value)[0]
     elif row.action=='explanation':
         text=(row.value[0] if row.value else 'No additional items') if isinstance(row.value,list) else row.value
         preview=escaped(str(text))[1:-1]+(' (Enter for all '+str(len(row.value))+')' if isinstance(row.value,list) and len(row.value)>1 else '')
@@ -213,6 +218,12 @@ class Session:
             if context=='boot_summaries':
                 from .presentation import boot_summary_label
                 return [Row(escaped(boot_summary_label(item))[1:-1],item,'boot_summary') for item in self.value]
+            if context=='socket_rows':
+                from .socket_presentation import row_label
+                return [Row(escaped(row_label(item))[1:-1],item,'socket_row') for item in self.value]
+            if context in {'socket_snapshot','socket_row'}:
+                return [Row(escaped(key)[1:-1],value,'socket_rows' if key=='Socket rows' else 'inspect'
+                            if key=='Technical details' else 'explanation') for key,value in self.value.items()]
             if context in {'observation','finding','guide','boot_summary'}:
                 if context=='boot_summary':
                     return [Row(escaped(key)[1:-1],value,'boot' if key=='Diagnose this boot' else 'inspect'
@@ -251,7 +262,8 @@ class Session:
         if self.page in {0, 1, 2, 3} and command != 'diagnose':
             return [summary]+[Row('[' + item['state'].upper() + '] ' + escaped(name(item))[1:-1], item, 'observation')
                     for item in self.data['observations']] + ([Row('Explained findings',self.data['findings'],'findings')]
-                    if self.data.get('findings') else []) + [Row('Full report', self.data)]
+                    if self.data.get('findings') else []) + ([Row('Socket snapshot',self.data['sockets'],'socket_snapshot')]
+                    if 'sockets' in self.data else []) + [Row('Full report', self.data)]
         keys = ('security_analysis', 'ssh_analysis', 'firewall_analysis') if self.page == 3 else (
             'findings', 'timeline', 'reconstruction', 'journal_records', 'security_analysis',
             'ssh_analysis', 'firewall_analysis', 'event_search', 'atop', 'pstore', 'pstore_archive')
@@ -293,6 +305,13 @@ class Session:
                     from .presentation import boot_summary_view
                     value=boot_summary_view(value)
                     value['Diagnose this boot']=row.value['boot']
+            elif row.action in {'socket_snapshot','socket_row'}:
+                if inspect_only:
+                    context='inspect'
+                else:
+                    from .socket_presentation import snapshot_view,row_view
+                    value=(snapshot_view if row.action=='socket_snapshot' else row_view)(value)
+                    if row.action=='socket_snapshot': value['Socket rows']=row.value['rows']
             elif context=='finding':
                 from .presentation import finding_view
                 from .evidence_links import resolve

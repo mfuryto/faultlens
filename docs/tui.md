@@ -157,6 +157,13 @@ limits. Raw timelines reached through Full report/Evidence Explorer remain raw t
 
 ## Explained readings and findings
 
+On Network/Security pages, explicitly requested sockets have a **Socket snapshot**
+entry. Open **Socket rows**, then a row, for state/binding explanations and unchanged
+**Technical details**. e on a socket snapshot/row opens the original object directly.
+No new data is collected by browsing. All numeric endpoints remain visible; local
+bindings, socket states and port numbers do not establish external reachability,
+application identity or authorization. Empty/unavailable snapshots retain their limits.
+
 Incident History's **Boot summaries** entry opens readable per-boot report counts,
 pattern meanings and collection limits. Select **Diagnose this boot** in an explained
 summary to pin its immutable ID, then press r on Diagnostics to request fresh evidence
