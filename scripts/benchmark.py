@@ -53,6 +53,13 @@ def worker(command: str) -> dict:
         if len(payload['findings']) != 500 or {item['rule_id'] for item in payload['findings']} != {
                 'kernel.soft_lockup', 'kernel.hard_lockup', 'kernel.hung_task'}:
             raise RuntimeError('Synthetic stall analysis failed')
+    if command == 'diagnose-atop':
+        values = payload['atop']['samples']
+        if (len(values) != 256 or any(
+                [value[key] for key in ('cpu_execution_percent', 'cpu_idle_percent',
+                                        'cpu_iowait_percent', 'cpu_steal_percent')]
+                != [20, 80, 0, 0] for value in values)):
+            raise RuntimeError('Synthetic historical CPU accounting failed')
     if command == 'diagnose-clock':
         clock = payload['reconstruction']['clock_mapping']
         if (len(payload['findings']) != 500 or clock['significant_adjacent_change_count'] != 499

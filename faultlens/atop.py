@@ -26,9 +26,16 @@ def _sample(rows, reset):
             or not 512 <= page <= 1048576 or page & (page - 1)
             or total == 0 or free > total or cache > total or swap_free > swap_total):
         raise ValueError('Inconsistent resource measurements')
-    busy = None if reset or sum(ticks) == 0 else round(
-        100 * (sum(ticks) - ticks[3] - ticks[4]) / sum(ticks), 2)
-    return {'since_boot': reset, 'cpu_busy_percent': busy, 'memory_total_bytes': total * page,
+    total_ticks = sum(ticks)
+    def percent(value):
+        return None if reset or total_ticks == 0 else round(100 * value / total_ticks, 2)
+    return {'since_boot': reset,
+            'cpu_busy_percent': percent(total_ticks - ticks[3] - ticks[4]),
+            'cpu_execution_percent': percent(total_ticks - ticks[3] - ticks[4] - ticks[7]),
+            'cpu_idle_percent': percent(ticks[3]),
+            'cpu_iowait_percent': percent(ticks[4]),
+            'cpu_steal_percent': percent(ticks[7]),
+            'memory_total_bytes': total * page,
             'memory_free_bytes': free * page, 'memory_cache_bytes': cache * page,
             'swap_total_bytes': swap_total * page, 'swap_used_bytes': (swap_total - swap_free) * page}
 
@@ -98,6 +105,11 @@ def attach(data: dict, records, runner, date: str):
                               'Memory free/cache are snapshots, not MemAvailable or evidence of memory pressure.',
                               'One recording and a 30-minute window centered on the last journal record are examined.',
                               'RESET CPU aggregates are excluded; input authenticity and complete coverage are not established.']}
+    output['limitations'].extend([
+        'CPU percentages are aggregate tick shares over each recorded interval, not instantaneous peaks or per-CPU measurements.',
+        'Legacy CPU busy includes steal; CPU execution excludes idle, iowait and steal. Guest ticks are not counted twice.',
+        'Iowait accounting is imperfect and can decrease; its share is not disk utilization, latency or proof of storage failure.',
+        'Steal is reported involuntary wait, not proof of provider contention or the cause of an incident.'])
     data['atop'] = output
     if not records:
         output['reason'] = 'journal_scope_unavailable'

@@ -42,6 +42,9 @@ Reversed ranges fail before collection; failed queries never retry a broader ran
 [Journal-loss rules](../architecture/phase-2-journal-loss.md) require internal driver
 transport and exact structured IDs; copied application text/IDs do not suffice.
 They emit no raw text or unit names and never adjust logging policy.
+[Historical CPU accounting](../architecture/phase-2-atop-cpu.md) uses already
+validated aggregate counters without expanding collection. Unknown/RESET totals stay
+null, negative inputs fail closed, and interval shares never upgrade causal confidence.
 Private evidence storage, full incident reconstruction, TUI and mutation boundaries remain design
 requirements, not claims of completed implementation.
 
