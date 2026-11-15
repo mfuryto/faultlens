@@ -156,7 +156,7 @@ class ArchiveTests(unittest.TestCase):
             output = io.StringIO()
             with patch('faultlens.pstore.collect', side_effect=PermissionError), patch('faultlens.pstore_archive.collect',
                     return_value=([b'Kernel panic - not syncing: synthetic'], 0)):
-                main(['diagnose', '--boot', '-128', '--pstore', '--pstore-archive'] + (['--json'] if json_mode else []),
+                main(['diagnose', '--boot', '-128', '--pstore', '--pstore-archive'] + (['--json'] if json_mode else ['--details']),
                      runner=JournalRunner(), stdout=output)
             if json_mode:
                 data = json.loads(output.getvalue())

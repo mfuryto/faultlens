@@ -196,6 +196,25 @@ Replace the example recording date with an existing local recording. Historical
 traffic comparison needs at least six comparable contiguous samples; missing
 history remains explicit rather than generating an all-clear.
 
+## Understand readings and findings
+
+Default CLI results and the TUI explain what was observed, what it can mean and
+what to investigate next. Missing evidence is distinct from a failure; confirmed
+reports are distinct from confirmed causes. Original identities and measurements
+remain inspectable without privacy masking.
+
+```sh
+./bin/faultlens status
+./bin/faultlens status --details
+./bin/faultlens diagnose --previous-boot --show-evidence --json
+```
+
+Use --details for the existing technical text view, --json for the unchanged
+structured schema, and --show-evidence for retained ordinary journal originals.
+Optional sources still require their existing flags. In the TUI, open Summary and
+next steps or select a reading/finding; Technical details and Evidence Explorer
+retain original objects. See [readable results](docs/readable-results.md).
+
 ## Interactive terminal interface
 
 ```sh

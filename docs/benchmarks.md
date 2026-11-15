@@ -387,3 +387,14 @@ Automation that parsed the former default JSON must now request `--json`; its sc
 is unchanged. Internal worker responses remain JSON, and the consolidated server
 checker explicitly requests JSON from these tools. No measurements or budget rules
 are removed by the shorter display.
+
+## Explained CLI/TUI result views — 2026-11-15
+
+The TUI modes now also render their source-page explanation before navigating the
+raw report. Guidance groups normalized findings and holds references to original
+objects without copying evidence. Ten fresh children on Linux/Python 3.14.4 measured
+`tui-status` median wall 0.1719 s (maximum 0.1731 s), median CPU 0.0575 s and peak
+RSS 29.38 MiB; `tui-diagnostic` median wall 0.1303 s (maximum 0.1328 s), median CPU
+0.1158 s and peak RSS 39.04 MiB. All 26 modes passed their existing budgets.
+These are synthetic frontend regressions, not proof of production deployment,
+attack calibration or native journal/recording I/O performance.

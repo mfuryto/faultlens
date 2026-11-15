@@ -167,3 +167,11 @@ including controls/bidi characters, and paged originals remain inspectable. Term
 restoration is managed by curses.wrapper, with real PTY normal/signal regression
 coverage. There is no shell escape, background poller, persistent settings, clipboard
 hook, report export, configuration write or runtime dependency download.
+
+[Readable results](../readable-results.md) are a pure presentation layer over the
+existing normalized models. Explanations preserve confidence and source boundaries;
+no original text is recursively classified by the view layer. TUI semantic roles are
+assigned only to known generated observation/finding locations. Raw report/message
+navigation retains a raw role, preventing a forged message object from becoming
+trusted diagnostic advice. Exact objects remain referenced by Technical details;
+JSON schemas and collection/permission contracts are unchanged.

@@ -64,7 +64,7 @@ class StallRuleTests(unittest.TestCase):
     def test_cli_redacts_task_names_and_raw_messages_in_text_and_json(self):
         for json_mode in (True, False):
             output = io.StringIO()
-            main(['diagnose'] + (['--json'] if json_mode else []),
+            main(['diagnose'] + (['--json'] if json_mode else ['--details']),
                  runner=JournalRunner([record(SOFT)]), stdout=output)
             text = output.getvalue()
             self.assertNotIn('synthetic-task', text)

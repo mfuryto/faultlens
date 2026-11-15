@@ -16,6 +16,19 @@ SETTING_KEYS = ('boot_selector', 'system_journal', 'sample_seconds', 'boot_count
                 'pstore', 'pstore_archive', 'since_us', 'until_us')
 
 
+SETTING_NAMES = dict(zip(SETTING_KEYS, ('Selected boot (index or ID)', 'Use accessible system journals',
+    'Sample duration (seconds)', 'Previous boots to summarize', 'Include current boot',
+    'Check recording/retention setup', 'Include socket endpoints', 'Search kernel/service events',
+    'Search SSH events', 'Search firewall events', 'Atop recording date (YYYYMMDD)',
+    'Extended recorded measurements', 'Read live crash evidence', 'Read archived crash evidence',
+    'Earliest journal receipt (Unix us)', 'Latest journal receipt (Unix us)')))
+VIEW_NAMES = {'findings':'Explained findings', 'timeline':'Recorded event timeline',
+    'reconstruction':'What the retained chronology shows', 'journal_records':'Original journal records',
+    'security_analysis':'Security indicators and their limits', 'ssh_analysis':'SSH authentication evidence',
+    'firewall_analysis':'Firewall log evidence', 'event_search':'Broader journal event search', 'atop':'Recorded resource measurements',
+    'pstore':'Live crash evidence', 'pstore_archive':'Archived crash evidence'}
+
+
 def escaped(value):
     """Lossless ASCII JSON; never interpret data as terminal markup or escapes."""
     return json.dumps(value, ensure_ascii=True, allow_nan=False)
@@ -59,6 +72,7 @@ class Row:
     label: str
     value: object
     action: str = 'inspect'
+    key: str | None = None
 
 
 def children(value):
@@ -169,9 +183,25 @@ class Session:
 
     def rows(self):
         if self.stack:
+            context=self.stack[-1][4] if len(self.stack[-1])>4 else 'raw'
+            if context in {'observation','finding','guide'}:
+                return [Row(escaped(key)[1:-1],value,'inspect' if key=='Technical details' else 'explanation') for key,value in self.value.items()]
+            if context=='explanation' and isinstance(self.value,list):
+                return [Row(str(index+1),value,'explanation') for index,value in enumerate(self.value)]
+            if context=='findings':
+                return [Row(escaped(item['title'])[1:-1],item,'finding') for item in self.value]
+            if context=='analysis':
+                return [Row(escaped(key),value,'findings' if key=='findings' else 'inspect') for key,value in self.value.items()]
+            if context=='event_search':
+                return [Row(escaped(key),value,'queries' if key=='queries' else 'inspect') for key,value in self.value.items()]
+            if context=='queries':
+                return [Row(escaped(value['query'].replace('_',' '))[1:-1],value,'analysis') for value in self.value]
+            if context=='timeline':
+                from .presentation import timeline_label
+                return [Row(escaped(timeline_label(item))[1:-1],item) for item in self.value]
             return children(self.value)
         if self.page == 7:
-            return [Row(key, getattr(self.settings, key), 'setting') for key in SETTING_KEYS]
+            return [Row(SETTING_NAMES[key], getattr(self.settings, key), 'setting', key) for key in SETTING_KEYS]
         if self.data is None:
             return []
         command = self.data['command']
@@ -180,17 +210,21 @@ class Session:
         expected = ('status', 'check', 'network', 'security', 'incidents', 'diagnose')[self.page]
         if command != expected and not (self.page == 3 and command == 'diagnose'):
             return []
+        from .presentation import guide, name
+        summary=Row('Summary and next steps',guide(self.data),'guide')
         if self.page == 4:
-            return ([Row('Boot ' + str(boot['index']) + ': ' + boot['boot_id'], boot, 'boot')
+            return ([summary]+[Row('Boot ' + str(boot['index']) + ': ' + boot['boot_id'], boot, 'boot')
                     for boot in self.data['boots']] + [Row('Boot summaries', self.data['summaries']),
                     Row('Full report', self.data)])
         if self.page in {0, 1, 2, 3} and command != 'diagnose':
-            return [Row('[' + item['state'].upper() + '] ' + item['key'], item)
+            return [summary]+[Row('[' + item['state'].upper() + '] ' + escaped(name(item))[1:-1], item, 'observation')
                     for item in self.data['observations']] + [Row('Full report', self.data)]
         keys = ('security_analysis', 'ssh_analysis', 'firewall_analysis') if self.page == 3 else (
             'findings', 'timeline', 'reconstruction', 'journal_records', 'security_analysis',
-            'ssh_analysis', 'firewall_analysis', 'atop', 'pstore', 'pstore_archive')
-        return [Row(key, self.data[key]) for key in keys if key in self.data] + [Row('Full report', self.data)]
+            'ssh_analysis', 'firewall_analysis', 'event_search', 'atop', 'pstore', 'pstore_archive')
+        return [summary]+[Row(VIEW_NAMES.get(key,key), self.data[key],
+            'findings' if key=='findings' else 'timeline' if key=='timeline' else 'event_search' if key=='event_search' else 'analysis'
+            if key in {'ssh_analysis','firewall_analysis','security_analysis'} else 'inspect') for key in keys if key in self.data] + [Row('Full report', self.data)]
 
     def open_row(self, *, inspect_only=False):
         rows = self.rows()
@@ -205,12 +239,21 @@ class Session:
             if len(self.stack) >= 64:
                 self.notice = 'Navigation depth limit reached; use Left to return.'
                 return
-            self.stack.append((row.value, row.label, self.selected, self.scroll))
+            value=row.value
+            context=row.action
+            if row.action=='observation':
+                from .presentation import observation_view
+                value=observation_view(value)
+            elif row.action=='finding':
+                from .presentation import finding_view
+                value=finding_view(value)
+            self.stack.append((value, row.label, self.selected, self.scroll, context))
             self.selected, self.scroll = 0, 0
 
     def back(self):
         if self.stack:
-            _, _, self.selected, self.scroll = self.stack.pop()
+            frame=self.stack.pop()
+            self.selected,self.scroll=frame[2:4]
 
     def help(self):
         if len(self.stack) >= 64:
@@ -235,6 +278,6 @@ class Session:
 
     def timeline(self):
         if self.data and self.data.get('command') == 'diagnose':
-            self.stack = [(self.data['timeline'], 'Retained boot-local timeline', self.selected, self.scroll)]
+            self.stack = [(self.data['timeline'], 'Retained boot-local timeline', self.selected, self.scroll, 'timeline')]
             self.selected, self.scroll = 0, 0
             self.notice = 'Main retained timeline only; filtered timelines remain inside their source views.'

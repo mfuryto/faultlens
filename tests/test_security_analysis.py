@@ -192,7 +192,7 @@ class SecurityAnalysisTests(unittest.TestCase):
 
     def test_cli_text_and_json_include_complete_explanations(self):
         rows = [ssh_record(FAILED,monotonic=i,__CURSOR='i='+str(i)) for i in range(10)]
-        for args in (['diagnose','--search-ssh'], ['diagnose','--search-ssh','--json']):
+        for args in (['diagnose','--search-ssh','--details'], ['diagnose','--search-ssh','--json']):
             out = io.StringIO()
             self.assertEqual(0,main(args, runner=FirewallRunner(ssh=rows),stdout=out))
             self.assertIn('security.ssh_failure_burst',out.getvalue())

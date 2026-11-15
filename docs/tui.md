@@ -111,3 +111,14 @@ firewall and targeted timelines remain available within their own source objects
 they are not silently merged into a complete or causal chronology. An empty report,
 unavailable source, unknown cause or lack of matched indicators never becomes proof
 that a host is healthy or secure.
+
+## Explained readings and findings
+
+Source pages now start with Summary and next steps. Enter on a measurement or a
+normalized finding explains its meaning, confidence, limits and investigation steps;
+Technical details links to the unchanged original object. Guidance entries preview
+plain prose, with Enter for complete lists and long values. Settings use readable
+labels; their underlying keys, validation and session-only scope are unchanged.
+Evidence Explorer and Full report remain raw, complete views. Original message objects
+are never promoted to trusted findings merely because they resemble finding JSON.
+See [readable results](readable-results.md) for CLI modes and interpretation boundaries.

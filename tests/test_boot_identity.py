@@ -100,7 +100,7 @@ class BootIdentityTests(unittest.TestCase):
         for json_mode in (True, False):
             output = io.StringIO()
             runner = JournalRunner([record()])
-            main(['diagnose', '--boot-id', BOOT] + (['--json'] if json_mode else []), runner=runner, stdout=output)
+            main(['diagnose', '--boot-id', BOOT] + (['--json'] if json_mode else ['--details']), runner=runner, stdout=output)
             self.assertEqual([BOOT], runner.requested)
             if json_mode:
                 self.assertEqual('id', json.loads(output.getvalue())['boot_selection']['method'])

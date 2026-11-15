@@ -185,7 +185,7 @@ class HistoricalCollectionTests(unittest.TestCase):
         self.assertFalse(any('requested boot is not visible' in text.lower() for text in data['limitations']))
         self.assertEqual([], runner.requested)
         output = io.StringIO()
-        main(['diagnose', '--boot', '0'], runner=runner, stdout=output)
+        main(['diagnose', '--boot', '0', '--details'], runner=runner, stdout=output)
         self.assertIn('Boot listing:', output.getvalue())
         self.assertIn('did not succeed', output.getvalue())
 

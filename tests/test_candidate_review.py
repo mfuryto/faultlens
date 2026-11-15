@@ -99,7 +99,7 @@ class CandidateReviewTests(unittest.TestCase):
                               _COMM=marker, _HOSTNAME=marker, __CURSOR='s=' + marker)])
         for json_mode in (True, False):
             output = io.StringIO()
-            main(['diagnose', '--search-events'] + (['--json'] if json_mode else []), runner=runner, stdout=output)
+            main(['diagnose', '--search-events'] + (['--json'] if json_mode else ['--details']), runner=runner, stdout=output)
             text = output.getvalue()
             self.assertNotIn(marker, text)
             self.assertNotIn('\x1b', text)

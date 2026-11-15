@@ -137,7 +137,7 @@ class SshAnalysisTests(unittest.TestCase):
                 main([command, '--search-ssh'])
         message = 'synthetic-user\x1b]52;c;payload\x07\nunsupported ssh text'
         output = io.StringIO()
-        main(['diagnose', '--search-ssh'], runner=SshRunner(ssh=[ssh_record(message)]), stdout=output)
+        main(['diagnose', '--search-ssh', '--details'], runner=SshRunner(ssh=[ssh_record(message)]), stdout=output)
         self.assertNotIn('\x1b', output.getvalue())
         self.assertIn('payload', output.getvalue())
         self.assertIn('\\u001b', output.getvalue())

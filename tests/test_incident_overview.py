@@ -136,7 +136,7 @@ class IncidentOverviewTests(unittest.TestCase):
     def test_cli_json_and_text_present_read_only_scope_and_followup(self):
         for flags in ([], ['--json']):
             output = io.StringIO()
-            self.assertEqual(0, main(['incidents', '--system-journal', '--boot-count', '1'] + flags,
+            self.assertEqual(0, main(['incidents', '--system-journal', '--boot-count', '1', '--details'] + flags,
                                     runner=OverviewRunner(), stdout=output))
             if flags:
                 data = json.loads(output.getvalue())

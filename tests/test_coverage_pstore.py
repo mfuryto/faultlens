@@ -104,7 +104,7 @@ class PstoreAnalysisTests(unittest.TestCase):
         for json_mode in (True, False):
             output = io.StringIO()
             with patch('faultlens.pstore.collect', return_value=([b'Kernel panic - not syncing: synthetic'], 0)):
-                main(['diagnose', '--boot', '-128', '--pstore'] + (['--json'] if json_mode else []),
+                main(['diagnose', '--boot', '-128', '--pstore'] + (['--json'] if json_mode else ['--details']),
                      runner=JournalRunner(), stdout=output)
             if json_mode:
                 data = json.loads(output.getvalue())

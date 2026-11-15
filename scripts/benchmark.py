@@ -36,6 +36,7 @@ def worker(command: str) -> dict:
         if command == 'tui-diagnostic' and (len(session.data['journal_records']) != 500 or
                 len(session.data['security_analysis']['findings']) != 32):
             raise RuntimeError('Synthetic TUI evidence collection failed')
+        draw(Screen(),session)
         session.choose_page(6)
         session.selected = 1
         session.open_row()
