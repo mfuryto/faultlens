@@ -22,7 +22,7 @@ constants.DRIVER=None
 
 from . import __version__
 from .tui_model import Session,Settings,escaped,brief
-from .workspace import TABS,page_table,source_table,detail_text
+from .workspace import TABS,page_table,source_table,detail_text,collection_entry
 from .presentation import guide
 from .evidence_links import resolve
 from . import ui_collection
@@ -131,6 +131,7 @@ class SourceDialog(ModalScreen):
             state=self.entry.original.get('state','retained') if isinstance(self.entry.original,dict) else 'retained report group'
             yield Static(literal('Source state: '+str(state)+' | Bounded evidence; no complete-health verdict'),classes='hint')
             yield DataTable(id='source-table',cursor_type='row',zebra_stripes=True)
+            yield Static('No rows in this view. Events may still exist; s explains coverage, e opens originals.',id='source-empty',classes='hint',markup=False)
             with Horizontal(classes='buttons'):
                 yield Button('Previous',id='previous'); yield Button('Next',id='next'); yield Button('Back',id='back')
 
@@ -140,6 +141,7 @@ class SourceDialog(ModalScreen):
 
     def populate(self):
         table=self.query_one(DataTable); table.clear()
+        self.query_one('#source-empty',Static).display=not self.entries
         for index in range(self.page_offset,min(len(self.entries),self.page_offset+self.PAGE_SIZE)):
             table.add_row(*(literal(c) for c in self.entries[index].cells),key=str(index))
         title=self.heading+' | '+str(self.page_offset+1 if self.entries else 0)+'-'+str(min(len(self.entries),self.page_offset+self.PAGE_SIZE))+'/'+str(len(self.entries))
@@ -241,7 +243,7 @@ class FaultlensApp(App):
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
         self.initial_collect=initial_collect; self.search_query=''
-        self.collection_attempts={}; self.closing=False
+        self.collection_attempts={}; self.collection_states={}; self.closing=False; self.workspace_ready=False
         self.settings_store=settings_store; self.settings_status=settings_status
 
     def _handle_exception(self,error):
@@ -264,6 +266,10 @@ class FaultlensApp(App):
     def on_mount(self):
         for page in range(8): self.populate(page)
         self.query_one('#grid-0',DataTable).focus()
+        self.call_after_refresh(self.start_workspace)
+
+    def start_workspace(self):
+        self.workspace_ready=True
         self.ensure_snapshot()
 
     def on_resize(self,event):
@@ -283,7 +289,6 @@ class FaultlensApp(App):
     def data(self,page=None):
         page=self.page if page is None else page
         if page==6: return self.snapshots.get(self.last_source())
-        if page==3 and 3 not in self.snapshots: return self.snapshots.get(5)
         return self.snapshots.get(page)
 
     def last_source(self): return next(reversed(self.snapshots),0)
@@ -291,6 +296,7 @@ class FaultlensApp(App):
     def populate(self,page):
         table=self.query_one('#grid-'+str(page),DataTable); selected=table.cursor_row; table.clear(columns=True)
         data=self.data(page); columns,entries=page_table(page,data,self.session.settings)
+        if data is None and page<7: entries=[collection_entry(page,self.collection_states.get(page,'not_collected'))]
         if page==7 and self.settings_store is not None:
             entries=[replace(entry,cells=(*entry.cells[:2],'User preference')) for entry in entries]
         self.entries[page]=entries
@@ -319,7 +325,7 @@ class FaultlensApp(App):
 
     def update_status(self):
         data=self.data(); state='No snapshot' if data is None else data.get('state','observations; no health verdict')
-        source_page=5 if self.page==3 and 3 not in self.snapshots else self.last_source() if self.page==6 else self.page
+        source_page=self.last_source() if self.page==6 else self.page
         stale=(source_page in self.snapshot_options and self.snapshot_options[source_page]!=asdict(self.session.settings))
         text=TABS[self.page]+' | '+(data['command']+' | ' if data else '')+state+(' | SETTINGS CHANGED: refresh explicitly' if stale else '')
         if data: text+=' | '+str(data.get('collected_at',''))
@@ -338,7 +344,7 @@ class FaultlensApp(App):
         self.ensure_snapshot()
 
     def ensure_snapshot(self):
-        if not self.initial_collect or self.closing or self.page>=6 or self.job is not None: return
+        if not self.workspace_ready or not self.initial_collect or self.closing or self.page>=6 or self.job is not None: return
         options=asdict(self.session.settings)
         if self.page in self.snapshots and self.snapshot_options.get(self.page)==options: return
         # Failed/cancelled reads need r to retry; tab events must never create a loop.
@@ -349,6 +355,7 @@ class FaultlensApp(App):
         if self.page>=6: self.notice='This section does not collect. Choose a source section.'; self.update_status(); return
         page=self.page; options=replace(self.session.settings)
         self.collection_attempts[page]=asdict(options)
+        self.collection_states[page]='loading'
         self.snapshots.pop(page,None); self.populate(page)
         self.notice='Collecting '+TABS[page]+'... Esc cancels; q exits.'; self.update_status()
         self.job=asyncio.create_task(self.load(page,options))
@@ -358,10 +365,17 @@ class FaultlensApp(App):
         try:
             value=await self.collector(page,options)
             self.snapshots[page]=value; self.snapshot_options[page]=asdict(options)
+            self.collection_states[page]='completed'
             self.notice='Snapshot collected. Open a row for meaning and original evidence.'
         except asyncio.CancelledError:
+            self.collection_states[page]='cancelled'
             cancelled=True; self.notice='Collection cancelled. Press r to retry; no replacement snapshot retained.'
-        except (OSError,ValueError,TimeoutError): self.notice='Collection unavailable within source limits; no evidence was guessed.'
+        except (OSError,ValueError,TimeoutError):
+            self.collection_states[page]='failed'
+            self.notice='Collection unavailable within source limits; no evidence was guessed.'
+        except Exception:
+            self.collection_states[page]='failed'
+            self.notice='Collection failed unexpectedly. Try the explicit CLI command; no replacement evidence retained.'
         finally:
             self.job=None
             if self.is_running:
@@ -398,6 +412,9 @@ class FaultlensApp(App):
                 def save(text):
                     self.session.update_setting(key,text); self.persist_settings(); self.populate(7); self.update_status()
                 self.push_screen(ValueDialog(entry.cells[0],value,save,persistent=self.settings_store is not None))
+        elif entry.kind=='diagnostics_link':
+            self.select_page(5)
+            self.notice='Diagnostics uses the selected boot and existing journal/search settings.'; self.update_status()
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
         elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline'}:
             self.push_screen(SourceDialog(entry,data))

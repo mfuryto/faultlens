@@ -238,8 +238,9 @@ retain original objects. See [readable results](docs/readable-results.md).
 ```
 
 With interactive input/output, `./bin/faultlens` also starts the TUI; redirected
-invocation retains one-shot status behavior. Press r to collect, 1–8/Tab to choose
-pages, Enter to inspect, Left to return, ? for help and q to quit. Optional sources
+invocation retains one-shot status behavior. Source tabs load when opened. Left/Right
+changes sections, Up/Down selects rows, Enter opens details and Esc returns. Use r to
+refresh, ? for help and q to quit. Optional sources
 are controlled by per-user preferences, saved on valid changes. Diagnostic evidence is
 not persisted and server configuration is not changed. See [preference storage](docs/tui.md#saving-preferences).
 Long original evidence remains inspectable with lossless terminal escaping.

@@ -35,13 +35,65 @@ def source_entries(data):
     return result
 
 
+def collection_entry(page,state='not_collected'):
+    messages={
+        'not_collected':('Not collected','No snapshot has been collected for this section.'),
+        'loading':('Loading','A bounded read is running. No replacement evidence is available yet.'),
+        'cancelled':('Cancelled','Collection was cancelled; no replacement evidence was retained.'),
+        'failed':('Unavailable','Collection did not produce a usable report. This does not establish absent events or denied access.'),
+    }
+    label,meaning=messages.get(state,messages['not_collected'])
+    step=('Wait for collection, or use Esc to cancel.' if state=='loading' else
+          'Press r to retry using existing access.' if state in {'failed','cancelled'} else
+          'Open this source section to load data, or press r to request a read.')
+    if page==6:
+        label,meaning='No source snapshot','No source report is retained for the evidence browser.'
+        step='Open a source section first; Evidence never starts its own collection.'
+    detail={'Observed':meaning,'What it means':'No security or health conclusion follows from an absent snapshot.',
+            'What you can do':[step]}
+    return Entry(('Collection status',label,TABS[page]),None,detail)
+
+
+def security_entries(data,settings):
+    scope=guide(data)
+    rows=[Entry(('Current network security coverage',data.get('state','unknown'),'Live sample',
+                 'Short counter sample; attack assessment Unknown'),data,scope)]
+    observations=data.get('observations',[])
+    readable=sum(item['state']!='unavailable' and item['value'] is not None for item in observations)
+    detail={'Observed':str(readable)+' of '+str(len(observations))+' counter observations are readable.',
+        'What it means':'This section checks a short current-network-namespace sample. It does not inspect SSH history, effective firewall policy or external reachability.',
+        'What you can do':['Open counter readings to inspect unavailable values and the actual sampling interval.',
+                           'Review SSH and firewall history separately for the selected boot.'],
+        'Evidence limits':['No matched indicator is not an all-clear. Missing or reset counters are not evaluated as zero.']}
+    rows.append(Entry(('Counter evidence',str(readable)+'/'+str(len(observations))+' readable','Current namespace',
+                       'Enter explains coverage; e opens original readings'),observations,detail))
+    if not data.get('findings'):
+        label='No supported network indicators matched' if readable else 'No usable network counter evidence'
+        rows.append(Entry((label,'Unknown','Live sample','No attack or safety verdict'),data,
+            {'Observed':label+'.','What it means':'Missing matches cannot rule out an attack. Short samples can miss intermittent events; unavailable counters cannot establish absence.',
+             'What you can do':['Inspect counter coverage and source limitations. Review historical SSH/firewall evidence if relevant.']}))
+    if 'sockets' in data:
+        socket=data['sockets']
+        rows.append(Entry(('Local socket evidence',socket['state'],'ss / current namespace',
+                           str(len(socket['rows']))+(' retained row' if len(socket['rows'])==1 else ' retained rows')+'; reachability unverified'),socket,None,'sockets'))
+    else:
+        rows.append(Entry(('Local socket evidence','Not requested','Current namespace','Enable socket endpoints in Settings'),None,
+            {'Observed':'Socket evidence was not requested.','What it means':'No socket or reachability conclusion is available.',
+             'What you can do':['Enable socket endpoints in Settings and refresh this section.']}))
+    requested={'boot_selector':settings.boot_selector,'journal_scope':'system' if settings.system_journal else 'visible',
+               'search_ssh':settings.search_ssh,'search_firewall':settings.search_firewall}
+    rows.append(Entry(('SSH and firewall history','Separate query','Selected boot '+settings.boot_selector,
+                       'SSH '+('On' if settings.search_ssh else 'Off')+' / firewall '+('On' if settings.search_firewall else 'Off')+'; Enter opens Diagnostics'),requested,None,'diagnostics_link'))
+    return rows
+
+
 def page_table(page,data,settings):
     """Return domain columns/rows, never a primary JSON field browser."""
     if page==7:
         return ('Collection option','Value','Scope'),[
             Entry((SETTING_NAMES[key],('On' if getattr(settings,key) else 'Off') if type(getattr(settings,key)) is bool
                    else str(getattr(settings,key) or 'Not selected'),'Session only'),key,None,'setting') for key in SETTING_KEYS]
-    if data is None: return ('Item','Value','Status'),[]
+    if data is None: return ('Item','Value','Status'),[collection_entry(page)]
     if page in {0,1}:
         return ('Measurement','Value','Status'),[
             Entry((name(item),reading(item),item['state']),item,observation_view(item),'observation')
@@ -77,6 +129,7 @@ def page_table(page,data,settings):
             members=_group_members(data,representative,source)
             entries.append(Entry((representative['title'],representative['confidence'],source,
                                   str(count)+' matched reports; not distinct incidents'),members,None,'finding_group'))
+        if page==3: entries.extend(security_entries(data,settings))
         if page==5:
             entries.append(Entry(('Selected boot chronology',data.get('state','unknown'),'Main retained tail',
                 str(data.get('records_examined',0))+' records; not a complete boot'),data,None,'timeline'))
