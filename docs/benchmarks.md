@@ -340,3 +340,31 @@ rendering the real JSON CLI. Ten fresh children measured median wall 0.1532 s
 Linux/Python 3.14.4. All 24 modes passed <50 MiB RSS / <1 s CPU / <2 s wall.
 This is a bounded synthetic regression, not a live attack detector calibration or
 a guarantee for every host. Native source execution and journal I/O are excluded.
+
+## Phase 4 terminal frontend and constrained profiles — 2026-11-15
+
+Two fresh-process modes collect through the actual session model and draw real
+frontend viewports using an invented screen. No terminal screenshots or host
+evidence are committed. `tui-diagnostic` retains 500 ordinary journal originals,
+both bounded security-log sources, six extended Atop samples/32 interfaces, and
+both 512 KiB synthetic pstore sources. The browser keeps references to one report;
+it does not build a second full JSON rendering to display a viewport.
+
+Ten-child measurements on Linux/Python 3.14.4:
+
+| Mode | Median wall | Max wall | Median CPU | Max RSS |
+| --- | ---: | ---: | ---: | ---: |
+| tui-status | 0.1716 s | 0.1739 s | 0.0582 s | 29.20 MiB |
+| tui-diagnostic | 0.1290 s | 0.1373 s | 0.1149 s | 38.96 MiB |
+
+All 26 CLI/TUI modes passed the <50 MiB RSS / <1 s CPU / <2 s wall budgets.
+A native local PTY run completed one ordinary status refresh and restored the
+terminal on quit, measuring 23.52 MiB peak child RSS. This is a development-host
+observation, not an SSH/VPS or native journal/Atop I/O guarantee.
+
+The separate `scripts/vps_acceptance.py --iterations 3` completed 45 synthetic
+fresh-process runs across one-CPU-affinity profiles with 128/256/512 MiB virtual
+address-space limits. All passed the same regression budgets; maximum RSS was
+46.29 MiB. RLIMIT_AS is not VM RAM or a cgroup memory quota. These results do not
+claim a booted target VPS, all distro versions, remote SSH behavior or production
+acceptance. See [release acceptance](release-readiness.md).

@@ -13,7 +13,7 @@ class ResourceBudgetTests(unittest.TestCase):
                                 capture_output=True, text=True, check=True, timeout=15)
         report = json.loads(result.stdout)
         self.assertTrue(report['synthetic'])
-        self.assertEqual({'status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security'}, set(report['commands']))
+        self.assertEqual({'status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic'}, set(report['commands']))
         for command, measurements in report['commands'].items():
             with self.subTest(command=command):
                 self.assertTrue(measurements['within_regression_budget'])

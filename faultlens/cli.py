@@ -264,12 +264,15 @@ def render_history(data, stdout):
 def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, stderr=None, pstore_collector=None, pstore_archive_collector=None) -> int:
     stdout = stdout or sys.stdout
     stderr = stderr or sys.stderr
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv and getattr(sys.stdin, 'isatty', lambda: False)() and getattr(stdout, 'isatty', lambda: False)() and (platform or sys.platform) == 'linux':
+        argv = ['tui']
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security"), default="status")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health"), default="status")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
     parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes.")
-    parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/network/security).")
+    parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/network/security or initial TUI setting).")
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
@@ -289,6 +292,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")
     parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (diagnose only).")
     args = parser.parse_args(argv)
+    if args.command == "tui" and args.json:
+        parser.error("TUI is interactive; use explicit CLI commands for JSON output.")
     if args.search_firewall and args.command != 'diagnose':
         parser.error("Firewall journal analysis is supported only with diagnose.")
     if args.show_evidence and args.command != 'diagnose':
@@ -313,8 +318,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("Pstore archive analysis is supported only with diagnose.")
     if args.pstore and args.command != "diagnose":
         parser.error("Pstore analysis is supported only with diagnose.")
-    if args.history and args.command != "check":
-        parser.error("Preservation assessment is supported only with check.")
+    if args.history and args.command not in {"check", "health"}:
+        parser.error("Preservation assessment is supported only with check or health.")
     if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
     if args.sockets and args.command not in {"network", "security"}:
@@ -323,6 +328,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         print("Faultlens supports Linux only.", file=stderr)
         return 1
     try:
+        if args.command == 'tui':
+            from .tui import run
+            return run(sources=sources, runner=runner, sample_seconds=args.sample_seconds, stderr=stderr,
+                       pstore_collector=pstore_collector, pstore_archive_collector=pstore_archive_collector)
         if args.command in {'network', 'security'}:
             from .network import collect
             data = collect(sources, command=args.command, sample_seconds=args.sample_seconds)
@@ -346,7 +355,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         else:
             items = (status(sources, runner, args.sample_seconds) if args.command == "status"
                      else check(sources, runner))
-            if args.command == 'check' and args.history:
+            if args.command in {'check', 'health'} and args.history:
                 from .preservation import assess
                 items.extend(assess(sources, runner))
             data = report(args.command, items)
