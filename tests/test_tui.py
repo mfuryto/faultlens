@@ -202,6 +202,19 @@ class EntrypointTests(unittest.TestCase):
         self.assertEqual(0,main(['health','--json'],sources=SyntheticSources(),runner=SyntheticRunner(),stdout=output))
         self.assertEqual('health',json.loads(output.getvalue())['command'])
 
+    def test_terminal_entrypoint_uses_administrator_defaults(self):
+        from faultlens.tui import run
+        with (patch('sys.stdin.isatty',return_value=True),
+              patch('sys.stdout.isatty',return_value=True),
+              patch.dict(os.environ,{'TERM':'xterm'}),
+              patch('faultlens.textual_app.FaultlensApp') as app):
+            app.return_value.run.return_value=0
+            self.assertEqual(0,run())
+            settings=app.call_args.kwargs['session'].settings
+            self.assertTrue(settings.sockets); self.assertTrue(settings.preservation)
+            self.assertTrue(settings.search_ssh); self.assertTrue(settings.pstore_archive)
+            self.assertFalse(settings.system_journal); self.assertEqual('',settings.atop_date)
+
     def test_bad_terminal_and_unreviewed_frontend_fail_without_collection(self):
         from faultlens.tui import run
         output=io.StringIO()

@@ -124,7 +124,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.05)
             self.assertEqual([0],[page for page,options in calls])
-            self.assertFalse(calls[0][1]['pstore']); self.assertFalse(calls[0][1]['sockets'])
+            self.assertTrue(calls[0][1]['pstore']); self.assertTrue(calls[0][1]['sockets'])
             source=app.snapshots[0]
             await pilot.press('right','left'); self.assertIs(source,app.snapshots[0])
             self.assertEqual([0,1],[page for page,options in calls])

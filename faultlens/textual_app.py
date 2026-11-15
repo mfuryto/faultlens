@@ -21,7 +21,7 @@ constants.LOG_FILE=None
 constants.DRIVER=None
 
 from . import __version__
-from .tui_model import Session,escaped,brief
+from .tui_model import Session,Settings,escaped,brief
 from .workspace import TABS,page_table,source_table,detail_text
 from .presentation import guide
 from .evidence_links import resolve
@@ -237,6 +237,7 @@ class FaultlensApp(App):
 
     def __init__(self,session=None,collector=None,initial_collect=True):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
+        if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
         self.initial_collect=initial_collect; self.search_query=''
         self.collection_attempts={}; self.closing=False
@@ -417,7 +418,7 @@ class FaultlensApp(App):
             'Esc closes a dialog or cancels collection; e opens unchanged original evidence; r explicitly refreshes.',
             'Search moves the table cursor without filtering. q quits; Ctrl-C interrupts and restores the terminal.'],
             'Collection':['Source sections load when opened and reuse their snapshot; r refreshes. Changed options load on the next visit.',
-            'Optional sources default off. Settings apply to later collection, never to server configuration.',
+            'Read-only coverage defaults on. System-only journal scope and dated Atop replay remain explicit; settings are not saved between launches.',
             'Tables retain the latest bounded snapshot for each source section; timestamps and changed options remain visible.'],
             'Confidence':'A reported event is not a confirmed cause. Missing evidence is not an all-clear.'}
         self.push_screen(DetailDialog(Entry(('Keyboard and evidence help',),detail,detail),None))

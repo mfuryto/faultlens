@@ -66,6 +66,13 @@ class Settings:
     since_us: str = ''
     until_us: str = ''
 
+    @classmethod
+    def administrator_defaults(cls, *, sample_seconds=0.1):
+        """Enable read-only coverage; journal scope and dated replay remain explicit."""
+        return cls(sample_seconds=sample_seconds,include_current=True,preservation=True,
+                   sockets=True,search_events=True,search_ssh=True,search_firewall=True,
+                   pstore=True,pstore_archive=True)
+
 
 @dataclass(frozen=True)
 class Row:

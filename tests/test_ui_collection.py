@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from faultlens.ui_collection import arguments,collect,bounded_read
-from faultlens.tui_model import Settings
+from faultlens.tui_model import Settings,Session
 
 
 class CollectionTests(unittest.IsolatedAsyncioTestCase):
@@ -22,6 +22,23 @@ class CollectionTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(value,args)
         self.assertEqual('10',args[args.index('--since-us')+1])
         with self.assertRaises(ValueError): arguments(7,settings)
+
+    def test_administrator_defaults_enable_reads_without_forcing_scope_or_guessing_dates(self):
+        settings=Settings.administrator_defaults()
+        self.assertFalse(settings.system_journal); self.assertFalse(settings.atop_extended)
+        self.assertEqual('',settings.atop_date)
+        self.assertTrue(settings.include_current)
+        for page,flags in ((1,('--history',)),(2,('--sockets',)),(3,('--sockets',)),
+                           (4,('--include-current',)),(5,('--search-events','--search-ssh',
+                              '--search-firewall','--pstore','--pstore-archive'))):
+            argv=arguments(page,settings)
+            for flag in flags: self.assertIn(flag,argv)
+            self.assertNotIn('--system-journal',argv)
+            self.assertNotIn('--atop-extended',argv)
+        session=Session()
+        session.settings=settings; session.update_setting('sample_seconds','0.2')
+        self.assertEqual(0.2,session.settings.sample_seconds)
+        fresh=Settings.administrator_defaults(); self.assertEqual(0.1,fresh.sample_seconds)
 
     async def test_output_bound_does_not_accept_a_successful_prefix(self):
         reader=asyncio.StreamReader(); reader.feed_data(b'x'*65); reader.feed_eof()
