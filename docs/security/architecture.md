@@ -148,8 +148,8 @@ Earlier milestone identity omissions describe implemented summary/adapter limits
 not requirements to conceal information from administrators. Full identity/evidence
 views are implemented for retained journal/SSH, Atop and pstore content. Both Atop
 profiles expose recorded hostnames/source lines; pstore exposes source paths, observed
-metadata and lossless content. Future TUI integration and uncollected source fields
-remain separate work. Local visibility
+metadata and lossless content. The corrected UserDock-style frontend exposes retained evidence; uncollected source
+fields remain separate work. Local visibility
 must not be confused with permission to publish host evidence in repository files,
 CI artifacts or vulnerability reports. Tests continue to use synthetic data only.
 
@@ -160,13 +160,28 @@ thresholds produce Possible indicators only. Source originals remain available;
 compact indices link to them, and the 32-finding cap is explicit. Missing evidence
 and unverified host/boot identity never become an all-clear or a confirmed attack.
 
-[The TUI frontend](../architecture/phase-4-acceptance.md) adds only on-demand
-presentation and session options. Single-snapshot navigation retains source
-references without interpreting evidence as markup. Scalars use lossless ASCII JSON,
-including controls/bidi characters, and paged originals remain inspectable. Terminal
-restoration is managed by curses.wrapper, with real PTY normal/signal regression
-coverage. There is no shell escape, background poller, persistent settings, clipboard
-hook, report export, configuration write or runtime dependency download.
+[The corrected frontend](../architecture/phase-4-acceptance.md) uses optional
+Textual tabs, domain tables and modal screens. A bounded latest snapshot per source
+section is cached in memory, with shared references for evidence and historical
+security views. Collection uses a cancellable fixed-argument CLI child, a 60-second
+outer deadline and bounded stdout/stderr; native sources keep their tighter limits.
+It never elevates. Kernel-uninterruptible I/O remains an OS limitation, not a promise
+that every blocked filesystem call can be terminated on a hard deadline.
+
+Source values are literal Rich Text with reversible control/bidi escaping, not
+markup or active links. Raw secondary evidence views never promote message fields
+into actions. Developer/log/alternate-driver environment hooks are disabled; fatal
+errors do not render exception text or evidence locals. Terminal restoration is
+covered by real PTY quit/interrupt tests, with actual Textual Pilot navigation tests.
+No shell escape, auto-polling, persistent settings, clipboard hook, report export,
+configuration writer or runtime dependency download is introduced.
+
+The optional framework and transitive packages execute with the launching user's
+permissions. They are trusted code, not a privilege sandbox; launching as root makes
+that dependency trust more consequential. Use ordinary access where sufficient.
+Exact wheel hashes, binary-only installs, advisory checks and retained upstream
+notices constrain this supply chain without proving absence of unknown flaws. The
+CLI remains dependency-free. See [dependency review](../third-party.md).
 
 [Readable results](../readable-results.md) are a pure presentation layer over the
 existing normalized models. Explanations preserve confidence and source boundaries;

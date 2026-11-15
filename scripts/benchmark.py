@@ -20,78 +20,32 @@ def worker(command: str) -> dict:
     output = io.StringIO()
     started = time.monotonic()
     if command in {'tui-status', 'tui-diagnostic'}:
+        import asyncio
         from faultlens.tui_model import Session
-        from faultlens.tui import draw
-        from tests.test_tui import Screen
-        session = Session(sources=SyntheticNetworkSources(), runner=SyntheticPhase3Runner(),
-            pstore_collector=SyntheticSources().pstore_snapshot,
-            pstore_archive_collector=SyntheticSources().pstore_snapshot)
-        if command == 'tui-diagnostic':
-            session.choose_page(4); session.refresh()
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='boot_summaries')
-            session.open_row(); session.open_row()
-            if session.value['Technical details'] is not session.data['summaries'][0]:
-                raise RuntimeError('Boot summary navigation copied or lost the original')
-            draw(Screen(),session)
-            session.choose_page(5)
-            for key in ('search_ssh', 'search_firewall', 'pstore', 'pstore_archive'):
-                session.update_setting(key)
-            session.update_setting('atop_date','20260101')
-            session.update_setting('atop_extended')
+        from faultlens.textual_app import FaultlensApp
+        session=Session(sources=SyntheticNetworkSources(),runner=SyntheticPhase3Runner(),
+            pstore_collector=SyntheticSources().pstore_snapshot,pstore_archive_collector=SyntheticSources().pstore_snapshot)
+        page=5 if command=='tui-diagnostic' else 0
+        session.choose_page(page)
+        if page==5:
+            for key in ('search_ssh','search_firewall','pstore','pstore_archive'): session.update_setting(key)
+            session.update_setting('atop_date','20260101'); session.update_setting('atop_extended')
         session.refresh()
-        if command == 'tui-diagnostic' and (len(session.data['journal_records']) != 500 or
-                len(session.data['security_analysis']['findings']) != 32):
-            raise RuntimeError('Synthetic TUI evidence collection failed')
-        draw(Screen(),session)
-        if command=='tui-diagnostic':
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='crash_source')
-            session.open_row()
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='crash_records')
-            session.open_row(); session.open_row()
-            if session.value['Technical details'] is not session.data['pstore']['records'][0]:
-                raise RuntimeError('Crash interpretation copied or lost the fragment')
-            draw(Screen(),session)
-            session.choose_page(5)
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='recording')
-            session.open_row()
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='recording_samples')
-            session.open_row(); session.open_row()
-            if session.value['Technical details'] is not session.data['atop']['samples'][0]:
-                raise RuntimeError('Recording interpretation copied or lost the sample')
-            draw(Screen(),session)
-            session.choose_page(5)
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.value is session.data['ssh_analysis'])
-            session.open_row()
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='timeline')
-            session.open_row(); session.open_row()
-            if session.value['Technical details'] is not session.data['ssh_analysis']['findings'][0]:
-                raise RuntimeError('Timeline navigation changed the finding source')
-            draw(Screen(),session)
-            session.choose_page(5)
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.value is session.data['security_analysis'])
-            session.open_row()
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='findings')
-            session.open_row(); session.open_row()
-            session.selected=next(i for i,row in enumerate(session.rows()) if row.label=='Referenced source evidence')
-            session.open_row()
-            if not any(ref['Retained source evidence'] for ref in session.value['References']):
-                raise RuntimeError('Synthetic finding references did not resolve')
-            draw(Screen(),session)
-        session.choose_page(6)
-        session.selected = 1
-        session.open_row()
-        if session.value is not session.data:
-            raise RuntimeError('Evidence navigation copied or lost the report')
-        for size in ((24,100),(10,40)):
-            draw(Screen(size=size), session)
-        session.find('collected_at')
-        session.open_row()
-        session.find('2026',width=38)
-        session.find(width=38)
-        draw(Screen(size=(10,40)),session)
-        usage = resource.getrusage(resource.RUSAGE_SELF)
-        return {'collection_wall_seconds': time.monotonic()-started,
-                'cpu_seconds': usage.ru_utime+usage.ru_stime, 'peak_rss_mib': usage.ru_maxrss/1024}
+        app=FaultlensApp(session=session,initial_collect=False); app.snapshots[page]=session.data
+        async def exercise():
+            async with app.run_test(size=(100,30)) as pilot:
+                await pilot.pause(0.01)
+                app.select_page(page)
+                await pilot.pause(0.01)
+                if app.page!=page: raise RuntimeError('Workspace section did not activate')
+                app.action_open()
+                await pilot.pause(0.01)
+                if len(app.screen_stack)!=2: raise RuntimeError('Workspace did not open the selected record')
+                await pilot.press('escape')
+        asyncio.run(exercise())
+        usage=resource.getrusage(resource.RUSAGE_SELF)
+        return {'collection_wall_seconds':time.monotonic()-started,
+                'cpu_seconds':usage.ru_utime+usage.ru_stime,'peak_rss_mib':usage.ru_maxrss/1024}
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
     if command in {'diagnose-stalls', 'diagnose-clock', 'diagnose-overlay', 'diagnose-journal-loss'}:
         arguments = ['diagnose', '--json']
@@ -157,23 +111,11 @@ def worker(command: str) -> dict:
         raise RuntimeError('Synthetic socket snapshot failed')
     if command=='network-sockets':
         from faultlens.presentation import render
-        from faultlens.tui_model import Session
-        from faultlens.tui import draw
-        from tests.test_tui import Screen
+        from faultlens.workspace import page_table
+        from faultlens.tui_model import Settings
         render(payload,io.StringIO())
-        session=Session(); session.data=payload; session.choose_page(2)
-        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='observation' and row.value['key']=='network.interfaces')
-        session.open_row()
-        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='interface_samples')
-        session.open_row(); session.open_row(); draw(Screen(),session)
-        session.choose_page(2)
-        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_snapshot')
-        session.open_row()
-        session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_rows')
-        session.open_row(); session.open_row()
-        if session.value['Technical details'] is not payload['sockets']['rows'][0]:
-            raise RuntimeError('Socket explanation copied or lost the original row')
-        draw(Screen(),session)
+        columns,rows=page_table(2,payload,Settings())
+        if not rows: raise RuntimeError('Network workspace table is empty')
     if command=='diagnose-atop':
         from faultlens.presentation import render
         render(payload,io.StringIO())
@@ -294,7 +236,9 @@ def main():
                   'cpu_median_seconds': round(statistics.median(s['cpu_seconds'] for s in samples), 4),
                   'peak_rss_max_mib': round(max(s['peak_rss_mib'] for s in samples), 2)}
         # Tolerant regression limits, not promised production performance.
-        values['within_regression_budget'] = (values['peak_rss_max_mib'] < 50
+        rss_limit=80 if command.startswith('tui-') else 50
+        values['rss_budget_mib']=rss_limit
+        values['within_regression_budget'] = (values['peak_rss_max_mib'] < rss_limit
                                               and max(s['cpu_seconds'] for s in samples) < 1
                                               and max(wall) < 2)
         passed = passed and values['within_regression_budget']

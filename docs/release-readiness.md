@@ -4,16 +4,16 @@ Faultlens has a bounded CLI/TUI implementation for review. There is no published
 application release, chosen project license or claim of production support. This
 checklist prepares the initial source-first release; it does not authorize publishing.
 
-The Phase 4 implementation and automated frontend acceptance are complete; see the
-[completion review](architecture/phase-4-acceptance.md). The deployment matrix below
-remains open until actual target-host results are recorded, separately from completed
-synthetic software acceptance.
+The corrected UserDock-style workspace and stabilization scope are reviewed in
+[frontend acceptance](architecture/phase-4-acceptance.md) and [product fit](stabilization.md).
+Earlier completion statements for the generic curses browser are superseded. Actual
+target-host/SSH acceptance remains distinct from synthetic and container verification.
 
 ## Run from a trusted source checkout
 
-Use Linux with Python 3.11+; the TUI also needs Python curses and a supported terminal.
-There are no pip requirements or automatic dependency downloads. Do not install
-prompt_toolkit just to use this frontend. Inspect [feature dependencies](dependencies.md)
+Use Linux with Python 3.11+. The CLI has no external Python requirement. Install the
+optional workspace's wheel-hashed requirements in an isolated environment using the
+[TUI guide](tui.md). There are no automatic dependency downloads. Inspect [feature dependencies](dependencies.md)
 before adding journalctl/ss/Atop integrations. Missing optional tools affect only their
 features. Run Git and tests as the checkout owner, never as root to bypass Git ownership
 checks. Diagnostics use current access rights and never elevate themselves.
@@ -26,7 +26,7 @@ python3 --version
 ./bin/faultlens tui
 ```
 
-In the TUI, press r for the initial snapshot, 1–8/Tab to navigate and ? for help.
+In the TUI, status loads initially; Left/Right switches sections, Up/Down selects rows, Enter opens and Esc returns. r refreshes explicitly.
 If a source is unavailable, inspect existing permissions and retention locally;
 blanket root execution or changing account groups is not an automatic setup step.
 No host configuration, recorder or firewall service is installed or enabled.
@@ -77,9 +77,9 @@ actual target machines remains open until results are recorded and reviewed.
 - [ ] Owner authorizes the exact release/tag and any distributable artifacts. Do not
   publish a wheel, archive, container, binary or GitHub release merely because main is green.
 
-No new build backend, runtime package lock or dependency-installing workflow is needed
-for this source-first preview. Reproducible distribution packaging and third-party
-notice review are required before adding packaged dependencies or release automation.
+The optional frontend has a reviewed wheel-hash lock and an isolated CI installation
+step. There is no build backend or packaged release. Reproducible distribution
+packaging and third-party notices still require review before release automation.
 
 ## Updating and rollback
 

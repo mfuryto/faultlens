@@ -127,7 +127,7 @@ def workflow_errors(data: bytes) -> list[str]:
         assert job['runs-on'] == 'ubuntu-24.04'
         assert type(job['timeout-minutes']) is int and 1 <= job['timeout-minutes'] <= 10
         steps = job['steps']
-        assert len(steps) == 3
+        assert len(steps) == 4
         checkout = steps[0]
         assert set(checkout) == {'name', 'uses', 'with'}
         assert SHA_ACTION.fullmatch(checkout['uses'])
@@ -135,13 +135,27 @@ def workflow_errors(data: bytes) -> list[str]:
         assert checkout['with'] == {'fetch-depth': 0, 'persist-credentials': False}
         for step, command in zip(steps[1:], (
                 'python3 scripts/security_check.py',
-                'python3 -m unittest discover -s tests -v')):
+                'python3 -m venv /tmp/faultlens-ui-env\n/tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-tui.txt',
+                '/tmp/faultlens-ui-env/bin/python -m unittest discover -s tests -v')):
             assert set(step) == {'name', 'run'}
             assert step['run'] == command
         assert all(isinstance(step['name'], str) for step in steps)
     except (ValueError, TypeError, KeyError, AssertionError, AttributeError, RecursionError):
         return ['workflow violates the constrained JSON security profile']
     return []
+
+
+def dependency_errors(data):
+    """Only complete wheel-hash pins; no editable, URL, index or source-build options."""
+    names=set()
+    for line in data.decode('utf-8').splitlines():
+        if not line.strip() or line.startswith('#'): continue
+        match=re.fullmatch(r'([A-Za-z0-9][A-Za-z0-9_.-]*)==([0-9][A-Za-z0-9_.+-]*) --hash=sha256:[a-f0-9]{64}',line)
+        if match is None: return ['frontend dependencies require exact versions and wheel hashes']
+        name=re.sub(r'[-_.]+','-',match[1].lower())
+        if name in names: return ['duplicate frontend dependency']
+        names.add(name)
+    return [] if 'textual' in names and len(names)<=24 else ['incomplete frontend dependency lock']
 
 
 
@@ -208,6 +222,8 @@ def check_repository() -> list[str]:
             continue
         data = file.read_bytes()
         errors.extend(f'{path}: {e}' for e in content_errors(path, data, mode))
+        if path=='requirements-tui.txt':
+            errors.extend(f'{path}: {e}' for e in dependency_errors(data))
         if path.startswith('.github/workflows/'):
             workflows.add(path)
             checks = {'.github/workflows/security-baseline.yml': workflow_errors,

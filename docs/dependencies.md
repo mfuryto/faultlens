@@ -1,12 +1,17 @@
 # Dependencies and installation scope
 
-Faultlens runs from source on Linux with Python 3.11+. It has no external Python
-packages, mandatory recorder, database, cloud service or daemon. The optional TUI
-requires the distribution-provided Python curses component and terminal database;
-missing curses leaves the explicit CLI available. No prompt_toolkit installation is
-needed for the implemented frontend. Run as an ordinary
-user. Missing feature dependencies produce partial/unavailable observations, not
-installation requests or automatic privilege escalation.
+Faultlens's Linux CLI runs on Python 3.11+ without external Python packages.
+The optional UserDock-style workspace uses Textual 8.2.8 and its exact wheel-hashed
+closure in requirements-tui.txt. Install it in a project-specific virtual environment;
+see [workspace setup](tui.md). Missing or unreviewed Textual leaves the CLI available.
+No package is installed at application launch, and no recorder, database, daemon or
+cloud service is added. The dependency is justified by actual UserDock navigation,
+widgets, focus and headless testing rather than another custom terminal renderer.
+See [third-party dependencies](third-party.md) for reviewed versions/licenses and the
+advisory-check scope. The project's own license remains undecided.
+
+Native tools remain feature-specific and are never installed or enabled automatically.
+Run with existing access; unavailable evidence does not trigger privilege escalation.
 
 | Tool | Used by | Requirement |
 | --- | --- | --- |
@@ -49,8 +54,9 @@ Prioritize better evidence quality before adding integrations:
   provenance, preserving uncertainty about host/boot identity and incomplete input.
 - Extend the implemented live/archive pstore readers with narrowly tested additional
   signatures and stronger event provenance.
-- Offer an explicit export preview and redaction review before any future local
-  report export; never upload reports automatically.
+- If local export is later requested, offer an explicit contents/destination preview
+  with secure file creation. Preserve administrator originals; never redact or upload
+  them automatically.
 
 These extensions are proposals, not new installation requirements. The current
 coverage/pstore scope is documented in [the milestone](architecture/phase-2-coverage-pstore.md)

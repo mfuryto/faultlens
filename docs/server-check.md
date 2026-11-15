@@ -4,7 +4,7 @@ Run the complete set as the non-root checkout owner:
 
 ```sh
 cd /home/codex/faultlens
-python3 scripts/server_check.py
+.venv/bin/python scripts/server_check.py
 ```
 
 The script combines the unit suite (including synthetic PTY/TUI lifecycle tests),
@@ -38,7 +38,7 @@ means no FAIL rows, including ATTENTION; exit 1 means at least one failed check,
 2 means invalid arguments/platform, and 130 means interruption. A zero exit code
 never asserts a healthy or attack-free server. Review SKIP and MISSING rows as well.
 
-Full repository acceptance needs Git and Python curses. If either is missing, the
+Full repository acceptance needs Git and the reviewed optional Textual environment. If either is missing, the
 affected repository groups are MISSING rather than presented as failed software
 tests; unrelated live CLI probes still run. No dependency is installed automatically.
 
@@ -54,7 +54,7 @@ kernel-uninterruptible I/O remains an operating-system limitation.
 Only request an existing recording date; this does not create historical data:
 
 ```sh
-python3 scripts/server_check.py --atop-date YYYYMMDD --pstore
+.venv/bin/python scripts/server_check.py --atop-date YYYYMMDD --pstore
 ```
 
 Replace YYYYMMDD with a real local recording date. Extended Atop replay is tested in
@@ -68,7 +68,7 @@ If the ordinary user lacks system journal/crash access, an administrator can run
 only the native checks from an already authorized root terminal:
 
 ```sh
-python3 scripts/server_check.py --live-only --atop-date YYYYMMDD --pstore
+.venv/bin/python scripts/server_check.py --live-only --atop-date YYYYMMDD --pstore
 ```
 
 The script never elevates itself. Root and non-owner invocations automatically skip
@@ -79,8 +79,8 @@ can also be used by an ordinary user for a quick native-only check.
 ## Structured output and failure details
 
 ```sh
-python3 scripts/server_check.py --json
-python3 scripts/server_check.py --details
+.venv/bin/python scripts/server_check.py --json
+.venv/bin/python scripts/server_check.py --details
 ```
 
 JSON contains summary states/counts/advice, not host logs or diagnostic measurements.
@@ -91,8 +91,8 @@ Excerpts and all terminal text use reversible JSON escaping for controls/Unicode
 No raw native evidence or captured native traceback is included as a failure excerpt.
 Review any output locally before sharing it; no upload or file export is automatic.
 
-The current terminal check verifies curses/terminfo availability without changing
-terminal modes or launching the UI. When input/output is redirected, it is SKIP,
+The current terminal check verifies the reviewed Textual version and declared terminal
+availability without changing terminal modes or launching the UI. When input/output is redirected, it is SKIP,
 not FAIL. The unit suite independently tests a synthetic local PTY. Human navigation,
 actual remote SSH behavior and interpretation of original evidence still require:
 
@@ -100,7 +100,7 @@ actual remote SSH behavior and interpretation of original evidence still require
 ./bin/faultlens tui
 ```
 
-Use r, pages 1–8, Enter, / search, n/N, Left, resize, q and Ctrl-C. A synthetic PTY and constrained
+Use Left/Right tabs, Up/Down rows, Enter, Esc, e, s, r, search, resize, q and Ctrl-C. A synthetic PTY and constrained
 process profiles do not replace real small-VPS/distro deployment acceptance.
 
 ## Plain-language output

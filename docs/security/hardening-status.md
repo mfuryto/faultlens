@@ -1,74 +1,50 @@
 # Repository hardening status
 
-Verified administrative configuration on 2026-11-11. Recheck live GitHub settings
-before relying on this snapshot. The owner authorized public visibility after the
-content and history audit. The owner subsequently authorized the agent to merge
-once security checks pass. No release or license selection was authorized.
+Live repository controls were rechecked on 2026-11-15 during the corrected frontend
+stabilization. This is a dated audit, not continuous monitoring. The owner previously
+authorized public pre-release visibility and merging reviewed staging PRs after all
+required checks pass. No license or application release is authorized.
 
-## Enabled controls
+## Verified controls
 
-- Public pre-release repository; only `main` and `staging` branches.
-- Main requires an up-to-date PR, resolved conversations, linear history,
-  GitHub Actions checks `baseline` and `analyze`, and the CodeQL findings check
-  `CodeQL`. Independent and code-owner approvals are not required for this solo
-  project. The agent may merge when authorized and all checks pass. Administrators are subject
-  to protection. Force pushes and deletion are blocked.
-- Staging permits direct development pushes and main synchronization merges, and blocks
-  force pushes and deletion, including for administrators. This supports a two-branch
-  development model without creating disposable feature branches.
-- Actions allow only `actions/checkout@*`, `github/codeql-action/init@*`, and
-  `github/codeql-action/analyze@*`; full commit SHA pinning is required administratively.
-- Default workflow token is read-only and cannot approve pull requests.
-- Logs and artifacts expire after seven days. Auto-merge is available for individually
-  authorized PRs and still requires every protected-branch check. It is not enabled
-  automatically on other PRs. Automatic deletion of merged branches is disabled,
-  preserving staging.
-- Dependency graph and Dependabot vulnerability alerts are enabled. Automated
-  security-update PRs were already disabled and were not changed. Version PRs are
-  paused in the proposed Dependabot configuration to preserve the two-branch model.
-- Secret scanning, push protection, and GitHub private vulnerability reporting are
-  enabled. Use the Security tab's private reporting route; never disclose publicly.
-- The PR adds CodeQL Python security-extended analysis on main/staging pushes and
-  main PRs, plus a weekly schedule once the workflow reaches the default branch.
-  The pinned init/analyze actions have job-scoped `security-events: write` only;
-  the baseline retains read-only permission. No default-setup workflow is enabled.
+- Default branch main; only main and staging are used by this task.
+- Main requires baseline, analyze and CodeQL. Protection applies to administrators;
+  force pushes and deletion are blocked. Staging also blocks force pushes/deletion
+  while permitting the authorized two-branch development/synchronization workflow.
+- Actions are restricted to actions/checkout and github/codeql-action init/analyze
+  patterns. Full commit SHA pinning is administratively required. The default token
+  is read-only and workflows cannot approve pull requests.
+- Secret scanning and push protection are enabled. Private vulnerability reporting
+  is enabled. Dependabot automatic security-update PRs remain disabled; version PRs
+  remain paused to preserve the main/staging-only policy.
+- The corrected frontend CI retains the same actions and token scope. Its only new
+  install step creates a temporary venv and installs the exact wheel-hashed frontend
+  lock using --require-hashes and --only-binary=:all:. The policy mutation tests reject
+  dropping either constraint or substituting commands, actions, triggers or permissions.
 
-## Validation
+The optional Textual closure was audited separately; see [dependency review](../third-party.md).
+No runtime reports or source evidence are uploaded by Faultlens. CodeQL remains a CI
+service with its existing job-scoped security-events write permission.
 
-The initial repository had a single commit with an 11-byte README. The expanded
-audit found no releases, tags, existing artifacts, deploy keys, webhooks, Actions
-secrets, variables, environments, issue comments, PR comments, or commit comments.
-The only issue/PR was the hardening PR. Author addresses used GitHub noreply metadata.
+## Audit boundaries and release gates
 
-Gitleaks v8.30.1 was obtained from the official release and its archive SHA-256 was
-checked against the published release checksum. Local `gitleaks git --log-opts=--all`
-and `gitleaks dir` scans with redacted output found no leaks. This is evidence from
-selected detectors, not proof that no sensitive information could ever exist.
-The dependency-free policy checks and all eleven tests passed. A CodeQL finding
-about sensitive logging was addressed by logging fixed categories only, never
-scanner-derived text or paths. Check live PR statuses
-for the final GitHub-hosted baseline and CodeQL results; local checks do not substitute
-for CodeQL execution.
+The earlier 2026-11-11 audit described the initial 11-byte repository and first
+hardening PR. Those historical counts and future-tense implementation statements
+are superseded; they are not current release-readiness evidence. Current application
+verification is recorded in the corrected frontend/stabilization review.
 
-## Remaining gates
+Gitleaks working-tree/history scans and the standard-library baseline complement
+GitHub controls, not a guarantee that every secret or unsafe change is detectable.
+The runner image, system Python, package registry and CodeQL tool bundle remain CI
+supply-chain dependencies; wheel/action hashes constrain content without proving
+absence of unknown flaws.
 
-- The hardening PR can merge only after all required checks pass. SECURITY,
-  CODEOWNERS, Dependabot configuration and scheduled workflows become active on
-  the default branch after merge. Check the live PR for merge state.
-- There is only one administrator/collaborator. The owner accepted a solo-maintainer
-  policy without independent review. CODEOWNERS documents ownership but does not
-  impose an approval requirement. Independent review remains a useful future option.
-- No license is granted. Phase 1 provides a read-only CLI with bounded source and
-  command handling; the full diagnostic application and other planned controls are
-  not complete. Public visibility is not a supported production release.
-- The runner image, installed Python, and CodeQL tool bundle are CI supply-chain
-  dependencies. Action commit SHAs are pinned; the downloaded tool bundle and runner
-  image are not a fully reproducible toolchain. No such tooling is a runtime dependency.
-- Public copies and forks cannot be recalled by later making the repository private.
-- Account 2FA, recovery codes and a second trusted maintainer require owner decisions;
-  no personal account settings or collaborators were changed.
+Solo maintenance has no independent review requirement. Account 2FA/recovery and
+any additional maintainer remain owner decisions, not controls changed by this task.
+Existing public copies cannot be recalled. Project license, support policy, actual
+server acceptance and exact publication artifacts remain open release gates.
+No new administrative GitHub setting is required for the corrected frontend.
 
-Live views: [branch settings](https://github.com/mfuryto/faultlens/settings/branches),
-[Actions settings](https://github.com/mfuryto/faultlens/settings/actions),
-[security settings](https://github.com/mfuryto/faultlens/settings/security_analysis),
-and [hardening PR](https://github.com/mfuryto/faultlens/pull/1).
+Live views: [branch protection](https://github.com/mfuryto/faultlens/settings/branches),
+[Actions](https://github.com/mfuryto/faultlens/settings/actions),
+[security](https://github.com/mfuryto/faultlens/settings/security_analysis).

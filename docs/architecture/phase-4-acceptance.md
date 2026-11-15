@@ -1,102 +1,83 @@
-# Phase 4 completion and acceptance
+# Corrected UserDock-style frontend acceptance
 
-Reviewed: 2026-11-15. **Implementation and automated frontend acceptance are complete.**
-This closes the TUI, navigation and readable-results engineering phase. It does not
-certify a production deployment or authorize a license, package, tag or release.
+Reviewed: 2026-11-15. Earlier phase-completion claims for the generic curses/browser
+frontend did not establish parity with the requested UserDock workspace. This review
+supersedes that claim and defines acceptance of the corrected implementation.
 
-## Delivered scope
+## Reference and implementation
 
-| Area | Complete implementation | Boundary retained |
+The locally available UserDock reference uses Textual App, Header, status Static,
+TabbedContent/TabPane, row-cursor DataTables, modal screens and Footer. Its Left/Right
+bindings select the main sections; Up/Down selects records and dialogs expose actions.
+Faultlens now implements that structure with eight domain sections. It does not copy
+UserDock's account-changing operations or require administrator privileges to launch.
+
+| Requirement | Corrected implementation | Acceptance |
 | --- | --- | --- |
-| Terminal frontend | Eight keyboard-driven pages, wide/compact layouts, explicit refresh, resize and terminal restoration | Python curses/PTY required; CLI remains independent; no background polling |
-| Readable results | Shared meanings, next steps, confidence and limits for readings, findings, boot summaries, interfaces, sockets, Atop samples and crash fragments | No healthy/secure verdict from missing or unmatched evidence; exact originals remain available |
-| Source navigation | Immutable boot selection, source-scoped timelines, finding-to-evidence links, raw metadata access and reference-based browsing | No cross-query substitution, guessed identity, changed confidence or causal timeline across boots |
-| Search and settings | Literal current-view search, next/previous matching rows/lines, typed session-only options and stale-scope notices | No filtering/redaction, regular expressions, shell execution, persistence or implicit collection |
-| Reporting contracts | Readable CLI, copyable optional commands, technical --details and unchanged --json models; full TUI raw trees | No output parsing contract for prose; no automatic export/upload or privacy masking |
-| Resource validation | Bounded source fixtures, fresh-process benchmarks, one-CPU constrained profiles and real PTY lifecycle tests | Process/address-space constraints are not real VM RAM or distro deployment certification |
-| Release preparation | Source launch/update instructions, operator test script, dependencies, threat model, publication checklist and release gates | No license selected, distribution built or release published |
+| UserDock navigation | Horizontal tabs, arrow-key section/row navigation, modal details and settings, fixed status/footer | Pilot drives actual key events, focus and wrapping rather than testing an independent model only |
+| Domain workspace | Measurement/status, network, finding/source, boot and evidence tables | Primary UI is domain records; complete raw trees are secondary evidence views |
+| Detailed evidence | Finding references, source batches, timelines, original logs, Atop samples and crash fragments | References remain source-scoped; unknown attribution/confidence and raw values remain intact |
+| Responsive reads | Fixed-argument CLI child, bounded output and deadline, graceful interrupt before force, no concurrent reads | Synthetic subprocess and UI cancellation tests; no shell, elevation or writes |
+| SSH layout | Adaptive columns, dialog input focus, resize, normal/interrupt restoration | 100x30, 80x24, 40x10 and real PTY checks |
+| Dependency strategy | Optional Textual 8.2.8 and complete wheel-hash closure | Exact versions, wheel-only CI install, lock mutation tests and advisory review; CLI has no external Python requirement |
+| Resources | Paged source rendering and bounded latest-source caches | CLI <50 MiB, Textual <80 MiB regression bounds; one-CPU/address-space profiles remain process tests |
 
-The final integration closes interface rate/reset explanations, prevents suggested
-commands from being hard-wrapped into multiple shell lines, and supplies a complete
-synthetic session across all eight pages. Missing/decreased counters are never zero
-traffic; actual measured batch timing controls rates. Error/drop details remain in
-per-interface technical views, with positive growth highlighted in readable CLI output.
+## Model, privileges and terminal safety
 
-## Architecture and safety
+`workspace` maps retained reports to domain tables. `textual_app` supplies widgets,
+focus, dialogs and cache provenance. `ui_collection` invokes fixed CLI arguments in
+an isolated child using the current interpreter, controlled environment, no stdin or
+shell and bounded stdout/stderr. Esc cancels and q/Ctrl-C clean up collection before
+terminal exit. Optional sources default off; only status is collected on startup.
+Native filesystem calls retain the documented kernel-uninterruptible-I/O limitation.
 
-The specification prefers prompt_toolkit but permits an alternative. Python curses
-provides the Linux terminal lifecycle without a pip dependency; the application owns
-a bounded menu/tree model. See [Python curses](https://docs.python.org/3.11/library/curses.html)
-and the [curses lifecycle](https://docs.python.org/3.11/howto/curses.html).
+One latest snapshot per source section is retained. A section is dropped before its
+replacement; evidence and historical-security views share references. Times, report
+commands and changed-option notices remain visible. No permanent cache or background
+polling is introduced.
 
-`tui_model` owns session settings, source dispatch, one report and reference-based
-navigation. `tui` owns layout, key handling and a bounded ASCII editor. Presentation
-modules explain retained models without collecting sources, changing thresholds or
-copying evidence trees. `curses.wrapper` restores terminal attributes on exit/errors;
-Ctrl-C exits with 130. Optional sources default off and never elevate privileges.
-Old reports/navigation references are dropped before explicit refresh. Idle input
-blocks; there is no timer, daemon, database, telemetry or external service.
+Rich Text cells contain literal escaped source values. Framework developer logging,
+remote devtools and alternate-driver environment hooks are disabled. Exception locals
+are never rendered by the frontend. No clipboard action, automatic report, decoding
+to files, upload, account operation or host configuration writer is added.
 
-Original administrator evidence remains inspectable. Terminal controls are escaped
-reversibly. Raw source messages never acquire trusted finding/navigation roles merely
-because they resemble diagnostic JSON. Local evidence can be incomplete or falsified;
-root/kernel compromise, source bounds, unknown attribution and native filesystem calls
-without a hard deadline remain explicit limits.
+## Verification
 
-## Reproducible verification
-
-Run as the checkout owner:
+Install the optional frontend in an isolated environment, then run:
 
 ```sh
-python3 -m unittest discover -s tests -q
-python3 scripts/security_check.py
-python3 scripts/benchmark.py --iterations 10
-python3 scripts/vps_acceptance.py --iterations 3
-python3 scripts/server_check.py --live-only
+.venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-tui.txt
+.venv/bin/python -m unittest discover -s tests -q
+.venv/bin/python scripts/security_check.py
+.venv/bin/python scripts/benchmark.py --iterations 10
+.venv/bin/python scripts/vps_acceptance.py --iterations 3
+.venv/bin/python scripts/server_check.py --live-only
 ```
 
-Synthetic acceptance covers all pages, explicit refresh, settings validation, stale
-scope, unavailable/empty/partial sources, record caps, RESET and missing measurements,
-confidence, source identity, safe commands, complete originals, raw roles, long values,
-search, compact/resized layouts and normal/interrupt terminal restoration. The native
-operator check reports available coverage and limitations; it never certifies health.
+The real frontend is exercised by Textual Pilot and a PTY. Tests include modal
+keyboard routing, compact layout, source pagination, selection, settings rejection,
+original records, Rich/terminal escaping, bounded output, cancellation/reaping and
+fatal-error confidentiality. Benchmarks render the actual frontend with synthetic
+bounded evidence; the removed curses renderer is not used as an acceptance proxy.
 
-Benchmarks exercise maximum bounded journal/security/socket/interface evidence,
-recording/crash readers and actual frontend navigation/rendering. Constrained profiles
-use one allowed CPU and 128/256/512 MiB virtual-address-space limits for five modes;
-they do not boot Debian/Ubuntu images or constrain total host RAM.
+Final local verification passed 465 tests on Python 3.14.4 and Python 3.11.
+The latter suite ran in an offline container with read-only sources, no network,
+capabilities dropped and a 512 MiB memory ceiling. All 26 benchmark modes and 45
+constrained process profiles passed. A dated advisory scan of the nine pinned
+frontend dependencies reported no known vulnerabilities; this does not cover unknown
+flaws or constitute a security guarantee.
 
-Closeout verification on the development host:
+The default system-Python CLI is also checked independently of the optional packages.
+Compatibility/container and advisory evidence is recorded with the final PR; it does
+not substitute for actual server, terminal-client or production incident acceptance.
+See [stabilization and product fit](../stabilization.md) for exact remaining gaps.
 
-| Check | Result |
-| --- | --- |
-| Complete unit/integration/PTY suite | 446 tests passed |
-| Fresh-process benchmarks | All 26 cases passed over 10 iterations; integrated TUI peak RSS 39.50 MiB |
-| Constrained process acceptance | All 45 runs passed across three address-space ceilings, five modes and three iterations |
-| Read-only native operator check | 54 PASS, 0 WARN, 15 MISSING, 11 SKIP, 0 FAIL |
-| Repository security and secret checks | Baseline, diff checks and working-tree/history Gitleaks scans passed |
+## Deployment and release gates
 
-Native MISSING/SKIP results cover unverified journal assignments, unavailable system
-journal/usable authentication-firewall evidence, optional unrequested historical/crash
-sources, the noninteractive terminal and repository groups intentionally skipped by
---live-only. Repository tests were run separately. These are coverage limits, not
-evidence of a healthy host or completed target-server acceptance. No host evidence,
-names, logs or endpoint captures are included in this record.
-
-## Remaining deployment and release gates
-
-The following are outside completed software acceptance and remain open:
-
-- Operator navigation in the actual server's SSH terminal and representative sizes;
-  ordinary/admin access, retained recordings and unavailable sources must be checked
-  on the deployment host using the [server test guide](../server-check.md).
-- Actual selected Debian/Ubuntu releases and at least one small one-CPU VPS still
-  require recorded acceptance. Development-host checks and constrained processes
-  are not a substitute. Detector calibration needs labeled data before accuracy claims.
-- The owner must select/approve a license, support/version policy and exact release
-  artifacts before distribution. No publication is authorized by passing checks.
-
-See [readable results](../readable-results.md), [TUI controls](../tui.md),
-[resource measurements](../benchmarks.md) and [release readiness](../release-readiness.md).
-No new manual GitHub setting is required by this closeout; existing required security
-checks and the solo-maintainer merge policy remain in force.
+Actual selected Debian/Ubuntu hosts, SSH clients and at least one small VPS still
+need operator acceptance. Labeled incident calibration, stronger boot/recording
+identity and complete shutdown verification remain separate product gaps. A license,
+supported release policy and publication require explicit owner decisions. No release
+is published or license selected here. Existing main/staging protection and required
+security checks remain in force; the reviewed CI policy now allows only the exact
+hash-checked optional frontend installation step.

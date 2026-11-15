@@ -53,7 +53,8 @@ def main():
                     continue
                 result = json.loads(child.stdout)
                 elapsed = time.monotonic()-started
-                passed = (result['cpu_affinity_count'] == 1 and result['peak_rss_mib'] < 50
+                rss_limit=80 if mode.startswith('tui-') else 50
+                passed = (result['cpu_affinity_count'] == 1 and result['peak_rss_mib'] < rss_limit
                           and result['cpu_seconds'] < 1 and elapsed < 2)
                 output['profiles'].append(dict(result, mode=mode, wall_seconds=round(elapsed,4), passed=passed))
                 output['passed'] &= passed

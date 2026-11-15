@@ -1,9 +1,10 @@
-# Foundation resource benchmarks
+# Resource benchmarks and historical baselines
 
-Run from a trusted source checkout on Linux with Python 3.11+:
+Run from a trusted source checkout on Linux with Python 3.11+ and the optional
+frontend environment installed, so all CLI and actual Textual modes are measured:
 
 ```sh
-python3 scripts/benchmark.py --iterations 10
+.venv/bin/python scripts/benchmark.py --iterations 10
 ```
 
 Each measurement starts a fresh isolated Python process, uses invented `/proc`
@@ -26,8 +27,10 @@ Ubuntu, containers or small VPS systems. External tool startup, journal size, di
 latency, access restrictions and large device/process sets are not modeled. Optional
 commands have independent deadlines and bounded output in the runtime.
 
-The unittest suite measures two children per command and checks deliberately loose
-regression budgets: <50 MiB peak RSS, <1 s CPU and <2 s total wall per invocation.
+The unittest suite measures two children per command. Current regression budgets
+are <50 MiB peak RSS for CLI modes and <80 MiB for the optional Textual workspace,
+with <1 s CPU and <2 s wall per invocation. Earlier tables below describe historical
+implementations, including the removed curses frontend.
 The benchmark exits nonzero on a budget violation. Repeat on the target VPS and
 record distribution, Python version, collection size and resource consumption before
 claiming operational performance. Do not commit diagnostic data from those tests.
@@ -398,3 +401,18 @@ RSS 29.38 MiB; `tui-diagnostic` median wall 0.1303 s (maximum 0.1328 s), median 
 0.1158 s and peak RSS 39.04 MiB. All 26 modes passed their existing budgets.
 These are synthetic frontend regressions, not proof of production deployment,
 attack calibration or native journal/recording I/O performance.
+
+## Corrected Textual workspace — 2026-11-15
+
+Earlier curses rendering numbers above are historical and do not measure this
+frontend. Ten fresh processes per mode passed all 26 modes. On Linux/Python 3.14.4,
+`tui-status` median wall time was 0.5975 s (maximum 0.6021 s), median CPU 0.3160 s
+and peak RSS 52.37 MiB. `tui-diagnostic` median wall was 0.5599 s (maximum 0.5825 s),
+median CPU 0.4014 s and peak RSS 63.18 MiB. These modes mount the real Textual
+widgets and open/close a record dialog with synthetic bounded data.
+
+The optional frontend has an explicit 80 MiB regression bound; the core CLI retains
+50 MiB. CPU remains below one second and fresh wall time below two seconds. All
+45 one-CPU-affinity runs across 128/256/512 MiB address-space ceilings passed; peak
+RSS was 62.89 MiB. These ceilings describe a process, not a VM RAM requirement or
+real SSH/server acceptance.

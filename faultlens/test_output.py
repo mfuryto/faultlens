@@ -38,7 +38,7 @@ def label(key):
         'health.atop.service_active':'Atop recording service', 'health.journal.service_active':'System journal service',
         'network.counter_growth':'Network pressure/error counters',
         'history.visible.previous_boots':'Accessible previous-boot history',
-        'tui.current_terminal':'Interactive terminal check', 'tui.curses':'Python terminal support',
+        'tui.current_terminal':'Interactive terminal check', 'tui.textual':'Reviewed Textual frontend',
         'health.journal.config':'Journal configuration'}
     if key in readable:
         return readable[key]
@@ -81,7 +81,7 @@ def server_summary(data):
     for key,description in (('network.counters','Current network counters were read.'),
             ('network.sockets','The local socket snapshot was read.'),
             ('history.visible','Accessible boot history was read.'),('history.system','System journal boot history was read.'),
-            ('tui.curses','Python terminal support is available.'),('tui.current_terminal','Your current terminal capabilities were loaded.')):
+            ('tui.textual','Reviewed Textual frontend is available.'),('tui.current_terminal','Your current terminal declares interactive support; rendering still needs a manual check.')):
         if take(lambda r:r['key']==key and r['state']=='PASS'):
             worked.append(description)
     comparisons=take(lambda r:r['key'].startswith('compare.') and r['state']=='PASS')
@@ -134,16 +134,16 @@ def server_summary(data):
     manual=take(lambda r:r['key']=='tui.manual_navigation' and r['state']=='SKIP')
     if manual:
         unavailable.append('Manual TUI navigation in your own terminal has not been verified by this script.')
-        actions.append('Manual check: run ./bin/faultlens tui. Try r, pages 1-8, Enter, / search, n/N, Left, resizing, q and Ctrl-C.')
+        actions.append('Manual check: run .venv/bin/python bin/faultlens tui. Try Left/Right tabs, Up/Down rows, Enter, Esc, e, r, resizing, q and Ctrl-C.')
     skipped_repo=take(lambda r:r['key'] in REPO_NAMES and r['state']=='SKIP')
     if skipped_repo:
         unavailable.append(str(len(skipped_repo))+' automated test groups were skipped in this mode or user context.')
         actions.append('To include software tests, run without --live-only as the non-root checkout owner.')
     for item in take(lambda r:r['state'] in {'MISSING','SKIP'}):
         unavailable.append(label(item['key'])+': '+item['message'])
-        if item['key'].startswith('health.dependency.') or item['key'] in REPO_NAMES or item['key']=='tui.curses':
+        if item['key'].startswith('health.dependency.') or item['key'] in REPO_NAMES or item['key']=='tui.textual':
             actions.append('Review the missing requirement for '+label(item['key']).lower()+'. Nothing was installed automatically.')
-    if not attention and not any(r['state']=='MISSING' and (r['key'].startswith('health.dependency.') or r['key'] in REPO_NAMES or r['key']=='tui.curses') for r in rows):
+    if not attention and not any(r['state']=='MISSING' and (r['key'].startswith('health.dependency.') or r['key'] in REPO_NAMES or r['key']=='tui.textual') for r in rows):
         actions.insert(0,'No immediate installation or configuration change is indicated by these checks. The items below concern optional coverage or manual verification.')
     return worked,unavailable,list(dict.fromkeys(actions)),attention
 
@@ -185,11 +185,11 @@ def render_benchmark(data,out,*,details=False):
     print('Faultlens performance tests',file=out)
     print(str(len(values))+' command scenarios tested; '+str(len(failed))+' outside the resource budgets.',file=out)
     if values:
-        print('Largest peak memory: '+format(max(v['peak_rss_max_mib'] for v in values.values()),'.2f')+' MiB (budget: below 50 MiB).',file=out)
+        print('Largest peak memory: '+format(max(v['peak_rss_max_mib'] for v in values.values()),'.2f')+' MiB.',file=out)
         print('Slowest run: '+format(max(v['startup_wall_max_seconds'] for v in values.values()),'.3f')+' s (budget: below 2 s).',file=out)
     if failed:
         section(out,'Modes to investigate',[name.replace('-',' ') for name in failed])
-    print('Each mode is checked against peak memory below 50 MiB, CPU time below 1 s and wall time below 2 s.',file=out)
+    print('Memory budgets: CLI below 50 MiB; optional Textual workspace below 80 MiB. CPU below 1 s; wall below 2 s.',file=out)
     print('Synthetic data only. These results do not certify real server workload or storage latency.',file=out)
     if details:
         print('\nMode                           Peak MiB  Max wall s  Median CPU s  Result',file=out)

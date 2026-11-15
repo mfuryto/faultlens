@@ -183,6 +183,13 @@ Historical data retention must be configurable.
 
 Implement a keyboard-driven TUI inspired by Userdock.
 
+Implementation clarification (2026-11-15): UserDock-style means its concrete
+interaction model: horizontal main-section tabs navigated with Left/Right, row-based
+tables navigated with Up/Down, and modal record/detail/settings screens opened with
+Enter and closed with Esc. A generic curses menu or primary JSON/object browser does
+not satisfy this interface requirement. The corrected implementation uses optional
+Textual with a reviewed wheel-hash lock while keeping the CLI independent.
+
 Main navigation:
 
 1. System Overview

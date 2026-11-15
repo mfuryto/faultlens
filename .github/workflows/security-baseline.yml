@@ -39,8 +39,12 @@
           "run": "python3 scripts/security_check.py"
         },
         {
-          "name": "Test policy rejection cases",
-          "run": "python3 -m unittest discover -s tests -v"
+          "name": "Install hash-locked optional frontend",
+          "run": "python3 -m venv /tmp/faultlens-ui-env\n/tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-tui.txt"
+        },
+        {
+          "name": "Test collectors and the real terminal workspace",
+          "run": "/tmp/faultlens-ui-env/bin/python -m unittest discover -s tests -v"
         }
       ]
     }
