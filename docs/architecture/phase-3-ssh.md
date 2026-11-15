@@ -66,7 +66,8 @@ cursor values allow further inspection using existing local journal access.
 
 No evidence is saved or uploaded automatically, and no extra access is granted.
 Atop now has [administrator identity/source views](phase-3-atop-admin.md). Full local
-visibility for pstore and the future TUI remains implementation work; the product requirement is explicit that final
+visibility for [pstore](phase-3-pstore-admin.md) is now implemented; future TUI
+integration remains work; the product requirement is explicit that final
 administrator views must not impose privacy-based masking. Repository/CI fixtures
 remain synthetic, independently of what an administrator may view locally.
 

@@ -48,17 +48,19 @@ external command, report file or service change is performed.
 Supported names are numeric `dmesg-ramoops`, `dmesg-efi`, `dmesg-efi_pstore`,
 `dmesg-erst`, `dmesg-pstore-blk` and `console-ramoops` records. Other names, including
 compressed records, ftrace and pmsg, are counted as excluded and never opened.
-Strict UTF-8 text without NUL is required, with at most 4096 lines and 4096 characters
-per line. Unsupported/binary, changing, oversized, unsafe or unreadable supported
-records invalidate the entire snapshot; no partially successful findings survive.
+Strict UTF-8 text without NUL is required for signature analysis, with at most
+4096 lines and 4096 characters per line. Unsupported/binary content remains
+inspectable with analysis unavailable. Changing, oversized, unsafe or unreadable
+sources invalidate the entire snapshot; no partial source results survive.
 Absent/changed and access-denied states are reported explicitly. An empty readable
 directory means no supported records were visible, not that pstore was operational
 or no crash occurred. Mount/backend availability is not inferred from directory presence.
 
 Only line-anchored `Kernel panic - not syncing:` signatures with optional kernel
 priority/timestamp prefixes are recognized. Records report an index, SHA-256 of the
-read bytes, byte count and signature line numbers, never filenames, messages, crash
-payloads, hostnames or addresses. Signature confidence is Possible; all root causes
+read bytes, byte count and signature line numbers. Local administrator views now
+also expose relative filenames, observed metadata and lossless original content;
+see [pstore administrator evidence](phase-3-pstore-admin.md). Signature confidence is Possible; all root causes
 remain Unknown. No record is associated with the selected boot or assigned an event
 time. Hashes support repeatability but do not authenticate root/kernel-controlled
 input; even normalized references should be reviewed before sharing. This is a narrow
@@ -72,7 +74,7 @@ Faultlens returns unavailable without requesting root or weakening permissions.
 ## Validation and remaining scope
 
 Synthetic tests cover calendar boundaries, gaps, overlaps, resets, absent history,
-redaction, opt-in behavior, independent source failures, fixed descriptor walks,
+local evidence preservation, opt-in behavior, independent source failures, fixed descriptor walks,
 symlinks/FIFOs, unsafe metadata, changes, decoding and enumeration/size limits.
 The synthetic pstore benchmark processes eight invented records totaling 512 KiB
 alongside the bounded journal. No actual crash data is included in tests or CI.

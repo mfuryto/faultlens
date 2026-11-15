@@ -151,6 +151,11 @@ and 130 means interrupted collection. Inspect observation states for warnings or
 exit 0 does not assert that the system is healthy. `health`, calendar history filters,
 configuration changes and the TUI are not implemented.
 
+Pstore and its systemd archive now expose collected relative filenames, file metadata
+and original content locally. Use --json or --show-evidence for full content;
+binary/expansion-heavy content is losslessly base64-encoded. Collection and signature
+analysis availability are separate. See [pstore admin views](docs/architecture/phase-3-pstore-admin.md).
+
 See [dependencies and feature requirements](docs/dependencies.md) before installing
 optional tools. Executable availability alone does not prove feature readiness.
 

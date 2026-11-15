@@ -41,7 +41,11 @@ class SyntheticSources:
                                       'assessment': 'Synthetic contiguous filename dates only.'}}
 
     def pstore_snapshot(self):
-        return ([(b"Kernel panic - not syncing: synthetic test\n" + b"synthetic kernel context\n" * 3000)[:65536]] * 8, 0)
+        from faultlens.pstore import Record
+        payload = (b"Kernel panic - not syncing: synthetic test\n" + b"synthetic kernel context\n" * 3000)[:65536]
+        return ([Record(payload, 'dmesg-ramoops-'+str(index), {'uid':0, 'gid':0, 'mode_octal':'0600',
+                  'observed_size_bytes':len(payload), 'mtime_ns':1767225600000000000,
+                  'ctime_ns':1767225600000000000, 'inode':index+1, 'device':1}) for index in range(8)], 0)
 
     def process_count(self):
         return 20

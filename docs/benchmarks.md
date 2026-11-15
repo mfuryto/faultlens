@@ -292,3 +292,20 @@ All twenty-one modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. The exis
 combined SSH/admin view remains covered. These are invented sources and parser/CLI
 measurements, not native replay or target-host qualification. No host identities or
 recordings are committed or uploaded.
+
+## Pstore local administrator content views — 2026-11-15
+
+Live/archive modes now retain source paths, observed file metadata and lossless
+content. Each source fixture contains eight invented records totaling 512 KiB.
+Ten fresh Linux/Python 3.14.4 children per mode measured:
+
+| Mode | Median wall s | Maximum wall s | Median CPU s | Maximum RSS MiB |
+| --- | --- | --- | --- | --- |
+| diagnose-pstore | 0.0632 | 0.0678 | 0.0559 | 28.14 |
+| diagnose-pstore-archive | 0.0637 | 0.0652 | 0.0564 | 28.13 |
+| diagnose-integrated | 0.1232 | 0.1289 | 0.1113 | 41.82 |
+
+All twenty-one modes passed <50 MiB RSS / <1 s CPU / <2 s wall budgets. Integrated
+coverage includes both maximum-sized sources alongside journal/search/Atop analysis.
+No host crash files are used; actual firmware/backend latency, non-atomic filesystem
+behavior and supported-target qualification remain outside synthetic measurements.

@@ -216,9 +216,14 @@ def render_history(data, stdout):
                 continue
             crash = data[key]
             print(label + ": " + crash['state'] + "; " + crash['reason'], file=stdout)
+            print("  Source root: " + crash['source_root'], file=stdout)
             print("  Boot identity: unverified. Root cause: Unknown.", file=stdout)
+            print("  Signature analysis: " + crash['analysis_state'], file=stdout)
             for item in crash['records']:
-                print("  Evidence: " + json.dumps(item, ensure_ascii=True), file=stdout)
+                visible = item if 'journal_records' in data else {key: value for key, value in item.items() if key != 'content'}
+                print("  Evidence: " + json.dumps(visible, ensure_ascii=True), file=stdout)
+            if crash['records'] and 'journal_records' not in data:
+                print("  Original record content is available with --json or --show-evidence.", file=stdout)
             for text in crash['limitations'] + crash['recommendations']:
                 print("  " + text, file=stdout)
     for text in data['limitations']:
@@ -249,7 +254,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
-    parser.add_argument("--show-evidence", action="store_true", help="Show all retained original journal messages and metadata locally (diagnose only).")
+    parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")
     args = parser.parse_args(argv)
     if args.show_evidence and args.command != 'diagnose':
         parser.error("Original journal evidence is supported only with diagnose.")

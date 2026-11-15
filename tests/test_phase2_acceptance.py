@@ -44,7 +44,8 @@ class Phase2AcceptanceTests(unittest.TestCase):
                     self.assertEqual('synthetic.test', data['atop']['samples'][0]['recorded_hostname'])
                 else:
                     self.assertNotIn('synthetic.test', output.getvalue())
-                self.assertNotIn('synthetic kernel context', output.getvalue())
+                if arguments[0] == 'diagnose':
+                    self.assertIn('synthetic kernel context', data['pstore']['records'][0]['content']['value'])
 
     def test_optional_source_failures_preserve_journal_findings(self):
         from faultlens.commands import Result

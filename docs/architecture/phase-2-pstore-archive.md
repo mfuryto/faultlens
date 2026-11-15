@@ -26,7 +26,7 @@ root, and 64 total enumerated entries across all levels. Supported raw record fi
 reuse the live pstore filename allowlist, regular-file/ownership/permission checks,
 nonblocking no-follow opens, metadata-change detection and capped reads. The accepted
 snapshot is at most eight files, 128 KiB per file and 512 KiB total. Kernel filesystem
-calls still have no hard deadline. An unreadable, unsafe, changing, malformed or
+calls still have no hard deadline. An unreadable, unsafe, changing or
 oversized supported record, or exceeded traversal limit, invalidates the whole
 archive snapshot and discards partial findings. One source failing does not discard
 observations from independent sources.
@@ -38,9 +38,10 @@ copy alongside its raw fragments. Raw fragments are not concatenated or deduplic
 A signature split across fragments may be missed. Repeated hashes do not establish
 independent corroboration, shared boot identity or authenticity.
 
-The existing narrow panic-signature parser reports only record indexes, content
-hashes, byte counts and matching line numbers. Raw text, filenames, directory labels
-and host details are never emitted. Signature confidence remains Possible, selected
+The narrow panic-signature parser reports record indexes, content hashes, byte
+counts and matching line numbers. The [administrator view](phase-3-pstore-admin.md)
+now preserves relative paths, observed metadata and original contents, including
+binary/structure-limited data whose signature analysis remains unavailable. Signature confidence remains Possible, selected
 boot association unverified and root cause Unknown. Empty, missing or inaccessible
 archives do not exclude a crash. Archive file times and numeric directory names are
 not reported as event times. Normalized references can still be sensitive; review
@@ -49,7 +50,7 @@ before sharing. No system configuration or permissions are changed.
 ## Verification and remaining scope
 
 Synthetic tests cover flat, ERST and EFI layouts, skipped reconstructed/compressed
-copies, source independence, redaction, absent/denied sources, path validation,
+copies, source independence, local evidence, absent/denied sources, path validation,
 symlink/FIFO/unsafe metadata rejection, partial-result discard and global limits.
 The archive benchmark uses eight invented records totaling 512 KiB alongside the
 bounded journal. It validates the real parser and CLI with an injected collector;
