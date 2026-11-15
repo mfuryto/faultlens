@@ -97,6 +97,22 @@ asserting host health. Read failures and invalid arguments retain their existing
 
 ## TUI explanations and evidence
 
+The incidents overview now explains each selected boot separately: retained-record
+counts, matched source reports and their meanings, unavailable evidence, record caps
+and unclassifiable messages. A matched report in a boot summary prevents the overall
+explanation from saying there was no matched warning. Counts are not independent
+incidents; absent patterns do not establish healthy boots. Eligible boots beyond the
+requested selection are explicitly described as unexamined. Summary coverage does
+not include filtered searches, SSH/firewall analyses, Atop replay or crash readers.
+
+Optional CLI follow-up commands pin the validated immutable boot ID and preserve
+visible/system journal scope. They do not run automatically. In Incident History,
+open **Boot summaries**, choose a boot and open **Diagnose this boot** to select its
+ID; press r explicitly to collect a fresh diagnosis with current session options.
+The previous overview remains in memory until that refresh. Technical details retain
+the original summary, and e on a summary opens it directly. Raw report trees and JSON
+remain unchanged; presentation does not collect more evidence or merge boots.
+
 The source pages start with **Summary and next steps**. Measurement rows have plain
 names and readable values; Enter opens **Observed**, **What it means**, **What you can
 do**, confidence, limits and **Technical details**. Normalized finding lists similarly

@@ -94,6 +94,8 @@ def row_preview(row):
         preview=escaped(row.value['confidence']+' report; cause '+row.value.get('cause_confidence','Unknown'))[1:-1]
     elif row.action=='timeline_entry':
         preview='Enter explains the referenced finding; e inspects timeline metadata'
+    elif row.action=='boot_summary':
+        preview=escaped(row.value['boot']['boot_id'])
     elif row.action=='explanation':
         text=(row.value[0] if row.value else 'No additional items') if isinstance(row.value,list) else row.value
         preview=escaped(str(text))[1:-1]+(' (Enter for all '+str(len(row.value))+')' if isinstance(row.value,list) and len(row.value)>1 else '')
@@ -208,7 +210,13 @@ class Session:
     def rows(self):
         if self.stack:
             context=self.stack[-1][4] if len(self.stack[-1])>4 else 'raw'
-            if context in {'observation','finding','guide'}:
+            if context=='boot_summaries':
+                from .presentation import boot_summary_label
+                return [Row(escaped(boot_summary_label(item))[1:-1],item,'boot_summary') for item in self.value]
+            if context in {'observation','finding','guide','boot_summary'}:
+                if context=='boot_summary':
+                    return [Row(escaped(key)[1:-1],value,'boot' if key=='Diagnose this boot' else 'inspect'
+                                if key=='Technical details' else 'explanation') for key,value in self.value.items()]
                 return [Row(escaped(key)[1:-1],value,'inspect' if key in {'Technical details','Referenced source evidence','Timeline position'} else 'explanation') for key,value in self.value.items()]
             if context=='explanation' and isinstance(self.value,list):
                 return [Row(str(index+1),value,'explanation') for index,value in enumerate(self.value)]
@@ -238,7 +246,7 @@ class Session:
         summary=Row('Summary and next steps',guide(self.data),'guide')
         if self.page == 4:
             return ([summary]+[Row('Boot ' + str(boot['index']) + ': ' + boot['boot_id'], boot, 'boot')
-                    for boot in self.data['boots']] + [Row('Boot summaries', self.data['summaries']),
+                    for boot in self.data['boots']] + [Row('Boot summaries', self.data['summaries'],'boot_summaries'),
                     Row('Full report', self.data)])
         if self.page in {0, 1, 2, 3} and command != 'diagnose':
             return [summary]+[Row('[' + item['state'].upper() + '] ' + escaped(name(item))[1:-1], item, 'observation')
@@ -278,6 +286,13 @@ class Session:
             if row.action=='observation':
                 from .presentation import observation_view
                 value=observation_view(value)
+            elif row.action=='boot_summary':
+                if inspect_only:
+                    context='inspect'
+                else:
+                    from .presentation import boot_summary_view
+                    value=boot_summary_view(value)
+                    value['Diagnose this boot']=row.value['boot']
             elif context=='finding':
                 from .presentation import finding_view
                 from .evidence_links import resolve
