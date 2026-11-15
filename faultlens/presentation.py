@@ -382,6 +382,19 @@ def line(out,text,indent=''):
         print(value,file=out)
 
 
+def advice_line(out,text,indent='',prefix=''):
+    """Keep suggested commands on one escaped physical line for reliable copying."""
+    markers=('Optional current-state check (not historical proof): ',
+             'Optional fresh diagnosis using this boot identity and existing access: ',
+             'To see the journal tool\'s own access/availability explanation, run: ')
+    for marker in markers:
+        if text.startswith(marker):
+            line(out,prefix+marker.rstrip(),indent)
+            print(' '*(len(indent)+2)+escaped(text[len(marker):]),file=out)
+            return
+    line(out,prefix+text,indent)
+
+
 def render(data,out):
     view=guide(data)
     print('Faultlens - '+data['command'].capitalize()+' (read-only)',file=out)
@@ -395,13 +408,18 @@ def render(data,out):
             unspecified=item['value'] is None and item['key'].startswith('journal.config.') and 'No explicit assignment' in item.get('explanation','')
             if not unspecified and (item['state'] in {'warning','critical','unavailable'} or item['value'] is None):
                 line(out,'Meaning: '+detail['What it means'],'    ')
-                for step in detail['What you can do']: line(out,'Next: '+step,'    ')
+                for step in detail['What you can do']: advice_line(out,step,'    ','Next: ')
     for item in data.get('observations',[]):
         if item['key']=='network.interfaces' and isinstance(item['value'],list):
+            from .interface_presentation import interface_view
             for interface in item['value']:
-                rates=interface['per_second']
-                description=('receive '+size(rates['received_bytes'])+'/s; send '+size(rates['sent_bytes'])+'/s' if rates is not None else 'rate not comparable after reset, missing data or interface change')
-                line(out,interface['interface']+': '+description,'  ')
+                detail=interface_view(interface,data['sample'])
+                line(out,detail['Observed'],'  ')
+                for text in detail['Measurements'][:2]: line(out,text,'    ')
+                if interface['delta'] is not None:
+                    for text,key in zip(detail['Measurements'][2:],('receive_errors','receive_drops','send_errors','send_drops')):
+                        if interface['delta'][key]>0: line(out,text,'    ')
+                if interface['state']!='compared': line(out,detail['What it means'],'    ')
     groups=finding_groups(data)
     if groups:
         print('\nExplained findings',file=out)
@@ -413,7 +431,7 @@ def render(data,out):
             line(out,item['title']+' | '+explanation['Confidence']+' | '+str(count)+' matching finding'+('s' if count!=1 else '')+' | '+location,'  ')
             line(out,'Observed: '+explanation['Observed'],'    ')
             line(out,explanation['What it means'],'    ')
-            for step in explanation['What you can do']: line(out,'Next: '+step,'    ')
+            for step in explanation['What you can do']: advice_line(out,step,'    ','Next: ')
         line(out,'Report counts can overlap and do not establish separate incidents or independent corroboration.')
     if data.get('summaries'):
         print('\nBoot summaries',file=out)
@@ -422,7 +440,7 @@ def render(data,out):
             line(out,detail['Observed'],'  ')
             line(out,'Boot ID: '+detail['Boot identity'],'    ')
             for text in detail['What it means']: line(out,text,'    ')
-            for step in detail['What you can do']: line(out,'Next: '+step,'    ')
+            for step in detail['What you can do']: advice_line(out,step,'    ','Next: ')
             for text in detail['Evidence limits']: line(out,'Limit: '+text,'    ')
     if data.get('atop',{}).get('state') not in {None,'not_requested'}:
         from .recording_presentation import recording_view,sample_label,sample_measurements
@@ -451,7 +469,7 @@ def render(data,out):
     for title in ('What the evidence means','What you can do','Important limits'):
         if view[title]:
             print('\n'+title,file=out)
-            for text in view[title]: line(out,text,'  - ')
+            for text in view[title]: advice_line(out,text,'  - ')
     if data['command'] in {'history','incidents'}:
         for boot in data.get('boots',[]):
             line(out,'Boot '+str(boot['index'])+': '+boot['boot_id']+' (identity for detailed investigation)','  ')

@@ -157,6 +157,12 @@ limits. Raw timelines reached through Full report/Evidence Explorer remain raw t
 
 ## Explained readings and findings
 
+Network interface observations expose **Interface samples**. Each interface explains
+its measured rates, error/drop deltas and actual batch timing, or why a before/after
+comparison was unavailable. Missing, newly visible, disappeared or decreased counters
+never become zero traffic. **Technical details** and **Sample timing** retain exact
+source objects; e opens the original interface row. No probe or collection is added.
+
 Live/archived crash-evidence entries explain source availability separately from text
 analysis. Open **Retained fragments** for individual explanations, **Original content**
 for the lossless UTF-8/base64 representation, and **Technical details** for source fields.

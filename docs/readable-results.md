@@ -103,6 +103,17 @@ asserting host health. Read failures and invalid arguments retain their existing
 
 ## TUI explanations and evidence
 
+The frontend/readability engineering phase is complete; the
+[phase completion review](architecture/phase-4-acceptance.md) separates automated
+acceptance from outstanding deployment and release gates. Interface observations
+open **Interface samples** in the TUI, with measured batch timing, rates, counter
+changes and comparison limits. An interface seen only before/after sampling or with
+decreased counters is not assigned zero traffic. Virtual layers are not summed as
+host throughput, and error/drop growth is not treated as an attack or device fault.
+The readable CLI highlights positive error/drop growth; exact zero values and all
+original counters remain in TUI measurements, --details and --json. Suggested
+commands are emitted on one escaped physical line so they can be copied reliably.
+
 Crash evidence has separate live/archive sections that distinguish collection from
 supported signature analysis. Fragments retain Possible/Unknown confidence, relative
 paths, source metadata, signature line references and original UTF-8/base64 content.
