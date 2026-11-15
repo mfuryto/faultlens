@@ -86,6 +86,12 @@ validated immutable-ID follow-up commands, explicit TUI refresh, raw/JSON preser
 and summary warnings when retained boot reports exist. The integrated TUI benchmark
 includes opening an incident summary before replacing it with detailed diagnosis.
 
+Historical resource explanations add recording availability reasons, requested replay
+scope, coverage hints and per-sample interval/snapshot semantics without replaying or
+altering the source model. Tests preserve RESET/missing CPU values, unverified host/boot
+identity, exact originals and raw evidence roles. Benchmarks cover basic readable CLI
+replay output and opening a retained extended sample in the integrated TUI model.
+
 The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
 journal records, both bounded log sources, six extended Atop samples, 32 interfaces
 and both pstore readers. It measures complete source models and actual renderer

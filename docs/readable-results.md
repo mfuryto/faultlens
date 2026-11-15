@@ -103,6 +103,22 @@ asserting host health. Read failures and invalid arguments retain their existing
 
 ## TUI explanations and evidence
 
+Historical resources now have a **Recorded resources** section in the default CLI:
+requested recording date/window, retained sample count, possible interval gaps,
+overlaps, RESET samples and reason-specific unavailable states. Sample timestamps
+are shown in UTC; requested filename dates/windows are selection context rather than
+verified event dates or incident boundaries. No samples outside the window are inferred.
+CPU execution/iowait/steal and legacy busy shares remain interval accounting, with
+RESET/missing shares shown as not comparable instead of zero. Free/cache/swap values
+remain snapshots, not MemAvailable or proof of pressure. Exact originals remain in
+technical views, and recording host/boot identity remains unverified.
+
+In TUI Diagnostics, **Recorded resource measurements** opens a recording explanation,
+**Reported coverage** and **Retained samples**. Each sample opens readable measurements
+and its original **Technical details**; e opens the original recording/sample directly.
+Browsing never replays a recording or changes the selected window/profile. Extended
+disk/network/process data and native source lines remain complete in raw technical views.
+
 The incidents overview now explains each selected boot separately: retained-record
 counts, matched source reports and their meanings, unavailable evidence, record caps
 and unclassifiable messages. A matched report in a boot summary prevents the overall

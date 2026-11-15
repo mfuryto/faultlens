@@ -98,6 +98,10 @@ def row_preview(row):
         preview=escaped(row.value['boot']['boot_id'])
     elif row.action=='socket_snapshot':
         preview='Local socket states and endpoints; external access unverified'
+    elif row.action=='recording':
+        preview='Recorded resource samples and coverage; host/boot identity unverified'
+    elif row.action=='recording_sample':
+        preview='Enter explains interval CPU and memory snapshots; e opens original measurements'
     elif row.action=='socket_row':
         from .socket_presentation import state_meaning,binding_meaning
         preview=state_meaning(row.value)[0]+' | '+binding_meaning(row.value)[0]
@@ -221,6 +225,12 @@ class Session:
             if context=='socket_rows':
                 from .socket_presentation import row_label
                 return [Row(escaped(row_label(item))[1:-1],item,'socket_row') for item in self.value]
+            if context=='recording_samples':
+                from .recording_presentation import sample_label
+                return [Row(escaped(sample_label(item))[1:-1],item,'recording_sample') for item in self.value]
+            if context in {'recording','recording_sample'}:
+                return [Row(escaped(key)[1:-1],value,'recording_samples' if key=='Retained samples' else 'inspect'
+                            if key in {'Technical details','Reported coverage'} else 'explanation') for key,value in self.value.items()]
             if context in {'socket_snapshot','socket_row'}:
                 return [Row(escaped(key)[1:-1],value,'socket_rows' if key=='Socket rows' else 'inspect'
                             if key=='Technical details' else 'explanation') for key,value in self.value.items()]
@@ -268,7 +278,7 @@ class Session:
             'findings', 'timeline', 'reconstruction', 'journal_records', 'security_analysis',
             'ssh_analysis', 'firewall_analysis', 'event_search', 'atop', 'pstore', 'pstore_archive')
         return [summary]+[Row(VIEW_NAMES.get(key,key), self.data[key],
-            'findings' if key=='findings' else 'timeline' if key=='timeline' else 'event_search' if key=='event_search' else 'analysis'
+            'findings' if key=='findings' else 'timeline' if key=='timeline' else 'recording' if key=='atop' else 'event_search' if key=='event_search' else 'analysis'
             if key in {'ssh_analysis','firewall_analysis','security_analysis'} else 'inspect') for key in keys if key in self.data] + [Row('Full report', self.data)]
 
     def open_row(self, *, inspect_only=False):
@@ -312,6 +322,15 @@ class Session:
                     from .socket_presentation import snapshot_view,row_view
                     value=(snapshot_view if row.action=='socket_snapshot' else row_view)(value)
                     if row.action=='socket_snapshot': value['Socket rows']=row.value['rows']
+            elif row.action in {'recording','recording_sample'}:
+                if inspect_only:
+                    context='inspect'
+                else:
+                    from .recording_presentation import recording_view,sample_view
+                    value=(recording_view if row.action=='recording' else sample_view)(value)
+                    if row.action=='recording':
+                        value['Retained samples']=row.value['samples']
+                        value['Reported coverage']=row.value.get('coverage')
             elif context=='finding':
                 from .presentation import finding_view
                 from .evidence_links import resolve
