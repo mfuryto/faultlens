@@ -103,7 +103,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(session.data['findings'][64],app.screen.entry.original)
             self.assertEqual(5,app.page)
 
-    async def test_collection_is_responsive_cancellable_and_never_runs_on_plain_navigation(self):
+    async def test_manual_collection_remains_responsive_when_automatic_loading_is_disabled(self):
         started=asyncio.Event(); stopped=asyncio.Event(); calls=[]
         async def slow(page,settings):
             calls.append((page,asdict(settings))); started.set()
@@ -117,7 +117,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press('escape'); await asyncio.wait_for(stopped.wait(),1)
             self.assertIsNone(app.job); self.assertNotIn(0,app.snapshots)
 
-    async def test_startup_collects_only_basic_status_and_keeps_cached_sections(self):
+    async def test_opening_source_tabs_loads_once_and_reuses_cached_sections(self):
         calls=[]
         async def collect(page,settings): calls.append((page,asdict(settings))); return status_report()
         app=FaultlensApp(collector=collect)
@@ -127,7 +127,59 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(calls[0][1]['pstore']); self.assertFalse(calls[0][1]['sockets'])
             source=app.snapshots[0]
             await pilot.press('right','left'); self.assertIs(source,app.snapshots[0])
-            self.assertEqual(1,len(calls))
+            self.assertEqual([0,1],[page for page,options in calls])
+            for page in range(2,8):
+                app.select_page(page)
+                async with asyncio.timeout(3):
+                    while app.page!=page or app.job is not None or (page<6 and page not in app.snapshots):
+                        await pilot.pause(0.01)
+            self.assertEqual(list(range(6)),[page for page,options in calls])
+            app.select_page(1); await pilot.pause(0.05)
+            self.assertEqual(6,len(calls))
+            app.session.update_setting('sample_seconds','0.2')
+            app.select_page(0); await pilot.pause(0.05)
+            self.assertEqual(0,calls[-1][0]); self.assertEqual(0.2,calls[-1][1]['sample_seconds'])
+
+    async def test_tab_loading_waits_for_active_read_and_only_loads_the_current_tab(self):
+        started=asyncio.Event(); release=asyncio.Event(); calls=[]; active=0
+        async def collect(page,settings):
+            nonlocal active
+            active+=1; self.assertEqual(1,active); calls.append(page)
+            try:
+                if page==0: started.set(); await release.wait()
+                return status_report()
+            finally: active-=1
+        app=FaultlensApp(collector=collect)
+        async with app.run_test(size=(100,30)) as pilot:
+            await asyncio.wait_for(started.wait(),1)
+            app.select_page(1); await pilot.pause(0.01)
+            app.select_page(2); await pilot.pause(0.01)
+            self.assertEqual([0],calls)
+            release.set(); await pilot.pause(0.1)
+            self.assertEqual([0,2],calls); self.assertIn(2,app.snapshots)
+
+    async def test_failed_tab_read_does_not_retry_until_refresh_or_changed_options(self):
+        calls=[]
+        async def collect(page,settings):
+            calls.append(page); raise OSError('synthetic unavailable source')
+        app=FaultlensApp(collector=collect)
+        async with app.run_test(size=(100,30)) as pilot:
+            await pilot.pause(0.05); self.assertEqual([0],calls)
+            await pilot.press('right','left'); await pilot.pause(0.05)
+            self.assertEqual([0,1],calls)
+            await pilot.press('r'); await pilot.pause(0.05)
+            self.assertEqual([0,1,0],calls); self.assertIsNone(app.job)
+
+    async def test_cancel_stops_loading_without_starting_the_waiting_tab(self):
+        calls=[]; started=asyncio.Event()
+        async def collect(page,settings):
+            calls.append(page); started.set(); await asyncio.Event().wait()
+        app=FaultlensApp(collector=collect)
+        async with app.run_test(size=(100,30)) as pilot:
+            await asyncio.wait_for(started.wait(),1)
+            app.select_page(1); await pilot.pause(0.01)
+            await pilot.press('escape'); await pilot.pause(0.05)
+            self.assertEqual([0],calls); self.assertIsNone(app.job)
 
     async def test_search_moves_cursor_without_hiding_rows(self):
         app=self.app()

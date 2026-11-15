@@ -112,8 +112,8 @@ Original/Records and the explicit Evidence section.
 The same observation/finding/boot/interface/socket/recording/crash explainers feed
 CLI and modal details. Source lists use bounded rendering batches without removing
 records. The workspace retains one latest snapshot per source section, with command,
-time and changed-option provenance. Startup reads status only; r explicitly collects
-other sections and Esc cancels without elevating or changing server configuration.
+time and changed-option provenance. Startup reads status; opening a source section loads its snapshot and revisiting
+reuses it. r refreshes manually and Esc cancels without elevating or changing server configuration.
 
 Source values remain literal escaped text, never Rich markup, terminal sequences or
 commands. Search moves the cursor without filtering evidence. Exact originals,

@@ -109,7 +109,7 @@ class DetailDialog(ModalScreen):
             source=self.entry.original; boot=source.get('boot',source)
             self.app.session.update_setting('boot_selector',boot['boot_id'])
             self.dismiss(); self.app.select_page(5)
-            self.app.notice='Boot ID selected. Press r to diagnose with the current collection options.'; self.app.update_status()
+            self.app.notice='Boot ID selected. Diagnostics loads with the current collection options.'; self.app.update_status()
         else: self.dismiss()
 
 
@@ -239,6 +239,7 @@ class FaultlensApp(App):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
         self.initial_collect=initial_collect; self.search_query=''
+        self.collection_attempts={}; self.closing=False
 
     def _handle_exception(self,error):
         # Pinned Textual hook: never render exception locals containing admin evidence.
@@ -253,14 +254,14 @@ class FaultlensApp(App):
         with TabbedContent(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
-                    yield Static('Press r to collect this section with current access.',id='summary-'+str(page),classes='summary',markup=False)
+                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary',markup=False)
                     yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
         yield Footer()
 
     def on_mount(self):
         for page in range(8): self.populate(page)
         self.query_one('#grid-0',DataTable).focus()
-        if self.initial_collect: self.action_refresh()
+        self.ensure_snapshot()
 
     def on_resize(self,event):
         for widget in self.query('.summary'): widget.display=event.size.height>=16
@@ -301,8 +302,8 @@ class FaultlensApp(App):
         for index,width in zip(visible,widths): table.add_column(columns[index],width=width)
         for index,entry in enumerate(entries): table.add_row(*(literal(entry.cells[c]) for c in visible),key=str(index))
         if entries: table.move_cursor(row=min(selected,len(entries)-1))
-        summary=('Collection options affect the next explicit refresh; no server settings are changed.' if page==7 else
-                 guide(data)['Summary'] if data else 'No retained snapshot. Press r to collect this section using existing access.')
+        summary=('Collection options apply when opening a source section or refreshing; no server settings are changed.' if page==7 else
+                 guide(data)['Summary'] if data else 'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
         self.query_one('#summary-'+str(page),Static).update(literal(summary))
 
     def update_status(self):
@@ -323,33 +324,45 @@ class FaultlensApp(App):
         if page!=self.page: self.page=page; self.populate(self.page)
         self.update_status()
         self.query_one('#grid-'+str(self.page),DataTable).focus()
+        self.ensure_snapshot()
+
+    def ensure_snapshot(self):
+        if not self.initial_collect or self.closing or self.page>=6 or self.job is not None: return
+        options=asdict(self.session.settings)
+        if self.page in self.snapshots and self.snapshot_options.get(self.page)==options: return
+        # Failed/cancelled reads need r to retry; tab events must never create a loop.
+        if self.collection_attempts.get(self.page)!=options: self.action_refresh()
 
     def action_refresh(self):
         if self.job is not None: self.notice='Collection already running. Esc cancels.'; self.update_status(); return
         if self.page>=6: self.notice='This section does not collect. Choose a source section.'; self.update_status(); return
         page=self.page; options=replace(self.session.settings)
+        self.collection_attempts[page]=asdict(options)
         self.snapshots.pop(page,None); self.populate(page)
         self.notice='Collecting '+TABS[page]+'... Esc cancels; q exits.'; self.update_status()
         self.job=asyncio.create_task(self.load(page,options))
 
     async def load(self,page,options):
+        cancelled=False
         try:
             value=await self.collector(page,options)
             self.snapshots[page]=value; self.snapshot_options[page]=asdict(options)
             self.notice='Snapshot collected. Open a row for meaning and original evidence.'
-        except asyncio.CancelledError: self.notice='Collection cancelled; no replacement snapshot retained.'
+        except asyncio.CancelledError:
+            cancelled=True; self.notice='Collection cancelled. Press r to retry; no replacement snapshot retained.'
         except (OSError,ValueError,TimeoutError): self.notice='Collection unavailable within source limits; no evidence was guessed.'
         finally:
             self.job=None
             if self.is_running:
                 self.populate(self.page); self.update_status()
+                if not cancelled: self.call_later(self.ensure_snapshot)
 
     async def action_cancel(self):
         if self.job is not None:
             self.job.cancel(); await self.job
-    async def action_quit(self): await self.action_cancel(); self.exit(0)
-    async def action_interrupt(self): await self.action_cancel(); self.exit(130)
-    async def on_unmount(self): await self.action_cancel()
+    async def action_quit(self): self.closing=True; await self.action_cancel(); self.exit(0)
+    async def action_interrupt(self): self.closing=True; await self.action_cancel(); self.exit(130)
+    async def on_unmount(self): self.closing=True; await self.action_cancel()
 
     def selected(self):
         entries=self.entries.get(self.page,[]); table=self.query_one('#grid-'+str(self.page),DataTable)
@@ -403,7 +416,7 @@ class FaultlensApp(App):
         detail={'Navigation':['Left/Right changes main sections; Up/Down selects rows; Enter opens a record or source.',
             'Esc closes a dialog or cancels collection; e opens unchanged original evidence; r explicitly refreshes.',
             'Search moves the table cursor without filtering. q quits; Ctrl-C interrupts and restores the terminal.'],
-            'Collection':['System status loads on startup. Other sources collect only on explicit refresh.',
+            'Collection':['Source sections load when opened and reuse their snapshot; r refreshes. Changed options load on the next visit.',
             'Optional sources default off. Settings apply to later collection, never to server configuration.',
             'Tables retain the latest bounded snapshot for each source section; timestamps and changed options remain visible.'],
             'Confidence':'A reported event is not a confirmed cause. Missing evidence is not an all-clear.'}

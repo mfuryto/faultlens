@@ -46,8 +46,13 @@ Within an input dialog, arrow keys edit the input instead of switching sections.
 Enter applies validated session options; Esc cancels. Boolean collection options
 toggle through their table row. Changes affect later collection only.
 
-System status loads on startup. Other sections require r; switching tabs alone
-never requests historical data or optional sources. Collection runs in a bounded,
+System status loads on startup. Each source section loads when first opened,
+then reuses its snapshot on later visits. Changed collection options are applied
+when the source section is reopened; r always requests a fresh read. Evidence and
+Settings do not collect. Only one read runs at once; switching during a read loads
+the currently selected source section after it finishes, without querying intermediate
+tabs. Failed or cancelled reads do not retry in a loop; r retries. Optional sources
+remain off until selected in Settings. Collection runs in a bounded,
 cancellable child process so tabs and cancellation remain responsive. A cancelled
 refresh retains no replacement report. Native readers retain their own access and
 resource constraints; kernel-uninterruptible I/O remains an operating-system limit.
@@ -60,7 +65,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | Health | Tool/service/recording readiness observations; missing data is not host failure |
 | Network | Interface rates and protocol counters; explicitly requested sockets open a separate endpoint table |
 | Security | Current indicators, or retained diagnosis findings when no current-security snapshot exists; the status line names the actual report |
-| History | Visible boots, examined/unexamined status, report counts and retained-record counts; Select boot pins its ID without collecting |
+| History | Visible boots, examined/unexamined status, report counts and retained-record counts; Select boot pins its ID and opens Diagnostics, which loads the selected boot |
 | Diagnostics | Grouped reports and separate journal/security/recording/crash sources; open groups to inspect individual reports |
 | Evidence | Explicit access to complete original report/source trees |
 | Settings | Typed session-only collection options; no server configuration editor |
