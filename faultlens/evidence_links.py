@@ -30,6 +30,30 @@ def _digest(value):
     return isinstance(value,str) and re.fullmatch(r'[a-f0-9]{64}',value)
 
 
+def timeline_finding(data,values,position):
+    """Resolve an actual retained timeline entry only against its own finding list."""
+    sources=[data]+[data.get(key,{}) for key in ('ssh_analysis','firewall_analysis')]
+    sources+=data.get('event_search',{}).get('queries',[])
+    owners=[source for source in sources if source.get('timeline') is values]
+    if len(owners)!=1 or sum(item is position for item in values)!=1:
+        return None
+    findings=owners[0].get('findings',[])
+    index=position.get('finding_index')
+    if not _index(index,findings):
+        return None
+    finding=findings[index]
+    references=finding.get('evidence',[])
+    if finding.get('rule_id')!=position.get('rule_id') or not references:
+        return None
+    reference=references[0]
+    if owners[0] is data.get('firewall_analysis'):
+        # Firewall timelines intentionally omit the packet body from their reference.
+        reference={key:value for key,value in reference.items() if key!='packet'}
+    if reference!=position.get('reference'):
+        return None
+    return finding if _owner(data,finding) is not None else None
+
+
 def _journal(reference,records):
     if 'candidate_index' in reference:
         index=reference['candidate_index']

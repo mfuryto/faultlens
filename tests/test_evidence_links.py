@@ -3,7 +3,7 @@ import copy
 import unittest
 from unittest.mock import patch
 
-from faultlens.evidence_links import resolve
+from faultlens.evidence_links import resolve,timeline_finding
 from faultlens.incidents import diagnose
 from faultlens.security_analysis import assess
 from faultlens.tui_model import Session
@@ -20,6 +20,79 @@ def linked(view):
 
 
 class EvidenceLinkTests(unittest.TestCase):
+    def test_main_timeline_resolves_by_source_index_rule_and_reference_without_reordering(self):
+        data=diagnose(JournalRunner([
+            record('Out of memory: Killed process 42',__CURSOR='synthetic:1'),
+            record('Kernel panic - not syncing: invented',__CURSOR='synthetic:2')]),show_evidence=True)
+        original=copy.deepcopy(data)
+        self.assertEqual(2,len(data['timeline']))
+        position=data['timeline'][1]
+        self.assertEqual('unresolved_equal_timestamp',position['relative_order'])
+        self.assertIs(data['findings'][1],timeline_finding(data,data['timeline'],position))
+        self.assertEqual(original,data)
+
+    def test_filtered_timelines_never_borrow_findings_from_main_or_other_queries(self):
+        data=diagnose(SearchRunner(
+            [record('Out of memory: Killed process 42',__CURSOR='synthetic:1')],
+            kernel=[record('Kernel panic - not syncing: invented',__CURSOR='synthetic:2',PRIORITY='3')]),
+            search_events=True,show_evidence=True)
+        query=data['event_search']['queries'][0]
+        position=query['timeline'][0]
+        self.assertIs(query['findings'][0],timeline_finding(data,query['timeline'],position))
+        self.assertIsNot(data['findings'][0],timeline_finding(data,query['timeline'],position))
+        self.assertIsNone(timeline_finding(data,data['timeline'],position))
+
+    def test_ssh_and_firewall_timelines_keep_their_own_findings(self):
+        data=diagnose(FirewallRunner([record(TCP)],ssh=[ssh_record()]),search_ssh=True,search_firewall=True)
+        for key in ('ssh_analysis','firewall_analysis'):
+            source=data[key]
+            self.assertIs(source['findings'][0],timeline_finding(data,source['timeline'],source['timeline'][0]))
+
+    def test_invalid_stale_and_forged_timeline_references_do_not_resolve(self):
+        data=diagnose(JournalRunner([record('Kernel panic - not syncing: invented')]),show_evidence=True)
+        timeline=data['timeline']; position=timeline[0]
+        for index in (True,-1,999):
+            position['finding_index']=index
+            self.assertIsNone(timeline_finding(data,timeline,position))
+        position['finding_index']=0
+        self.assertIsNone(timeline_finding(data,list(timeline),position))
+        self.assertIsNone(timeline_finding(data,timeline,copy.deepcopy(position)))
+        position['rule_id']='kernel.oom'
+        self.assertIsNone(timeline_finding(data,timeline,position))
+        position['rule_id']='kernel.panic'
+        position['reference']['boot_id']='b'*32
+        self.assertIsNone(timeline_finding(data,timeline,position))
+        self.assertIsNone(timeline_finding({},timeline,position))
+
+    def test_tui_timeline_enter_explains_and_e_keeps_original_metadata(self):
+        session=Session(runner=JournalRunner([record('Kernel panic - not syncing: invented',__CURSOR='synthetic:1')]))
+        session.choose_page(5); session.refresh(); session.timeline()
+        position=session.rows()[0].value
+        original=copy.deepcopy(session.data)
+        with patch.object(session,'refresh',side_effect=AssertionError('No navigation collection')):
+            session.open_row()
+            self.assertIs(position,session.value['Timeline position'])
+            self.assertIn('within its original source',session.notice)
+            self.assertIs(session.data['findings'][0],session.value['Technical details'])
+            self.assertEqual('Confirmed observation; cause Unknown',session.value['Confidence'])
+            self.assertTrue(linked(session.value['Referenced source evidence']))
+            session.back()
+            self.assertIs(session.data['timeline'],session.value)
+            session.open_row(inspect_only=True)
+            self.assertIs(position,session.value)
+            self.assertTrue(all(row.action=='inspect' for row in session.rows()))
+        self.assertEqual(original,session.data)
+
+    def test_tui_unresolved_timeline_falls_back_to_metadata_and_raw_trees_stay_raw(self):
+        session=Session(runner=JournalRunner([record('Kernel panic - not syncing: invented')]))
+        session.choose_page(5); session.refresh(); session.timeline()
+        position=session.value[0]; position['finding_index']=999
+        session.open_row()
+        self.assertIs(position,session.value)
+        self.assertIn('no finding was guessed',session.notice)
+        session.stack=[(session.data['timeline'],'Original raw array',0,0,'inspect')]
+        self.assertTrue(all(row.action=='inspect' for row in session.rows()))
+
     def test_main_journal_links_keep_originals_and_references_without_mutation(self):
         data=diagnose(JournalRunner([record('Kernel panic - not syncing: invented',__CURSOR='synthetic:1')]),show_evidence=True)
         finding=data['findings'][0]

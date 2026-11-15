@@ -72,6 +72,13 @@ hashes. Derived log indicators and historical Atop baselines keep original evide
 reference, with explicit missing-link counts and unchanged confidence. The integrated
 TUI benchmark includes opening a derived finding's linked evidence.
 
+Timeline entries can open explained findings and linked source evidence directly,
+while e retains raw metadata. Main, SSH, firewall and filtered-query timelines resolve
+only to their own normalized finding lists; rule/reference/index checks and retained
+object identity reject copied, stale, invalid or cross-source positions. Tests preserve
+equal-timestamp uncertainty, selection on return and raw evidence roles. The integrated
+TUI benchmark also opens an SSH timeline finding without collecting another source.
+
 The benchmark adds initial TUI status and an integrated TUI diagnosis with 500 ordinary
 journal records, both bounded log sources, six extended Atop samples, 32 interfaces
 and both pstore readers. It measures complete source models and actual renderer

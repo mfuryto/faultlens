@@ -38,6 +38,14 @@ def worker(command: str) -> dict:
             raise RuntimeError('Synthetic TUI evidence collection failed')
         draw(Screen(),session)
         if command=='tui-diagnostic':
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.value is session.data['ssh_analysis'])
+            session.open_row()
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='timeline')
+            session.open_row(); session.open_row()
+            if session.value['Technical details'] is not session.data['ssh_analysis']['findings'][0]:
+                raise RuntimeError('Timeline navigation changed the finding source')
+            draw(Screen(),session)
+            session.choose_page(5)
             session.selected=next(i for i,row in enumerate(session.rows()) if row.value is session.data['security_analysis'])
             session.open_row()
             session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='findings')
