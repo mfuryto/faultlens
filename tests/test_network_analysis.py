@@ -159,6 +159,6 @@ class NetworkAnalysisTests(unittest.TestCase):
 
     def test_text_output_explains_security_uncertainty_and_counter_evidence(self):
         output = io.StringIO()
-        main(['security', '--sample-seconds', '0.05'], sources=NetworkSources(tcp=[stats(), stats((1, 0, 0, 0, 0))]), stdout=output)
+        main(['security', '--sample-seconds', '0.05', '--details'], sources=NetworkSources(tcp=[stats(), stats((1, 0, 0, 0, 0))]), stdout=output)
         self.assertIn('Confirmed counter growth; attack Unknown', output.getvalue())
         self.assertIn('Evidence:', output.getvalue())

@@ -121,7 +121,7 @@ class SessionTests(unittest.TestCase):
         self.assertFalse(session.stale)
         self.assertEqual('available',session.data['security_analysis']['state'])
         session.choose_page(3)
-        self.assertEqual('security_analysis',session.rows()[0].label)
+        self.assertTrue(any(row.value is session.data['security_analysis'] for row in session.rows()))
 
     def test_failure_discards_old_references_and_does_not_cache_reports(self):
         session = self.session()

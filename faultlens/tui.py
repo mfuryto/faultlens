@@ -60,7 +60,23 @@ def draw(screen, session):
         session.selected = max(0, min(session.selected, len(rows)-1))
         top = (session.selected//lines)*lines
         for i, row in enumerate(rows[top:top+lines]):
-            label = row.label + ': ' + brief(row.value)
+            if row.action=='observation':
+                from .presentation import reading
+                preview=escaped(reading(row.value))[1:-1]
+            elif row.action=='guide':
+                preview=escaped(row.value['Summary'])[1:-1]
+            elif row.action=='finding':
+                preview=escaped(row.value['confidence']+' report; cause '+row.value.get('cause_confidence','Unknown'))[1:-1]
+            elif row.action=='explanation':
+                text=(row.value[0] if row.value else 'No additional items') if isinstance(row.value,list) else row.value
+                preview=escaped(str(text))[1:-1]+(' (Enter for all '+str(len(row.value))+')' if isinstance(row.value,list) and len(row.value)>1 else '')
+            elif row.action=='setting' and type(row.value) is bool:
+                preview='On' if row.value else 'Off'
+            elif row.action=='setting' and row.value=='':
+                preview='Not selected'
+            else:
+                preview=brief(row.value)
+            label = row.label + ': ' + preview
             put(screen, 3+i, sidebar, label, content_width,
                 curses.A_REVERSE if top+i == session.selected else 0)
         position = f'Item {session.selected+1 if rows else 0}/{len(rows)}'
@@ -125,7 +141,7 @@ def handle(screen, session, key):
             try:
                 text = None if type(row.value) is bool else edit(screen, row.label, row.value)
                 if type(row.value) is bool or text is not None:
-                    session.update_setting(row.label, text)
+                    session.update_setting(row.key or row.label, text)
             except (ValueError, argparse.ArgumentTypeError):
                 session.notice = 'Invalid setting; previous value retained. See the TUI guide for accepted ranges.'
         else:

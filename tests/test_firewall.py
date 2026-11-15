@@ -129,7 +129,7 @@ class FirewallTests(unittest.TestCase):
         output=io.StringIO()
         message=TCP+'\x1b]52;c;synthetic\x07'
         with patch('socket.socket',side_effect=AssertionError('no packets')),patch('subprocess.Popen',side_effect=AssertionError('no commands')):
-            main(['diagnose','--search-firewall'],runner=FirewallRunner([record(message)]),stdout=output)
+            main(['diagnose','--search-firewall','--details'],runner=FirewallRunner([record(message)]),stdout=output)
         self.assertNotIn('\x1b',output.getvalue())
         self.assertIn('\\u001b',output.getvalue())
         self.assertIn('192.0.2.7',output.getvalue())

@@ -175,7 +175,7 @@ class EventSearchTests(unittest.TestCase):
                               __CURSOR='s=synthetic-private-payload', monotonic=10), candidate(monotonic=10000000)])
         for json_mode in (True, False):
             output = io.StringIO()
-            main(['diagnose', '--search-events'] + (['--json'] if json_mode else []), runner=runner, stdout=output)
+            main(['diagnose', '--search-events'] + (['--json'] if json_mode else ['--details']), runner=runner, stdout=output)
             self.assertNotIn('synthetic-private-payload', output.getvalue())
             self.assertIn('Targeted event search:' if not json_mode else 'candidate_window', output.getvalue())
         search = diagnose(runner, search_events=True)['event_search']

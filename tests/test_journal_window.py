@@ -110,7 +110,7 @@ class JournalWindowTests(unittest.TestCase):
                 main([command, '--until-us', '1000'])
         for json_mode in (True, False):
             output = io.StringIO()
-            main(['diagnose', '--until-us', '1000'] + (['--json'] if json_mode else []),
+            main(['diagnose', '--until-us', '1000'] + (['--json'] if json_mode else ['--details']),
                  runner=WindowRunner([record(realtime=900)]), stdout=output)
             self.assertIn('journal_window' if json_mode else 'Journal window:', output.getvalue())
 

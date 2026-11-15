@@ -132,6 +132,7 @@ def render_history(data, stdout):
             print(f"  Journal position: {position['from_first_visible_record_us']} microseconds from first visible record; {position['before_last_visible_record_us']} before last; {position['relative_order']}.", file=stdout)
             print("  Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
             print("  Reasoning: " + finding['reasoning'], file=stdout)
+            print("  Thresholds: " + json.dumps(finding['thresholds'], ensure_ascii=True), file=stdout)
             if finding["reported_measurements"]:
                 print("  Reported measurements: " + json.dumps(finding["reported_measurements"], ensure_ascii=True), file=stdout)
             for text in finding['limitations'] + finding['recommendations']:
@@ -270,6 +271,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
     parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health"), default="status")
+    parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
     parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes.")
     parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/network/security or initial TUI setting).")
@@ -292,8 +294,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")
     parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (diagnose only).")
     args = parser.parse_args(argv)
-    if args.command == "tui" and args.json:
-        parser.error("TUI is interactive; use explicit CLI commands for JSON output.")
+    if args.command == "tui" and (args.json or args.details):
+        parser.error("TUI has its own explanation and evidence views; use explicit CLI commands for JSON/details.")
     if args.search_firewall and args.command != 'diagnose':
         parser.error("Firewall journal analysis is supported only with diagnose.")
     if args.show_evidence and args.command != 'diagnose':
@@ -361,6 +363,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             data = report(args.command, items)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
+        elif not (args.details or args.show_evidence):
+            from .presentation import render
+            render(data,stdout)
         elif args.command in {'network', 'security'}:
             print("Faultlens — read-only " + args.command + ": " + data['state'], file=stdout)
             print("Namespace: current; attack assessment Unknown; completeness unknown.", file=stdout)
@@ -391,6 +396,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                          if item.value is None else json.dumps(item.value, ensure_ascii=True))
                 print(safe_text(f"[{item.state.upper()}] {item.key}: {value} {item.unit}"), file=stdout)
                 print(safe_text(f"  Source: {item.source}. {item.explanation}"), file=stdout)
+                print("  Confidence: " + item.confidence + "; thresholds: " + json.dumps(item.thresholds, ensure_ascii=True), file=stdout)
                 for limitation in item.limitations:
                     print(safe_text("  Limitation: " + limitation), file=stdout)
                 for recommendation in item.recommendations:

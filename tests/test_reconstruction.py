@@ -133,7 +133,7 @@ class ReconstructionTests(unittest.TestCase):
                                        __CURSOR='s=' + marker, _HOSTNAME=marker, _COMM=marker)])
         for json_mode in (True, False):
             output = io.StringIO()
-            main(['diagnose'] + (['--json'] if json_mode else []), runner=runner, stdout=output)
+            main(['diagnose'] + (['--json'] if json_mode else ['--details']), runner=runner, stdout=output)
             self.assertNotIn(marker, output.getvalue())
             self.assertNotIn('s=' + marker, output.getvalue())
             if not json_mode:

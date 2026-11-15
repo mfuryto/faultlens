@@ -92,7 +92,7 @@ class JournalScopeTests(unittest.TestCase):
         for command in ('history', 'diagnose'):
             for json_mode in (True, False):
                 output = io.StringIO()
-                main([command, '--system-journal'] + (['--boot', '0'] if command == 'diagnose' else []) + (['--json'] if json_mode else []),
+                main([command, '--system-journal'] + (['--boot', '0'] if command == 'diagnose' else []) + (['--json'] if json_mode else ['--details']),
                      runner=ScopedRunner([record()]), stdout=output)
                 if json_mode:
                     self.assertEqual('system', json.loads(output.getvalue())['journal_scope']['requested'])
@@ -134,7 +134,7 @@ class JournalScopeTests(unittest.TestCase):
         runner = ScopedRunner()
         runner.system_result = Result('completed', 'synthetic-private-payload', 1)
         output = io.StringIO()
-        main(['diagnose', '--boot', '0', '--system-journal'], runner=runner, stdout=output)
+        main(['diagnose', '--boot', '0', '--system-journal', '--details'], runner=runner, stdout=output)
         self.assertIn('Journal collection:', output.getvalue())
         self.assertIn('not_attempted', output.getvalue())
         self.assertNotIn('synthetic-private-payload', output.getvalue())

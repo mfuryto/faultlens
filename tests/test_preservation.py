@@ -143,13 +143,13 @@ class PreservationTests(unittest.TestCase):
         runner = SyntheticRunner()
         runner.results[Command.JOURNAL_CONFIG] = Result('completed', '[Journal]\nStorage=unsupported', 0)
         output = io.StringIO()
-        main(['check', '--history'], sources=SyntheticSources(), runner=runner, stdout=output)
+        main(['check', '--history', '--details'], sources=SyntheticSources(), runner=runner, stdout=output)
         self.assertIn('[UNKNOWN] journal.config.storage: unknown mode', output.getvalue())
         self.assertIn('Final assignment uses an unsupported expression', output.getvalue())
         self.assertIn('No explicit assignment observed', output.getvalue())
         runner.results[Command.JOURNAL_CONFIG] = Result('missing')
         output = io.StringIO()
-        main(['check', '--history'], sources=SyntheticSources(), runner=runner, stdout=output)
+        main(['check', '--history', '--details'], sources=SyntheticSources(), runner=runner, stdout=output)
         self.assertIn('[UNAVAILABLE] journal.config: unavailable', output.getvalue())
 
     def test_raw_config_payload_and_custom_paths_are_not_reported(self):
