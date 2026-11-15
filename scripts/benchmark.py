@@ -44,6 +44,14 @@ def worker(command: str) -> dict:
             raise RuntimeError('Synthetic TUI evidence collection failed')
         draw(Screen(),session)
         if command=='tui-diagnostic':
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='crash_source')
+            session.open_row()
+            session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='crash_records')
+            session.open_row(); session.open_row()
+            if session.value['Technical details'] is not session.data['pstore']['records'][0]:
+                raise RuntimeError('Crash interpretation copied or lost the fragment')
+            draw(Screen(),session)
+            session.choose_page(5)
             session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='recording')
             session.open_row()
             session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='recording_samples')

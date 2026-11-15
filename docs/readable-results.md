@@ -103,6 +103,21 @@ asserting host health. Read failures and invalid arguments retain their existing
 
 ## TUI explanations and evidence
 
+Crash evidence has separate live/archive sections that distinguish collection from
+supported signature analysis. Fragments retain Possible/Unknown confidence, relative
+paths, source metadata, signature line references and original UTF-8/base64 content.
+Binary/NUL/structure-limited fragments are not described as absent evidence. Base64
+can also bound JSON expansion of analyzable text, so encoding alone is not treated
+as analysis failure. Empty sources and excluded entries retain their scope limits.
+Duplicate fragments are not independent crash counts, and no fragment is assigned to
+the selected boot, event time or cause.
+
+In TUI Diagnostics, open **Live crash evidence** or **Archived crash evidence**, then
+**Retained fragments**. Each fragment explains its analysis and encoding; **Original
+content** and **Technical details** expose retained data directly. e opens the original
+source/fragment. Browsing does not collect, decode to files, mount, delete or change
+archiving. CLI --json/--show-evidence and raw report trees retain complete originals.
+
 Historical resources now have a **Recorded resources** section in the default CLI:
 requested recording date/window, retained sample count, possible interval gaps,
 overlaps, RESET samples and reason-specific unavailable states. Sample timestamps

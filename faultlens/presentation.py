@@ -435,6 +435,19 @@ def render(data,out):
             line(out,'Recorded host: '+sample.get('recorded_hostname','Not retained'),'    ')
             line(out,'; '.join(sample_measurements(sample)),'    ')
         for text in detail['Evidence limits']: line(out,'Limit: '+text,'  ')
+    for key in ('pstore','pstore_archive'):
+        if key in data:
+            from .crash_presentation import source_view,record_label,record_view
+            source=data[key]; detail=source_view(source)
+            print('\n'+('Live crash evidence' if key=='pstore' else 'Archived crash evidence'),file=out)
+            line(out,detail['Observed'],'  ')
+            for text in detail['What it means']: line(out,text,'  ')
+            for record in source['records']:
+                line(out,record_label(record)+' | analysis '+record['analysis_state']+' | encoding '+record['content']['encoding'],'  ')
+                if record.get('relative_path') is not None: line(out,'Relative path: '+record['relative_path'],'    ')
+                if record['analysis_state']!='available' or record['content']['encoding']=='base64':
+                    for text in record_view(record)['What it means']: line(out,text,'    ')
+            for text in detail['Evidence limits']: line(out,'Limit: '+text,'  ')
     for title in ('What the evidence means','What you can do','Important limits'):
         if view[title]:
             print('\n'+title,file=out)

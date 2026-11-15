@@ -102,6 +102,10 @@ def row_preview(row):
         preview='Recorded resource samples and coverage; host/boot identity unverified'
     elif row.action=='recording_sample':
         preview='Enter explains interval CPU and memory snapshots; e opens original measurements'
+    elif row.action=='crash_source':
+        preview='Retained crash fragments; boot/time/cause unverified'
+    elif row.action=='crash_record':
+        preview='Enter explains signature/encoding limits; e opens original fragment'
     elif row.action=='socket_row':
         from .socket_presentation import state_meaning,binding_meaning
         preview=state_meaning(row.value)[0]+' | '+binding_meaning(row.value)[0]
@@ -228,6 +232,12 @@ class Session:
             if context=='recording_samples':
                 from .recording_presentation import sample_label
                 return [Row(escaped(sample_label(item))[1:-1],item,'recording_sample') for item in self.value]
+            if context=='crash_records':
+                from .crash_presentation import record_label
+                return [Row(escaped(record_label(item))[1:-1],item,'crash_record') for item in self.value]
+            if context in {'crash_source','crash_record'}:
+                return [Row(escaped(key)[1:-1],value,'crash_records' if key=='Retained fragments' else 'inspect'
+                            if key in {'Technical details','Original content','Signature line references'} else 'explanation') for key,value in self.value.items()]
             if context in {'recording','recording_sample'}:
                 return [Row(escaped(key)[1:-1],value,'recording_samples' if key=='Retained samples' else 'inspect'
                             if key in {'Technical details','Reported coverage'} else 'explanation') for key,value in self.value.items()]
@@ -278,7 +288,7 @@ class Session:
             'findings', 'timeline', 'reconstruction', 'journal_records', 'security_analysis',
             'ssh_analysis', 'firewall_analysis', 'event_search', 'atop', 'pstore', 'pstore_archive')
         return [summary]+[Row(VIEW_NAMES.get(key,key), self.data[key],
-            'findings' if key=='findings' else 'timeline' if key=='timeline' else 'recording' if key=='atop' else 'event_search' if key=='event_search' else 'analysis'
+            'findings' if key=='findings' else 'timeline' if key=='timeline' else 'crash_source' if key in {'pstore','pstore_archive'} else 'recording' if key=='atop' else 'event_search' if key=='event_search' else 'analysis'
             if key in {'ssh_analysis','firewall_analysis','security_analysis'} else 'inspect') for key in keys if key in self.data] + [Row('Full report', self.data)]
 
     def open_row(self, *, inspect_only=False):
@@ -331,6 +341,13 @@ class Session:
                     if row.action=='recording':
                         value['Retained samples']=row.value['samples']
                         value['Reported coverage']=row.value.get('coverage')
+            elif row.action in {'crash_source','crash_record'}:
+                if inspect_only:
+                    context='inspect'
+                else:
+                    from .crash_presentation import source_view,record_view
+                    value=(source_view if row.action=='crash_source' else record_view)(value)
+                    if row.action=='crash_source': value['Retained fragments']=row.value['records']
             elif context=='finding':
                 from .presentation import finding_view
                 from .evidence_links import resolve
