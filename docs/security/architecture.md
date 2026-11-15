@@ -56,8 +56,8 @@ limits fail closed before resource results are emitted.
 [Phase 3 network sampling](../architecture/phase-3-network.md) reads only fixed
 namespace counter sources, validates paired columns and unique interface labels, and
 uses measured monotonic durations. Source failures remain independent; counter growth
-never establishes an attack. No endpoints, packet capture, remote probe or policy write
-is introduced.
+never establishes an attack. The opt-in [socket snapshot](../architecture/phase-3-sockets.md)
+adds numeric local endpoints; no packet capture, remote probe or policy write is introduced.
 [Firewall log observations](../architecture/phase-3-firewall.md) use one fixed kernel
 tail query with strict boot/time/source validation. Configurable labels never prove
 final packet verdicts or attacks. Full original candidates and packet context stay
@@ -152,3 +152,10 @@ metadata and lossless content. Future TUI integration and uncollected source fie
 remain separate work. Local visibility
 must not be confused with permission to publish host evidence in repository files,
 CI artifacts or vulnerability reports. Tests continue to use synthetic data only.
+
+[Phase 3 security indicators](../architecture/phase-3-acceptance.md) reuse validated
+source models without extra collection. Grouping is boot-local and protocol-specific;
+recorded counts use interval normalization with RESET/gap boundaries. Fixed heuristic
+thresholds produce Possible indicators only. Source originals remain available;
+compact indices link to them, and the 32-finding cap is explicit. Missing evidence
+and unverified host/boot identity never become an all-clear or a confirmed attack.

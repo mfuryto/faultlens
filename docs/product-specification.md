@@ -274,6 +274,9 @@ All findings must remain traceable to their original evidence.
 - Add traffic anomaly detection using available historical data.
 - Implement explainable security findings.
 
+The bounded Phase 3 CLI implementation and remaining product-level boundaries are
+tracked in [the acceptance review](architecture/phase-3-acceptance.md).
+
 ### Phase 4 — TUI and refinement
 
 - Implement Userdock-style terminal interface.

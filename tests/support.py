@@ -273,10 +273,12 @@ class SyntheticNetworkSources(SyntheticSources):
         self.network_reads = {}
 
     def read(self, path, limit=262144):
-        if path not in {'/proc/net/dev', '/proc/net/netstat'}:
+        if path not in {'/proc/net/dev', '/proc/net/netstat', '/proc/net/snmp'}:
             return super().read(path, limit)
         index = self.network_reads.get(path, 0)
         self.network_reads[path] = index+1
+        if path == '/proc/net/snmp':
+            return 'Udp: InDatagrams OutDatagrams NoPorts InErrors RcvbufErrors SndbufErrors\nUdp: 1 2 0 0 0 0\n'
         if path == '/proc/net/netstat':
             return ('TcpExt: SyncookiesSent SyncookiesRecv SyncookiesFailed ListenOverflows ListenDrops\n'
                     + 'TcpExt: ' + ' '.join(str(index) for _ in range(5)) + '\n')
@@ -316,3 +318,17 @@ class SyntheticSocketRunner:
             raise ValueError('Unexpected synthetic command')
         return Result('completed', ''.join(
             f'tcp ESTAB 0 0 192.0.2.1:{10000+i} 198.51.100.1:443\n' for i in range(512)), 0)
+
+
+class SyntheticPhase3Runner(SyntheticFirewallRunner):
+    """Invented complete phase 3 evidence with short contiguous traffic history."""
+    def read_atop_extended(self, date, start, end):
+        from tests.test_atop import EPOCH
+        from tests.test_atop_extended import extended_sample
+        result = []
+        for index in range(6):
+            count = 100000 if index == 5 else 10
+            rows = [('NET', 'upper ' + ' '.join(str(count) for _ in range(17)))]
+            rows += [('NET', f'nic{i} {count} {count*1000} 1 2 -1 0 0 0 0 0 0 0 0 0 0 0 0 0') for i in range(32)]
+            result.append(extended_sample(rows=rows, timestamp=EPOCH+30*(index+1)))
+        return Result('completed', ''.join(result), 0)

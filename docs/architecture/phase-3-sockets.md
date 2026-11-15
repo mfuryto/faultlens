@@ -10,6 +10,9 @@ stderr 256 KiB cap. These options select numeric, headerless, single-line TCP/UD
 rows including listeners. No name resolution, remote probes or configuration
 changes occur. See the [upstream ss manual](https://git.kernel.org/pub/scm/network/iproute2/iproute2.git/tree/man/man8/ss.8).
 
+Reported state counts and TCP listener-row counts summarize this snapshot without
+inferring unique processes, clients or externally reachable services.
+
 Six fields are validated: protocol, state, receive/send queues and local/peer
 endpoints. IPv4/IPv6, wildcard ports/addresses and device-qualified addresses are
 supported. Queues are unsigned 64-bit values and ports are 0–65535 or a wildcard.

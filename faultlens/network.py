@@ -9,6 +9,7 @@ from .linux import LinuxSources
 from .models import Observation, report, unavailable
 from .parsers import counters, network as interfaces
 
+UDP_FIELDS = ('InDatagrams', 'OutDatagrams', 'NoPorts', 'InErrors', 'RcvbufErrors', 'SndbufErrors')
 TCP_FIELDS = ('SyncookiesSent', 'SyncookiesRecv', 'SyncookiesFailed', 'ListenOverflows', 'ListenDrops')
 LIMITATIONS = (
     'Current network namespace only; no host-wide visibility or stable interface identity is established.',
@@ -22,7 +23,7 @@ LIMITATIONS = (
 )
 
 
-def tcp_extensions(text):
+def protocol_counters(text, section, selected_fields):
     if len(text.encode()) > 262144:
         raise ValueError('Network statistics exceed limit')
     lines = text.splitlines()
@@ -38,18 +39,30 @@ def tcp_extensions(text):
                 or not all(re.fullmatch(r'[A-Za-z][A-Za-z0-9]{0,63}', name) for name in names[1:])):
             raise ValueError('Ambiguous network statistics')
         sections.add(names[0])
-        parsed = dict(zip(names[1:], counters(numbers[1:])))
-        if names[0] == 'TcpExt:':
-            result = {name: parsed.get(name) for name in TCP_FIELDS}
+        parsed = {}
+        for name, number in zip(names[1:], numbers[1:]):
+            # RFC 1213: TCP's dynamic connection limit uses -1, not a counter reset.
+            parsed[name] = -1 if names[0] == 'Tcp:' and name == 'MaxConn' and number == '-1' else counters([number])[0]
+        if names[0] == section:
+            result = {name: parsed.get(name) for name in selected_fields}
     if result is None:
-        raise ValueError('TCP extension section missing')
+        raise ValueError('Protocol statistics section missing')
     return result
+
+
+def tcp_extensions(text):
+    return protocol_counters(text, 'TcpExt:', TCP_FIELDS)
+
+
+def udp_statistics(text):
+    return protocol_counters(text, 'Udp:', UDP_FIELDS)
 
 
 def _snapshot(sources):
     result = {}
     for key, path, parser in (('interfaces', '/proc/net/dev', interfaces),
-                              ('tcp', '/proc/net/netstat', tcp_extensions)):
+                              ('tcp', '/proc/net/netstat', tcp_extensions),
+                              ('udp', '/proc/net/snmp', udp_statistics)):
         try:
             text = sources.read(path)
             if len(text.encode()) > 262144:
@@ -71,7 +84,7 @@ def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.s
     elapsed = clock() - started
     valid_time = math.isfinite(elapsed) and 0.001 <= elapsed <= 5
     items, findings = [], []
-    for key, source in (('interfaces', '/proc/net/dev'), ('tcp', '/proc/net/netstat')):
+    for key, source in (('interfaces', '/proc/net/dev'), ('tcp', '/proc/net/netstat'), ('udp', '/proc/net/snmp')):
         if before[key] is None or after[key] is None or not valid_time:
             items.append(unavailable('network.' + key, source, 'Both valid snapshots and a bounded positive monotonic interval are required.'))
             continue
@@ -89,24 +102,25 @@ def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.s
             items.append(Observation('network.interfaces', values, 'bytes/packets/events and per second', source,
                 'unknown', explanation='Two visible counter snapshots; changed/reset interfaces have no inferred rates.', limitations=LIMITATIONS))
         else:
-            for name in TCP_FIELDS:
+            for name in (TCP_FIELDS if key == 'tcp' else UDP_FIELDS):
                 first, last = before[key][name], after[key][name]
                 if first is None or last is None or last < first:
-                    items.append(unavailable('network.tcp.' + name, source, 'Counter missing, reset or decreased; no delta is inferred.'))
+                    items.append(unavailable('network.' + key + '.' + name, source, 'Counter missing, reset or decreased; no delta is inferred.'))
                     continue
                 delta = last-first
-                items.append(Observation('network.tcp.' + name, {'before': first, 'after': last, 'delta': delta},
-                    'events', source, 'unknown', explanation='Observed namespace TCP extension counter change only.', limitations=LIMITATIONS))
-                if delta > 0 and name in {'SyncookiesSent', 'ListenOverflows', 'ListenDrops'}:
+                items.append(Observation('network.' + key + '.' + name, {'before': first, 'after': last, 'delta': delta},
+                    'events', source, 'unknown', explanation='Observed namespace protocol counter change only.', limitations=LIMITATIONS))
+                if delta > 0 and name in {'SyncookiesSent', 'ListenOverflows', 'ListenDrops', 'InErrors', 'RcvbufErrors', 'SndbufErrors'}:
                     title = {'SyncookiesSent': 'SYN cookie counter increased', 'ListenOverflows': 'TCP listen overflow counter increased',
-                             'ListenDrops': 'TCP listen drop counter increased'}[name]
-                    findings.append(Finding('network.tcp.' + name, title, title + ' during the sampled interval.',
+                             'ListenDrops': 'TCP listen drop counter increased', 'InErrors': 'UDP input error counter increased',
+                             'RcvbufErrors': 'UDP receive buffer error counter increased', 'SndbufErrors': 'UDP send buffer error counter increased'}[name]
+                    findings.append(Finding('network.' + key + '.' + name, title, title + ' during the sampled interval.',
                         'Confirmed', 'warning', [{'source': source, 'counter': name, 'before': first, 'after': last,
                                                 'delta': delta, 'sample_elapsed_seconds': elapsed}],
                         'A supported kernel counter increased between two valid monotonic-time snapshots.',
                         {'minimum_counter_delta': 1},
                         ('Confirms counter growth, not a SYN flood, DDoS, malicious source, service outage or root cause.',
-                         'Legitimate bursts, slow listeners, resource limits and SYN-cookie policy can produce these observations.',
+                         'Legitimate bursts, slow listeners, UDP buffer limits, resource limits and SYN-cookie policy can produce these observations.',
                          'Counters can overlap; multiple findings are not independent attacks or connection counts.'),
                         ('Review legitimate load, listener capacity and existing local policy before considering any change.',)))
     data = report(command, items)
