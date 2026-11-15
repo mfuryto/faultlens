@@ -63,5 +63,6 @@ fixtures remain invented even though administrators may inspect real local data.
 Tests cover identities, units, original line preservation, recorded hostnames,
 thread/exited/RESET visibility without double counting, and escaped format controls.
 The maximum-cardinality benchmark verifies 256 local process details with 32 named
-disks and 32 named interfaces. Native extended replay compatibility and full pstore/
-TUI evidence views remain separate validation/implementation tasks.
+disks and 32 named interfaces. Native extended replay compatibility and TUI integration remain separate tasks.
+[Pstore administrator views](phase-3-pstore-admin.md) now complete the corresponding
+CLI view for the currently collected crash content.

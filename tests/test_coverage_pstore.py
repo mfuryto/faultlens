@@ -67,7 +67,7 @@ class CoverageTests(unittest.TestCase):
 
 
 class PstoreAnalysisTests(unittest.TestCase):
-    def test_signatures_have_redacted_references_without_time_or_boot_attribution(self):
+    def test_signatures_keep_local_original_content_without_time_or_boot_attribution(self):
         secret = 'synthetic-private-payload'
         payload = ('Panic#1 Part1\n<0>[   12.345] Kernel panic - not syncing: ' + secret + '\x1b]52;c;x\x07\n').encode()
         data = pstore.analyze(lambda: ([payload], 2))
@@ -76,8 +76,9 @@ class PstoreAnalysisTests(unittest.TestCase):
         self.assertEqual('Possible', data['records'][0]['confidence'])
         self.assertEqual(64, len(data['records'][0]['sha256']))
         self.assertEqual(2, data['excluded_entries'])
-        self.assertNotIn(secret, json.dumps(data))
-        self.assertNotIn('52;c', json.dumps(data))
+        self.assertIn(secret, data['records'][0]['content']['value'])
+        self.assertIn('52;c', data['records'][0]['content']['value'])
+        self.assertNotIn('\x1b', json.dumps(data))
         self.assertEqual('unverified', data['boot_identity'])
         self.assertEqual('Unknown', data['root_cause'])
 
@@ -92,8 +93,7 @@ class PstoreAnalysisTests(unittest.TestCase):
         for failure, reason in ((PermissionError, 'access_denied'), (FileNotFoundError, 'source_absent_or_changed')):
             with patch('faultlens.pstore.collect', side_effect=failure):
                 self.assertEqual(reason, pstore.analyze()['reason'])
-        for records in ([b'\xff'], [b'\x00'], [b'x' * (pstore.MAX_FILE_BYTES + 1)],
-                        [b'x'] * 9, [b'x' * 131072] * 5, [b'x' * 4097], [b'\n' * 4097]):
+        for records in ([b'x' * (pstore.MAX_FILE_BYTES + 1)], [b'x'] * 9, [b'x' * 131072] * 5):
             data = pstore.analyze(lambda: (records, 0))
             self.assertEqual('unavailable', data['state'])
             self.assertEqual([], data['records'])

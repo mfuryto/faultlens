@@ -11,8 +11,8 @@ The [coverage and pstore milestone](../architecture/phase-2-coverage-pstore.md) 
 uncertain gap assessments and opt-in descriptor-bounded live crash-signature reading.
 The [archive reader](../architecture/phase-2-pstore-archive.md) extends this to fixed,
 protected systemd archive paths with global traversal bounds.
-Pstore content is treated as untrusted and never printed; signature references do not
-authenticate evidence or associate a boot. No record deletion or permission changes occur.
+Pstore content is treated as untrusted and exposed locally through escaped/lossless
+administrator views. Signature references do not authenticate evidence or associate a boot. No record deletion or permission changes occur.
 [Kernel stall report rules](../architecture/phase-2-stall-rules.md) require full supported
 message formats and kernel transport, omit task identities, and distinguish detector
 observations from root-cause attribution.
@@ -93,7 +93,7 @@ must work without the proposed prompt_toolkit TUI dependency.
 | Malicious logs exploit parsers or terminals | Size/depth/time limits, strict decoding policy, escape terminal control sequences including OSC hyperlinks and clipboard sequences | Escape injection, malformed encoding, oversized and truncated evidence tests |
 | Elevated collection changes the host | Unprivileged read-only defaults; capability-specific access checks; no automatic elevation | Denied-permission and no-write integration tests |
 | Configuration changes break remote access or logging | Separate optional mutation interface, exact preview, explicit confirmation, validation, backup and rollback; reject unattended changes by default | Confirmation cancellation, partial failure, rollback tests |
-| Evidence export leaks secrets or topology | Local-only storage, 0700/0600, restrictive umask, atomic exclusive creation, reject symlinks and path traversal, redaction preview, explicit export destination and retention | Permissions, symlink races, traversal, redaction and retention tests |
+| Evidence export leaks secrets or topology | Local-only storage, 0700/0600, restrictive umask, atomic exclusive creation, reject symlinks and path traversal, operator-selected filtering, explicit export destination and retention | Permissions, symlink races, traversal, redaction and retention tests |
 | Resource exhaustion worsens an incident | Bounded command duration/output, cancellation, sampling budgets, no default packet capture or background polling | Measured CPU/RAM/I/O budgets and timeout tests on small VPS systems |
 | Incorrect attribution or missing history misleads operators | Preserve source/time/boot context; separate observed events and hypotheses; expose confidence, thresholds, gaps and clock uncertainty | Deterministic rule tests and ambiguous/missing-history cases |
 | Dependencies or CI introduce supply-chain compromise | Minimal dependencies, verified source and license review, future hash-locked installs; pinned actions, read-only baseline token, job-scoped CodeQL findings upload, no application secrets or diagnostic artifact uploads | Baseline checks, dependency review, owner review |
@@ -142,7 +142,9 @@ not privacy redactions. No automatic save, upload or privilege escalation is add
 
 Earlier milestone identity omissions describe implemented summary/adapter limits,
 not requirements to conceal information from administrators. Full identity/evidence
-views for pstore and future TUI adapters remain work; both Atop profiles now expose
-recorded hostnames/source lines, and the extended profile exposes process identities. Local visibility
+views are implemented for retained journal/SSH, Atop and pstore content. Both Atop
+profiles expose recorded hostnames/source lines; pstore exposes source paths, observed
+metadata and lossless content. Future TUI integration and uncollected source fields
+remain separate work. Local visibility
 must not be confused with permission to publish host evidence in repository files,
 CI artifacts or vulnerability reports. Tests continue to use synthetic data only.

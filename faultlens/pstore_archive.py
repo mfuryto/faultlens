@@ -1,6 +1,7 @@
 """Read only bounded raw records in the fixed systemd pstore archive."""
 import os
 import re
+from dataclasses import replace
 
 from . import pstore
 from .recordings import trusted_metadata
@@ -23,7 +24,7 @@ def collect():
     root = pstore.open_directory('archive')
     records, total, entries, directories, excluded = [], 0, 0, 1, 0
 
-    def walk(descriptor, depth):
+    def walk(descriptor, depth, prefix=()):
         nonlocal total, entries, directories, excluded
         names = []
         with os.scandir(descriptor) as listing:
@@ -36,11 +37,11 @@ def collect():
             if pstore.NAME.fullmatch(name):
                 if len(records) >= pstore.MAX_FILES:
                     raise ValueError('Archive file limit')
-                data = pstore.read_record(descriptor, name)
-                total += len(data)
+                data = pstore.read_record(descriptor, name, include_metadata=True)
+                total += len(pstore.record_bytes(data))
                 if total > pstore.MAX_TOTAL_BYTES:
                     raise ValueError('Archive aggregate limit')
-                records.append(data)
+                records.append(replace(data, relative_path='/'.join((*prefix, name))) if isinstance(data, pstore.Record) else data)
             elif NUMERIC.fullmatch(name):
                 if depth >= MAX_DEPTH or directories >= MAX_DIRECTORIES:
                     raise ValueError('Archive directory limit')
@@ -49,7 +50,7 @@ def collect():
                 try:
                     trusted_metadata(os.fstat(child), directory=True)
                     directories += 1
-                    walk(child, depth + 1)
+                    walk(child, depth + 1, (*prefix, name))
                 finally:
                     os.close(child)
             else:
@@ -62,7 +63,7 @@ def collect():
 
 
 def analyze(collector=None):
-    result = pstore.analyze(collector or collect)
+    result = pstore.analyze(collector or collect, source='archive')
     result.update(source='systemd-pstore-archive', limitations=list(LIMITATIONS),
                   recommendations=['Review archive policy and permissions locally; Faultlens does not change them or read arbitrary paths.'])
     return result

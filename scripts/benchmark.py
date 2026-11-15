@@ -68,7 +68,9 @@ def worker(command: str) -> dict:
             raise RuntimeError('Synthetic network/security sampling failed')
     if command in {'diagnose-pstore', 'diagnose-pstore-archive'}:
         key = 'pstore_archive' if command == 'diagnose-pstore-archive' else 'pstore'
-        if payload[key]['state'] != 'available' or len(payload[key]['records']) != 8:
+        if (payload[key]['state'] != 'available' or len(payload[key]['records']) != 8
+                or payload[key]['records'][0]['relative_path'] != 'dmesg-ramoops-0'
+                or not payload[key]['records'][0]['content']['value']):
             raise RuntimeError('Synthetic pstore analysis failed')
     if command == 'incidents':
         if (len(payload['summaries']) != 7 or any(
