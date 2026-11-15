@@ -207,13 +207,20 @@ class EntrypointTests(unittest.TestCase):
         with (patch('sys.stdin.isatty',return_value=True),
               patch('sys.stdout.isatty',return_value=True),
               patch.dict(os.environ,{'TERM':'xterm'}),
-              patch('faultlens.textual_app.FaultlensApp') as app):
+              patch('faultlens.textual_app.FaultlensApp') as app,
+              patch('faultlens.settings_store.SettingsStore') as store):
+            from faultlens.tui_model import Settings
+            loaded=Settings.administrator_defaults(); loaded.sample_seconds=0.2
+            store.return_value.load.return_value=(loaded,'Loaded invented preferences.')
             app.return_value.run.return_value=0
             self.assertEqual(0,run())
             settings=app.call_args.kwargs['session'].settings
             self.assertTrue(settings.sockets); self.assertTrue(settings.preservation)
             self.assertTrue(settings.search_ssh); self.assertTrue(settings.pstore_archive)
             self.assertFalse(settings.system_journal); self.assertEqual('',settings.atop_date)
+            self.assertEqual(0.2,settings.sample_seconds)
+            store.return_value.load.assert_called_once()
+            self.assertIs(store.return_value,app.call_args.kwargs['settings_store'])
 
     def test_bad_terminal_and_unreviewed_frontend_fail_without_collection(self):
         from faultlens.tui import run

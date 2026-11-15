@@ -36,8 +36,9 @@ Native filesystem calls retain the documented kernel-uninterruptible-I/O limitat
 
 One latest snapshot per source section is retained. A section is dropped before its
 replacement; evidence and historical-security views share references. Times, report
-commands and changed-option notices remain visible. No permanent cache or background
-polling is introduced.
+commands and changed-option notices remain visible. No permanent diagnostic cache or background
+polling is introduced. Validated per-user TUI preferences are saved separately, never
+source evidence; see [preference storage](../tui.md#saving-preferences).
 
 Rich Text cells contain literal escaped source values. Framework developer logging,
 remote devtools and alternate-driver environment hooks are disabled. Exception locals

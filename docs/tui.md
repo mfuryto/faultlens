@@ -67,7 +67,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | History | Visible boots, examined/unexamined status, report counts and retained-record counts; Select boot pins its ID and opens Diagnostics, which loads the selected boot |
 | Diagnostics | Grouped reports and separate journal/security/recording/crash sources; open groups to inspect individual reports |
 | Evidence | Explicit access to complete original report/source trees |
-| Settings | Typed session-only collection options; no server configuration editor |
+| Settings | Typed per-user preferences, saved on valid changes; no server configuration editor |
 
 Repeated reports are grouped in the overview rather than called separate incidents.
 Source dialogs render at most 64 rows per batch, show the retained total and retain
@@ -79,7 +79,7 @@ Raw trees are secondary inspection tools, never the main navigation model.
 The workspace retains at most one bounded snapshot per six source sections. Replacing
 a section drops its prior report first; Evidence shares references and Security may
 share the diagnosis reference. Timestamps, actual report command and changed-option
-notices distinguish stale or differently scoped results. No data is persisted.
+notices distinguish stale or differently scoped results. No diagnostic snapshots or evidence are persisted.
 
 ## Safety and acceptance
 
@@ -110,7 +110,7 @@ finding and its timeline reference can both be inspected without guessing identi
 
 ## Defaults and lifetime
 
-Settings are held in memory for this session, not saved between launches. Each launch
+Saved preferences are loaded at launch. Without a valid saved file, Faultlens
 uses the administrator defaults: current boot in the overview, recording/retention
 checks, socket endpoints, broader kernel/service searches, SSH/firewall searches, and
 live/archived crash-evidence reads are On. These read existing accessible sources;
@@ -126,3 +126,35 @@ Atop date remains unset, and extended replay stays Off until an existing date is
 selected. No recording/boot association is guessed. Date boundaries remain unset
 unless the operator wants to narrow the journal search. These choices preserve source
 scope; they are not disabled general monitoring.
+
+## Saving preferences
+
+The normal TUI entrypoint loads `${XDG_CONFIG_HOME}/faultlens/settings.json`, or
+`~/.config/faultlens/settings.json` when XDG_CONFIG_HOME is unset, empty or relative.
+Valid edits and boot selection save immediately. There is no need to quit normally
+to save; invalid edits leave the previous file intact. Merely launching the TUI does
+not create a file. CLI observations and server configuration are unchanged.
+
+Only the fixed collection settings are stored: booleans, sample duration, overview
+count, selected boot, Atop date and optional journal boundaries. No reports, snapshots,
+search text, paths to arbitrary evidence, logs or credentials are saved. Boot IDs,
+dates and boundaries retain their literal selection across restarts; clear or change
+them when investigating another period. Relative boot indices remain relative.
+
+Each Unix account has its own preferences. Root does not load another user's file.
+Configuration directories/files must belong to the current effective user, with no
+shared writes to the base directory and private app-directory/file permissions.
+New app directories use 0700 and files 0600. Symlink components, non-regular files,
+hardlinks, wrong owners, unsafe permissions, unknown schema/fields, invalid types or
+ranges and files above 8 KiB are rejected. All fields validate before any are used.
+Writes use a private temporary file, flush/fsync and atomic replacement; existing
+unsafe files are never chmodded or followed.
+
+Settings shows the path and load/save status. If a file is invalid, defaults are used
+with a notice. If saving fails, the current session remains usable and explicitly
+reports that persistence was not confirmed. Concurrent instances use the last
+successful save. To reset defaults, remove the preference file while Faultlens is
+closed. No preference migration or diagnostic export is performed.
+
+A supplied initial TUI sample duration seeds first-launch defaults; a saved preference
+takes precedence. Use Settings to update that duration for later launches.
