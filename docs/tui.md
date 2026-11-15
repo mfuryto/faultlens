@@ -51,8 +51,7 @@ then reuses its snapshot on later visits. Changed collection options are applied
 when the source section is reopened; r always requests a fresh read. Evidence and
 Settings do not collect. Only one read runs at once; switching during a read loads
 the currently selected source section after it finishes, without querying intermediate
-tabs. Failed or cancelled reads do not retry in a loop; r retries. Optional sources
-remain off until selected in Settings. Collection runs in a bounded,
+tabs. Failed or cancelled reads do not retry in a loop; r retries. Read-only coverage defaults on; the scope exceptions below remain explicit. Collection runs in a bounded,
 cancellable child process so tabs and cancellation remain responsive. A cancelled
 refresh retains no replacement report. Native readers retain their own access and
 resource constraints; kernel-uninterruptible I/O remains an operating-system limit.
@@ -108,3 +107,22 @@ These captures render the actual frontend using invented test data, never host l
 
 Timeline details also retain a separate original position (`p` / Position), so the
 finding and its timeline reference can both be inspected without guessing identity.
+
+## Defaults and lifetime
+
+Settings are held in memory for this session, not saved between launches. Each launch
+uses the administrator defaults: current boot in the overview, recording/retention
+checks, socket endpoints, broader kernel/service searches, SSH/firewall searches, and
+live/archived crash-evidence reads are On. These read existing accessible sources;
+they do not enable logging, configure recorders, grant access or create reports.
+Missing sources remain unavailable evidence, never a reason to install or elevate.
+
+"Use accessible system journals" remains Off: this selects system-only scope rather
+than enabling journal collection. Accessible journal evidence is already read; forcing
+system-only scope can hide usable personal records when system access is unavailable.
+Enable it when system-only evidence is intended and existing access permits it.
+
+Atop date remains unset, and extended replay stays Off until an existing date is
+selected. No recording/boot association is guessed. Date boundaries remain unset
+unless the operator wants to narrow the journal search. These choices preserve source
+scope; they are not disabled general monitoring.

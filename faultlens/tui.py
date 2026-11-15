@@ -25,9 +25,10 @@ def run(*,sources=None,runner=None,sample_seconds=0.1,stderr=None,
     except (ImportError,OSError):
         print('The optional frontend requires reviewed Textual 8.2.8. Install requirements-tui.txt in an isolated environment using --require-hashes --only-binary=:all:. The CLI still works.',file=stderr)
         return 1
-    from .tui_model import Session
+    from .tui_model import Session,Settings
     session=Session(sources=sources,runner=runner,sample_seconds=sample_seconds,
         pstore_collector=pstore_collector,pstore_archive_collector=pstore_archive_collector)
+    session.settings=Settings.administrator_defaults(sample_seconds=sample_seconds)
     collector=None
     if sources is not None or runner is not None or pstore_collector is not None or pstore_archive_collector is not None:
         # Dependency injection for synthetic acceptance only, never selected by a CLI flag.
