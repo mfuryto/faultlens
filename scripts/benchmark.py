@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def worker(command: str) -> dict:
     sys.path.insert(0, str(ROOT))
     from faultlens.cli import main
-    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources
+    from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources, SyntheticSshRunner
     output = io.StringIO()
     started = time.monotonic()
     arguments = ['diagnose', '--atop-date', '20260101', '--json'] if command == 'diagnose-atop' else [command, '--json']
@@ -24,6 +24,8 @@ def worker(command: str) -> dict:
         arguments = ['diagnose', '--json']
     if command in {'diagnose-events', 'diagnose-review', 'diagnose-integrated'}:
         arguments = ['diagnose', '--system-journal', '--search-events', '--json']
+    if command == 'diagnose-ssh':
+        arguments = ['diagnose', '--system-journal', '--search-events', '--search-ssh', '--show-evidence', '--json']
     if command == 'diagnose-extended':
         arguments = ['diagnose', '--atop-date', '20260101', '--atop-extended', '--json']
     if command == 'diagnose-integrated':
@@ -40,7 +42,8 @@ def worker(command: str) -> dict:
         arguments = ['diagnose', '--pstore-archive', '--json']
     if command == 'diagnose-pstore':
         arguments = ['diagnose', '--pstore', '--json']
-    runner = (SyntheticMaximumExtendedRunner() if command == 'diagnose-extended' else
+    runner = (SyntheticSshRunner() if command == 'diagnose-ssh' else
+              SyntheticMaximumExtendedRunner() if command == 'diagnose-extended' else
               SyntheticExtendedRunner() if command == 'diagnose-integrated' else
               SyntheticOverviewRunner() if command == 'incidents' else
               SyntheticJournalLossRunner() if command == 'diagnose-journal-loss' else
@@ -81,6 +84,13 @@ def worker(command: str) -> dict:
                 or payload['root_cause'] != 'Unknown' or len(payload['findings']) != 500
                 or payload['atop']['samples'][0]['extended']['state'] != 'available'):
             raise RuntimeError('Synthetic integrated historical diagnosis failed')
+    if command == 'diagnose-ssh':
+        ssh = payload['ssh_analysis']
+        if (len(ssh['records']) != 500 or len(ssh['findings']) != 500
+                or not ssh['record_limit_reached'] or ssh['attack_assessment'] != 'Unknown'
+                or len(payload['journal_records']) != 500
+                or any(len(value['records']) != 500 for value in payload['event_search']['queries'])):
+            raise RuntimeError('Synthetic SSH/admin evidence views failed')
     if command == 'diagnose-extended':
         value = payload['atop']['samples'][0]['extended']
         if (len(value['disks']) != 32 or len(value['interfaces']) != 32
@@ -137,7 +147,7 @@ def positive_iterations(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -146,7 +156,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security'):
+    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

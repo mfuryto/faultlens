@@ -126,3 +126,21 @@ and full TUI memory usage have not yet been verified.
 Measure polling and retention overhead before choosing the proposed atop 30-second
 interval. Define measurable latency, timeout and evidence-size budgets alongside the
 first collectors. No security baseline here substitutes for runtime security tests.
+
+## Local administrator visibility
+
+Faultlens is an administrator tool, not a privacy filter. Relevant identities and
+original evidence must be available locally under existing Linux permissions.
+`diagnose --search-ssh` includes parsed usernames/peers/ports and all retained SSH
+candidate messages; `--show-evidence` exposes retained ordinary/filtered journal
+messages and original cursors. Output uses JSON escaping so hostile controls cannot
+operate the terminal, while decoded JSON preserves the original values. Original
+MESSAGE values remain available even when they are unsupported for text analysis.
+Malformed/oversized input and excessive JSON nesting are explicit source failures,
+not privacy redactions. No automatic save, upload or privilege escalation is added.
+
+Earlier milestone identity omissions describe implemented summary/adapter limits,
+not requirements to conceal information from administrators. Full identity/evidence
+views for remaining Atop/pstore/TUI adapters remain future work. Local visibility
+must not be confused with permission to publish host evidence in repository files,
+CI artifacts or vulnerability reports. Tests continue to use synthetic data only.

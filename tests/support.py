@@ -279,3 +279,16 @@ class SyntheticNetworkSources(SyntheticSources):
         header = self.values['/proc/net/dev'].splitlines()[:2]
         rows = [f'net{number}: {100+index} 10 0 0 0 0 0 0 {200+index} 20 0 0 0 0 0 0' for number in range(128)]
         return '\n'.join(header+rows)+'\n'
+
+
+class SyntheticSshRunner(SyntheticEventRunner):
+    """Maximum invented SSH candidate tail with inspectable local evidence."""
+    def read_ssh_candidates(self, boot_id, *, system=False, since_us=None, until_us=None):
+        import json
+        rows = []
+        for index in range(501):
+            rows.append(json.dumps({'_BOOT_ID': boot_id, '__REALTIME_TIMESTAMP': str(1767225600000000+index),
+                '__MONOTONIC_TIMESTAMP': str(index), '__CURSOR':'i='+str(index),
+                '_UID':'0', '_PID':'42', '_COMM':'sshd', '_TRANSPORT':'syslog', 'PRIORITY':'6',
+                'MESSAGE':'Failed password for invalid user synthetic-admin from 192.0.2.7 port 2222 ssh2'}))
+        return Result('completed', '\n'.join(rows), 0)

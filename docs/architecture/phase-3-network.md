@@ -81,3 +81,7 @@ probing and automatic firewall/sysctl changes are not introduced by this milesto
 
 Primary references: [Linux network statistics](https://docs.kernel.org/networking/statistics.html),
 [kernel TCP counter definitions and limitations](https://docs.kernel.org/6.5/networking/snmp_counter.html).
+
+The later [SSH/admin evidence milestone](phase-3-ssh.md) adds opt-in journal
+authentication observations and inspectable originals through diagnose; network
+and security keep this milestone's counter-only default collection.

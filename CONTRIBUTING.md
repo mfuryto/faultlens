@@ -32,6 +32,10 @@ it cannot prevent forced additions or remove previously tracked data.
   controlled environment, timeouts, bounded output, and no implicit sudo or pagers.
 - Treat command output, journal text, files, and terminal escape sequences as hostile.
   Bound parsing, neutralize terminal controls, and test malformed and truncated input.
+- Provide full local administrator evidence views under existing access rights. Do
+  not impose privacy-based masking of users, peers, ports or original messages;
+  concise summaries must link to inspectable evidence. Escape terminal controls
+  without destroying original values.
 - Keep raw evidence local. Use private directories (0700), files (0600), restrictive
   umask, safe creation without following symlinks, explicit retention, and user-selected
   exports. Redaction is not proof of anonymity. No automatic upload or artifact export.

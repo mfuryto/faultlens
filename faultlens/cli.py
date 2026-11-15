@@ -165,6 +165,31 @@ def render_history(data, stdout):
                         print("    " + text, file=stdout)
             for text in targeted.get('limitations', []):
                 print("  Limitation: " + text, file=stdout)
+        ssh = data.get('ssh_analysis')
+        if ssh:
+            print("SSH journal analysis: " + ssh['state'] + "; attack Unknown; completeness unknown.", file=stdout)
+            print("  Collection: " + json.dumps({key: ssh[key] for key in ('command_state', 'returncode', 'parse_state', 'reason')}, ensure_ascii=True), file=stdout)
+            print(f"  Candidates: {ssh['candidates_examined']}; cap reached: {ssh['record_limit_reached']}; unclassified: {ssh['unclassified_candidates']}.", file=stdout)
+            print("  Rule counts: " + json.dumps(ssh['finding_counts_by_rule'], ensure_ascii=True), file=stdout)
+            for finding in ssh['findings']:
+                print("  [" + finding['severity'].upper() + "] " + finding['title'] + "; Confirmed report; attack Unknown.", file=stdout)
+                print("    Evidence: " + json.dumps(finding['evidence'], ensure_ascii=True), file=stdout)
+                print("    Reasoning: " + finding['reasoning'], file=stdout)
+            for record in ssh['records']:
+                print("  Original SSH evidence: " + json.dumps(record, ensure_ascii=True), file=stdout)
+            for text in ssh['limitations']:
+                print("  Limitation: " + text, file=stdout)
+            print("  Recommendation: Review original evidence locally; no automatic SSH or firewall changes.", file=stdout)
+        if 'journal_records' in data:
+            print("Retained journal evidence (local administrator view):", file=stdout)
+            for record in data['journal_records']:
+                print("  " + json.dumps(record, ensure_ascii=True), file=stdout)
+        targeted_records = data.get('event_search', {}).get('queries', [])
+        for query in targeted_records:
+            if 'records' in query:
+                print("Original filtered evidence: " + query['query'], file=stdout)
+                for record in query['records']:
+                    print("  " + json.dumps(record, ensure_ascii=True), file=stdout)
         resources = data.get('atop', {})
         if resources.get('state') != 'not_requested':
             print("Atop: " + resources['state'], file=stdout)
@@ -216,11 +241,17 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
     parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
     parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
-    parser.add_argument("--until-us", type=receipt_boundary, help="End the ordinary tail at Unix receipt-time microseconds (diagnose only; searches unchanged).")
-    parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; searches unchanged).")
+    parser.add_argument("--search-ssh", action="store_true", help="Inspect bounded supported SSH authentication reports in the selected boot/time scope (diagnose only).")
+    parser.add_argument("--until-us", type=receipt_boundary, help="End the ordinary tail at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
+    parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
+    parser.add_argument("--show-evidence", action="store_true", help="Show all retained original journal messages and metadata locally (diagnose only).")
     args = parser.parse_args(argv)
+    if args.show_evidence and args.command != 'diagnose':
+        parser.error("Original journal evidence is supported only with diagnose.")
+    if args.search_ssh and args.command != 'diagnose':
+        parser.error("SSH journal analysis is supported only with diagnose.")
     if args.atop_extended and (args.command != 'diagnose' or args.atop_date is None):
         parser.error("Extended resource context requires diagnose with --atop-date.")
     if (args.boot_count is not None or args.include_current) and args.command != "incidents":
@@ -257,7 +288,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         elif args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended))
+                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended, search_ssh=args.search_ssh, show_evidence=args.show_evidence))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)

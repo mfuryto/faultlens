@@ -26,6 +26,8 @@ From a trusted checkout, as an ordinary user:
 ./bin/faultlens security --json
 ./bin/faultlens history
 ./bin/faultlens history --system-journal
+./bin/faultlens diagnose --boot 0 --system-journal --search-ssh --json
+./bin/faultlens diagnose --boot 0 --system-journal --show-evidence --json
 ./bin/faultlens diagnose --previous-boot
 ./bin/faultlens diagnose --previous-boot --pstore
 ./bin/faultlens diagnose --previous-boot --pstore-archive --json
@@ -56,8 +58,10 @@ History lists accessible boot IDs. Diagnose resolves a selected boot to an immut
 ID and analyzes at most 500 accessible tail records for specific kernel OOM, panic,
 I/O/ext4 error, supported watchdog/blocked-task and OverlayFS reuse reports, and
 structured systemd event signatures. Findings retain references,
-reasoning, confidence and limitations. Raw journal messages are processed in bounded
-memory only; they are never displayed or saved. Missing evidence and root causes
+reasoning, confidence and limitations. Raw journal messages are processed in bounded memory. `--show-evidence` exposes
+retained original messages and cursors locally; summaries remain concise. The SSH
+view includes identities and original candidate records. Nothing is saved or
+uploaded automatically. Missing evidence and root causes
 remain Unknown. See [journal analysis scope](docs/architecture/phase-2-journal.md)
 and [kernel stall report rules](docs/architecture/phase-2-stall-rules.md).
 Detector findings show checked reported measurements without task names or PID;
@@ -151,8 +155,9 @@ optional tools. Executable availability alone does not prove feature readiness.
 `network` and `security` take two bounded local counter snapshots for per-interface
 rates and selected TCP indicators. Confirmed counter growth never confirms an attack;
 security assessment remains Unknown. No addresses, ports, packet capture or external
-probes are collected. SSH/firewall analysis and historical security detection remain
-future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
+probes are collected. Opt-in SSH journal observations and local original evidence views are described in
+[SSH analysis](docs/architecture/phase-3-ssh.md). Firewall analysis, broader
+authentication methods and historical attack attribution remain future work. See [phase 3 network scope](docs/architecture/phase-3-network.md).
 
 ## Develop and verify
 

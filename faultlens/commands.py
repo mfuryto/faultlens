@@ -40,6 +40,7 @@ EVENT_FILTERS = {
     'kernel_warnings': ('--priority=warning', '_TRANSPORT=kernel'),
     'systemd_events': ('_PID=1', '_COMM=systemd', 'MESSAGE_ID=' + UNIT_START_FAILED,
                        'MESSAGE_ID=' + SHUTDOWN_REQUEST),
+    'ssh_events': ('_UID=0', '_TRANSPORT=syslog', '_COMM=sshd', '_COMM=sshd-session', '_COMM=sshd-auth'),
 }
 TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop")
 TOOL_PURPOSES = {
@@ -179,6 +180,9 @@ class CommandRunner:
             raise ValueError("Invalid event query")
         return self._read_boot(boot_id, system=system, query=query)
 
+    def read_ssh_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
+        return self._read_boot(boot_id, system=system, query='ssh_events', since_us=since_us, until_us=until_us)
+
     def _read_boot(self, boot_id: str, *, system: bool, query=None, until_us=None, since_us=None) -> Result:
         validate_window(since_us, until_us)
         if query is not None and (not isinstance(query, str) or query not in EVENT_FILTERS):
@@ -194,6 +198,8 @@ class CommandRunner:
                      "--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM"]
         if query is not None:
             arguments[-1] += ",PRIORITY"
+            if query == 'ssh_events':
+                arguments[-1] += ',_UID'
             arguments.extend(EVENT_FILTERS[query])
         if since_us is not None:
             arguments.append(f"--since=@{since_us // 1000000}.{since_us % 1000000:06d}")
