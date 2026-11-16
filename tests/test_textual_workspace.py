@@ -35,7 +35,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         app=self.app()
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.01)
-            self.assertEqual(3,len(app.query_one('#grid-0',DataTable).columns))
+            self.assertEqual(4,len(app.query_one('#grid-0',DataTable).columns))
             await pilot.press('down','enter'); self.assertIsInstance(app.screen,DetailDialog)
             selected=app.screen.entry.original
             await pilot.press('e'); self.assertIsInstance(app.screen,RawDialog)
@@ -253,8 +253,8 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.01); app.select_page(2); await pilot.pause(0.01)
             table=app.query_one('#grid-2',DataTable)
-            self.assertGreater(table.row_count,128)
-            table.move_cursor(row=len(app.entries[2])-1)
+            self.assertLessEqual(table.row_count,9)
+            table.move_cursor(row=next(i for i,row in enumerate(app.entries[2]) if row.kind=='sockets'))
             await pilot.press('enter'); self.assertIsInstance(app.screen,SourceDialog)
             await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
             self.assertEqual('0.0.0.0:2222',app.screen.entry.original['local']['original'])
@@ -340,6 +340,47 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
                 self.assertIn('No security or health conclusion',app.screen.entry.detail['What it means'])
                 await pilot.press('escape')
+
+    async def test_current_sections_show_useful_normal_review_and_unavailable_scenarios(self):
+        from faultlens.health import collect
+        from faultlens.commands import Command,Result
+        from faultlens.models import report
+        from tests.test_network_analysis import NetworkSources,analyze,stats
+        from tests.test_current_overview import UNIT
+        normal=collect(SyntheticSources(),SyntheticRunner(),sample_seconds=0.05,preservation=True)
+        runner=SyntheticRunner();runner.results[Command.FAILED_SERVICES]=Result('completed',UNIT,0)
+        runner.results[Command.SYSTEM_STATE]=Result('completed','degraded',1)
+        review=collect(SyntheticSources(),runner,sample_seconds=0.05)
+        unavailable=report('health',[Observation('cpu.busy',None,'percent','synthetic','unavailable')])
+        unavailable['failed_services']={'state':'unavailable','rows':[],'limitations':['Invented unavailable source.']}
+        network_cases=(analyze(),analyze(NetworkSources(tcp=[stats(),stats((1,0,0,0,0))])),
+                       analyze(NetworkSources(devices=[OSError('invented')]*2,tcp=[OSError('invented')]*2,udp=[OSError('invented')]*2)))
+        app=self.app()
+        async with app.run_test(size=(110,30)) as pilot:
+            await pilot.pause(0.01)
+            for index,health in enumerate((normal,review,unavailable)):
+                for page,data in ((0,dict(health,command='status')),(1,health),(2,network_cases[index])):
+                    app.snapshots[page]=data; app.select_page(page)
+                    await self.wait_until(pilot,lambda: app.page==page)
+                    app.populate(page)
+                    table=app.query_one('#grid-'+str(page),DataTable)
+                    self.assertEqual(4,len(table.columns));self.assertGreater(table.row_count,0)
+                    for entry in app.entries[page]:
+                        self.assertTrue(all(str(cell).strip() for cell in entry.cells))
+                    await pilot.press('enter')
+                    self.assertIsInstance(app.screen,(DetailDialog,SourceDialog))
+                    await pilot.press('escape')
+            app.snapshots[1]=review; app.select_page(1)
+            await self.wait_until(pilot,lambda: app.page==1);app.populate(1)
+            table=app.query_one('#grid-1',DataTable)
+            table.move_cursor(row=next(i for i,row in enumerate(app.entries[1]) if row.kind=='failed_services'))
+            await pilot.press('enter');self.assertIsInstance(app.screen,SourceDialog)
+            await pilot.press('enter');self.assertIsInstance(app.screen,DetailDialog)
+            self.assertEqual('example-worker.service',app.screen.entry.original['unit'])
+            await pilot.press('escape','escape')
+            await pilot.resize_terminal(40,10);await pilot.pause(0.01)
+            self.assertGreater(app.query_one('#grid-1',DataTable).size.height,0)
+            self.assertTrue(all(entry.cells[1] and entry.cells[2] for entry in app.entries[1]))
 
     async def test_original_json_cannot_promote_itself_to_settings_or_finding_actions(self):
         app=self.app(); original={'kind':'setting','rule_id':'kernel.panic','value':'untrusted','callback':'untrusted'}

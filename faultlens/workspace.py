@@ -94,23 +94,11 @@ def page_table(page,data,settings):
             Entry((SETTING_NAMES[key],('On' if getattr(settings,key) else 'Off') if type(getattr(settings,key)) is bool
                    else str(getattr(settings,key) or 'Not selected'),'Session only'),key,None,'setting') for key in SETTING_KEYS]
     if data is None: return ('Item','Value','Status'),[collection_entry(page)]
-    if page in {0,1}:
-        return ('Measurement','Value','Status'),[
-            Entry((name(item),reading(item),item['state']),item,observation_view(item),'observation')
-            for item in data.get('observations',[])]
-    if page==2:
-        entries=[]
-        for item in data.get('observations',[]):
-            if item['key']=='network.interfaces' and isinstance(item['value'],list):
-                for row in item['value']:
-                    entries.append(Entry((row['interface'],measurements(row)[0],row['state'],'Interface traffic'),row,
-                                         interface_view(row,data['sample'])))
-            else:
-                entries.append(Entry((name(item),reading(item),item['state'],'Protocol counter'),item,observation_view(item)))
-        if 'sockets' in data:
-            entries.append(Entry(('Local sockets',str(len(data['sockets']['rows']))+' retained rows',data['sockets']['state'],
-                                  'Open numeric endpoints'),data['sockets'],None,'sockets'))
-        return ('Interface / counter','Reading','Status','Evidence'),entries
+    if page in {0,1,2}:
+        from .current_views import build
+        view=build(data,('status','health','network')[page])
+        return ('Check','Result','Assessment','Meaning / next step'),[
+            Entry((row.label,row.value,row.assessment,row.meaning),row.original,row.detail,row.kind) for row in view['rows']]
     if page==4:
         summaries={row['boot']['boot_id']:row for row in data.get('summaries',[])}
         rows=[]
@@ -154,6 +142,25 @@ def _group_members(data,representative,source):
 
 def source_table(entry,data):
     source=entry.original
+    if entry.kind=='observations':
+        from .current_views import observation
+        values=[observation(item) for item in source]
+        rank={'Critical':0,'Review':1,'Gap':2,'Measured':3,'Info':4}
+        values.sort(key=lambda item:rank[item.assessment])
+        return entry.cells[0],('Reading','Value','Assessment','Meaning'),[
+            Entry((item.label,item.value,item.assessment,item.meaning),item.original,item.detail,'observation') for item in values]
+    if entry.kind=='interfaces':
+        from .current_views import interface
+        values=[interface(item,data.get('sample',{})) for item in source]
+        return 'All retained interfaces',('Interface','Rates','Assessment','Meaning'),[
+            Entry((item.label,item.value,item.assessment,item.meaning),item.original,item.detail) for item in values]
+    if entry.kind=='failed_services':
+        return 'Observed failed service units',('Service unit','State','Description'),[
+            Entry((item['unit'],item['active'],item['description']),item,
+                {'Observed':item['unit']+' was listed as failed.',
+                 'What it means':'System-manager service state only; service impact and root cause are not established.',
+                 'What you can do':['Review this unit and its logs with existing access. No restart or reset is performed.'],
+                 'Evidence limits':source['limitations']}) for item in source['rows']]
     if entry.kind=='finding_group':
         return 'Matched reports (not independent incidents)',('Finding','Confidence','Source','Meaning'),[
             finding_entry(row,entry.cells[2]) for row in source]

@@ -14,6 +14,6 @@ class ConstrainedAcceptanceTests(unittest.TestCase):
         self.assertTrue(data['synthetic'])
         self.assertFalse(data['deployment_test'])
         self.assertTrue(data['passed'])
-        self.assertEqual(15,len(data['profiles']))
+        self.assertEqual(21,len(data['profiles']))
         self.assertEqual({128,256,512},{p['address_space_limit_mib'] for p in data['profiles']})
         self.assertTrue(all(p['cpu_affinity_count']==1 and p['passed'] for p in data['profiles']))

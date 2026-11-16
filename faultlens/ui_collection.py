@@ -10,10 +10,10 @@ MAX_OUTPUT=8*1024*1024
 
 
 def arguments(page,settings):
-    commands=('status','check','network','security','incidents','diagnose')
+    commands=('status','health','network','security','incidents','diagnose')
     if type(page) is not int or not 0<=page<len(commands): raise ValueError('Not a source page')
     args=[commands[page],'--json']
-    if page in {0,2,3}: args+=['--sample-seconds',str(settings.sample_seconds)]
+    if page in {0,1,2,3}: args+=['--sample-seconds',str(settings.sample_seconds)]
     if page==1 and settings.preservation: args+=['--history']
     if page in {2,3} and settings.sockets: args+=['--sockets']
     if page in {4,5} and settings.system_journal: args+=['--system-journal']

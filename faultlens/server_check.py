@@ -63,7 +63,15 @@ def live_probe(name, *, boot=0, atop_date=None, pstore=False):
         return observation_rows('status', status(runner=runner))
     if name == 'health':
         from .preservation import assess
-        return observation_rows('health', check(runner=runner)+assess(runner=runner))
+        from .health import failed_services
+        source=failed_services(runner)
+        values=observation_rows('health',check(runner=runner)+assess(runner=runner))
+        values.append(source_row('health.failed_services',source))
+        if source['state']=='available' and source['rows']:
+            values.append(row('health.failed_service_observations','WARN',
+                str(len(source['rows']))+' failed service unit rows observed; service impact is not established.',
+                'Run faultlens health locally to inspect units and next steps. No restart was attempted.'))
+        return values
     if name == 'network':
         from .sockets import attach
         data = collect(sample_seconds=0.1)

@@ -65,7 +65,7 @@ class PresentationTests(unittest.TestCase):
         self.assertIs(data['observations'][0],value['Technical details'])
         self.assertEqual(original,data)
         out=io.StringIO(); render(data,out)
-        self.assertIn('High-priority reading',out.getvalue())
+        self.assertIn('[Critical]',out.getvalue())
         self.assertNotIn('confirmed OOM',out.getvalue())
 
     def test_unverified_defaults_and_missing_optional_tools_do_not_become_health_failures(self):

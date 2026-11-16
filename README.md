@@ -34,7 +34,7 @@ installer yet. Target: Debian/Ubuntu Server with Python 3.11+.
 | Area | What you can inspect |
 | --- | --- |
 | System monitoring | CPU activity and load, RAM/swap, root filesystem capacity, device/interface counters, visible process count and selected service state |
-| Recording readiness | Optional tool availability, journal/Atop services, retention configuration and recording inventory |
+| Operational health and diagnostic readiness | Current resource/service review flags, bounded failed-service context, and separate journal/Atop readiness, defaults and tool details |
 | Boot and incident history | Accessible boot IDs, multi-boot summaries, bounded journal tails, targeted kernel/systemd searches and chronology |
 | Historical performance | Existing Atop CPU, memory, swap and optional disk/network/process recordings, with explicit replay and coverage limits |
 | Network and security | Current TCP/UDP pressure counters and local sockets; selected-boot SSH/firewall reports and Possible historical indicators |
@@ -88,6 +88,7 @@ reports and logs are not saved automatically. See [workspace setup and controls]
 ```bash
 # Current resources, optional tools and recording readiness
 ./bin/faultlens status
+./bin/faultlens health --history
 ./bin/faultlens check --history
 
 # Current network counters and local numeric socket endpoints
@@ -149,11 +150,13 @@ is read-only and does not configure your server. See [server testing](docs/serve
 
 | Start here | Reference |
 | --- | --- |
+| Useful current-server views and source bounds | [Milestone 1 design](docs/architecture/milestone-1-current-overview.md) |
 | Setup, keys and saved preferences | [Terminal workspace](docs/tui.md) |
 | Commands, exit codes and collection bounds | [CLI reference](docs/cli-reference.md) |
 | Meaning, confidence and next steps | [Reading results](docs/readable-results.md) |
 | Tools and optional integrations | [Dependencies](docs/dependencies.md) |
-| Known gaps and development priorities | [Stabilization plan](docs/stabilization.md) |
+| Ordered delivery milestones and acceptance criteria | [Delivery plan](docs/delivery-plan.md) |
+| Current capabilities and known gaps | [Stabilization inventory](docs/stabilization.md) |
 | Architecture, source trust and security boundaries | [Threat model](docs/security/architecture.md) |
 | Reproducible measurements and resource tests | [Benchmarks](docs/benchmarks.md) |
 | Deployment and release gates | [Release readiness](docs/release-readiness.md) |

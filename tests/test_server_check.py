@@ -121,6 +121,14 @@ class ServerCheckTests(unittest.TestCase):
         self.assertNotIn('12.345',json.dumps(data))
         self.assertIn('status.cpu.busy',json.dumps(data))
 
+    def test_live_health_reports_failed_units_as_attention_not_a_software_failure(self):
+        source={'state':'available','rows':[{'unit':'example.service'}]}
+        with patch('faultlens.collectors.check',return_value=[]),patch('faultlens.preservation.assess',return_value=[]),             patch('faultlens.health.failed_services',return_value=source):
+            values=live_probe('health')
+        self.assertEqual(['PASS','WARN'],[item['state'] for item in values])
+        self.assertNotIn('example.service',json.dumps(values))
+        self.assertIn('faultlens health',values[-1]['advice'])
+
     def test_diagnosis_probes_both_scopes_and_reports_real_signature_coverage(self):
         from tests.support import SyntheticPhase3Runner
         with patch('faultlens.commands.CommandRunner',return_value=SyntheticPhase3Runner()):

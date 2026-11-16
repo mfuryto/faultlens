@@ -19,13 +19,14 @@ def worker(command: str) -> dict:
     from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources, SyntheticSshRunner, SyntheticFirewallRunner, SyntheticSocketRunner, SyntheticPhase3Runner
     output = io.StringIO()
     started = time.monotonic()
-    if command in {'tui-status', 'tui-diagnostic'}:
+    if command in {'tui-status', 'tui-diagnostic','tui-health'}:
         import asyncio
         from faultlens.tui_model import Session
+        from tests.support import SyntheticHealthRunner
         from faultlens.textual_app import FaultlensApp
-        session=Session(sources=SyntheticNetworkSources(),runner=SyntheticPhase3Runner(),
+        session=Session(sources=SyntheticNetworkSources(),runner=SyntheticHealthRunner() if command=='tui-health' else SyntheticPhase3Runner(),
             pstore_collector=SyntheticSources().pstore_snapshot,pstore_archive_collector=SyntheticSources().pstore_snapshot)
-        page=5 if command=='tui-diagnostic' else 0
+        page=5 if command=='tui-diagnostic' else 1 if command=='tui-health' else 0
         session.choose_page(page)
         if page==5:
             for key in ('search_ssh','search_firewall','pstore','pstore_archive'): session.update_setting(key)
@@ -38,6 +39,9 @@ def worker(command: str) -> dict:
                 app.select_page(page)
                 await pilot.pause(0.01)
                 if app.page!=page: raise RuntimeError('Workspace section did not activate')
+                if command=='tui-health':
+                    from textual.widgets import DataTable
+                    app.query_one('#grid-1',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[1]) if row.kind=='failed_services'))
                 app.action_open()
                 await pilot.pause(0.01)
                 if len(app.screen_stack)!=2: raise RuntimeError('Workspace did not open the selected record')
@@ -93,6 +97,9 @@ def worker(command: str) -> dict:
         arguments = ['network', '--sockets', '--sample-seconds', '0.05', '--json']
         runner = SyntheticSocketRunner()
     sources = SyntheticNetworkSources() if command in {'network', 'security', 'network-sockets'} else SyntheticSources()
+    if command=='health':
+        from tests.support import SyntheticHealthRunner
+        runner=SyntheticHealthRunner()
     code = main(arguments, sources=sources, runner=runner, stdout=output,
                 pstore_collector=SyntheticSources().pstore_snapshot,
                 pstore_archive_collector=SyntheticSources().pstore_snapshot)
@@ -214,7 +221,7 @@ def main():
     parser.add_argument('--json', action='store_true', help='Emit all measurements as JSON for automation.')
     parser.add_argument('--details', action='store_true', help='Show the per-mode measurement table.')
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic','tui-health'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -223,7 +230,7 @@ def main():
         return 0
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
     passed = True
-    for command in ('status', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic'):
+    for command in ('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic','tui-health'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

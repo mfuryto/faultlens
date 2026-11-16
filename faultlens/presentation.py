@@ -406,7 +406,45 @@ def advice_line(out,text,indent='',prefix=''):
     line(out,prefix+text,indent)
 
 
+def render_sockets(snapshot,out):
+    from .socket_presentation import snapshot_view,row_label,state_meaning,binding_meaning
+    detail=snapshot_view(snapshot)
+    print('\nSocket snapshot',file=out)
+    line(out,detail['Observed'],'  ')
+    for text in detail['What it means']: line(out,text,'  ')
+    explained=set()
+    for value in snapshot['rows']:
+        identity=(value['protocol'],value['state'])
+        if identity not in explained:
+            title,meaning=state_meaning(value)
+            line(out,value['protocol'].upper()+' '+value['state']+': '+title+'. '+meaning,'  ')
+            explained.add(identity)
+        line(out,row_label(value)+' | '+binding_meaning(value)[0],'  ')
+    line(out,'Queue values retain native semantics; socket owners and external reachability were not collected.','  ')
+
+
 def render(data,out):
+    if data['command'] in {'status','health','check','network'}:
+        from .current_views import build
+        view=build(data)
+        print('Faultlens - '+data['command'].capitalize()+' (read-only)',file=out)
+        line(out,view['summary']); line(out,'Next: '+view['next_step']); line(out,'Scope: '+view['scope'])
+        for row in view['rows']:
+            line(out,row.label+': '+row.value+' ['+row.assessment+']','  ')
+            line(out,row.meaning,'    ')
+            if row.kind=='interface' and row.assessment=='Review':
+                for text,key in zip(row.detail.get('Measurements',[])[2:],('receive_errors','receive_drops','send_errors','send_drops')):
+                    if row.original['delta'][key]>0: line(out,text,'    ')
+            if row.assessment in {'Review','Critical','Gap'}:
+                for step in row.detail.get('What you can do',[]): advice_line(out,step,'    ','Next: ')
+        if data.get('failed_services',{}).get('state')=='available':
+            for unit in data['failed_services']['rows'][:5]:
+                line(out,unit['unit']+': '+unit['description']+' [Observed failed]','  ')
+            if len(data['failed_services']['rows'])>5: line(out,'Additional failed units remain in --details/--json.')
+        if 'sockets' in data: render_sockets(data['sockets'],out)
+        line(out,'Suggested follow-up commands are optional and never run automatically.')
+        line(out,'Use --details or --json for all retained readings, exact values and original source fields.')
+        return
     view=guide(data)
     print('Faultlens - '+data['command'].capitalize()+' (read-only)',file=out)
     line(out,view['Summary'])
@@ -484,22 +522,6 @@ def render(data,out):
     if data['command'] in {'history','incidents'}:
         for boot in data.get('boots',[]):
             line(out,'Boot '+str(boot['index'])+': '+boot['boot_id']+' (identity for detailed investigation)','  ')
-    if 'sockets' in data:
-        from .socket_presentation import snapshot_view,row_label,state_meaning,binding_meaning
-        snapshot=data['sockets']
-        detail=snapshot_view(snapshot)
-        print('\nSocket snapshot',file=out)
-        line(out,detail['Observed'],'  ')
-        for text in detail['What it means']: line(out,text,'  ')
-        for text in detail['What you can do']: line(out,'Next: '+text,'  ')
-        explained=set()
-        for value in snapshot['rows']:
-            identity=(value['protocol'],value['state'])
-            if identity not in explained:
-                title,meaning=state_meaning(value)
-                line(out,value['protocol'].upper()+' '+value['state']+': '+title+'. '+meaning,'  ')
-                explained.add(identity)
-            line(out,row_label(value)+' | '+binding_meaning(value)[0],'  ')
-        line(out,'Queue values retain native semantics, not universal byte counts or pressure thresholds. Socket owners, application identity and external reachability were not collected.','  ')
+    if 'sockets' in data: render_sockets(data['sockets'],out)
     print('\nUse --details for technical measurements, references and limitations; --json for structured data.',file=out)
     print('Use diagnose --show-evidence when original journal/recording evidence is needed.',file=out)

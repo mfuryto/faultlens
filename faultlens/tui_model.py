@@ -186,14 +186,12 @@ class Session:
         self.stack.clear()
         self.selected, self.scroll = 0, 0
         options = asdict(self.settings)
-        if self.page in {0, 1}:
-            kind = 'status' if self.page == 0 else 'check'
-            observations = (status(self.sources, self.runner, self.settings.sample_seconds)
-                            if self.page == 0 else check(self.sources, self.runner))
-            if self.page == 1 and self.settings.preservation:
-                from .preservation import assess
-                observations.extend(assess(self.sources, self.runner))
-            data = report(kind, observations)
+        if self.page==0:
+            data=report('status',status(self.sources,self.runner,self.settings.sample_seconds))
+        elif self.page==1:
+            from .health import collect
+            data=collect(self.sources,self.runner,sample_seconds=self.settings.sample_seconds,
+                         preservation=self.settings.preservation)
         elif self.page in {2, 3}:
             data = network(self.sources, command='network' if self.page == 2 else 'security',
                            sample_seconds=self.settings.sample_seconds)
@@ -286,7 +284,7 @@ class Session:
         command = self.data['command']
         if self.page == 6:
             return [Row('Snapshot settings', self.snapshot_settings), Row('Full original report', self.data)]
-        expected = ('status', 'check', 'network', 'security', 'incidents', 'diagnose')[self.page]
+        expected = ('status', 'health', 'network', 'security', 'incidents', 'diagnose')[self.page]
         if command != expected and not (self.page == 3 and command == 'diagnose'):
             return []
         from .presentation import guide, name
