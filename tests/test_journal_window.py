@@ -67,12 +67,13 @@ class JournalWindowTests(unittest.TestCase):
             self.assertEqual([], runner.requested)
             self.assertNotIn('private error', json.dumps(data))
 
-    def test_targeted_search_keeps_its_selected_boot_scope(self):
+    def test_targeted_search_uses_the_same_selected_boot_time_scope(self):
         runner = WindowRunner([record(realtime=900)], kernel=[candidate(realtime=2000)])
         data = diagnose(runner, until_us=1000, search_events=True)
-        self.assertEqual(2000, data['event_search']['queries'][0]['candidate_window']['first_candidate']['realtime_us'])
+        self.assertIsNone(data['event_search']['queries'][0]['candidate_window'])
+        self.assertEqual({'since_realtime_us':None,'until_realtime_us':1000},data['event_search']['requested_window'])
         self.assertEqual(900, data['last_record']['realtime_us'])
-        self.assertIn('whole-selected-boot scope', ' '.join(data['limitations']))
+        self.assertIn('same inclusive bounds', ' '.join(data['limitations']))
 
     def test_atop_anchors_to_last_returned_record_not_requested_cutoff(self):
         runner = WindowRunner([record(realtime=(EPOCH + 15) * 1000000, monotonic=15000000)])

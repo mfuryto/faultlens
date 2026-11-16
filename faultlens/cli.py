@@ -67,6 +67,12 @@ def receipt_boundary(value: str) -> int:
     return int(value)
 
 
+def incident_time(value):
+    from .time_window import parse
+    try: return parse(value)
+    except ValueError as exc: raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def atop_date(value: str) -> str:
     from .recordings import recording_date
     try:
@@ -287,8 +293,12 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
     parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
     parser.add_argument("--search-ssh", action="store_true", help="Inspect supported SSH authentication reports and failure-burst indicators in the selected boot/time scope (diagnose only).")
-    parser.add_argument("--until-us", type=receipt_boundary, help="End the ordinary tail at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
-    parser.add_argument("--since-us", type=receipt_boundary, help="Start the ordinary journal window at Unix receipt-time microseconds (diagnose only; --search-events unchanged).")
+    start=parser.add_mutually_exclusive_group()
+    start.add_argument('--since',dest='since_us',type=incident_time,help='Inclusive journal start with explicit timezone, e.g. 2026-11-14T22:20:00Z (diagnose only).')
+    start.add_argument('--since-us',type=receipt_boundary,help='Inclusive start in Unix receipt-time microseconds for all requested journal searches (diagnose only).')
+    end=parser.add_mutually_exclusive_group()
+    end.add_argument('--until',dest='until_us',type=incident_time,help='Inclusive journal end with explicit timezone (diagnose only).')
+    end.add_argument('--until-us',type=receipt_boundary,help='Inclusive end in Unix receipt-time microseconds for all requested journal searches (diagnose only).')
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
     parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")

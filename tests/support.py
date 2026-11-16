@@ -162,7 +162,7 @@ class SyntheticSystemRunner(SyntheticHistoricalRunner):
 
 class SyntheticEventRunner(SyntheticSystemRunner):
     """Maximum filtered candidates from invented data, independently of the tail."""
-    def read_event_candidates(self, boot_id, query, *, system=False):
+    def read_event_candidates(self, boot_id, query, *, system=False, since_us=None, until_us=None):
         import json
         if query not in {'kernel_warnings', 'systemd_events'}:
             raise ValueError('Unknown synthetic query')
@@ -178,15 +178,16 @@ class SyntheticEventRunner(SyntheticSystemRunner):
                 from faultlens.journal import UNIT_START_FAILED
                 value.update(_TRANSPORT='journal', _PID='1', _COMM='systemd',
                              MESSAGE_ID=UNIT_START_FAILED, MESSAGE='Synthetic start-job event', PRIORITY='6')
-            rows.append(json.dumps(value))
+            if (since_us is None or int(value['__REALTIME_TIMESTAMP'])>=since_us) and (until_us is None or int(value['__REALTIME_TIMESTAMP'])<=until_us):
+                rows.append(json.dumps(value))
         return Result('completed', '\n'.join(rows), 0)
 
 
 class SyntheticReviewRunner(SyntheticEventRunner):
     """Maximum unclassified kernel candidates without using private host messages."""
-    def read_event_candidates(self, boot_id, query, *, system=False):
+    def read_event_candidates(self, boot_id, query, *, system=False, since_us=None, until_us=None):
         import json
-        result = super().read_event_candidates(boot_id, query, system=system)
+        result = super().read_event_candidates(boot_id, query, system=system,since_us=since_us,until_us=until_us)
         if query != 'kernel_warnings' or result.state != 'completed':
             return result
         rows = []

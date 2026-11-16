@@ -265,14 +265,14 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     data['journal_window'] = {'mode': mode, 'since_realtime_us': since_us,
                                'until_realtime_us': until_us, 'completeness': 'unknown'}
     if since_us is not None:
-        data['limitations'].append('The ordinary tail is restricted to the requested receipt-time start boundary. A record cap can still omit earlier records inside the range; --search-events retains whole-selected-boot scope.')
+        data['limitations'].append('The ordinary tail is restricted to the requested receipt-time start boundary. All requested journal searches use the same inclusive bounds; record caps can still omit records inside the range.')
     if until_us is not None:
-        data['limitations'].append('The ordinary tail ends at the requested journal receipt-time boundary, not the latest boot record. The --search-events profiles retain their whole-selected-boot scope.')
+        data['limitations'].append('The ordinary tail ends at the requested journal receipt-time boundary, not the latest boot record. All requested journal searches use the same inclusive bounds.')
     data['reconstruction'] = None
     data['journal_collection'] = None
     if search_events:
         from .event_search import unresolved
-        data['event_search'] = unresolved(system=system_journal)
+        data['event_search'] = unresolved(system=system_journal,since_us=since_us,until_us=until_us)
     if search_ssh:
         from .ssh import unresolved as unresolved_ssh
         data['ssh_analysis'] = unresolved_ssh(system=system_journal, since_us=since_us, until_us=until_us)
@@ -303,7 +303,7 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
                                                since_us=since_us, until_us=until_us)
     if search_events:
         from .event_search import search
-        data['event_search'] = search(runner, selected['boot_id'], system=system_journal, show_evidence=show_evidence)
+        data['event_search'] = search(runner, selected['boot_id'], system=system_journal, show_evidence=show_evidence,since_us=since_us,until_us=until_us)
     if since_us is not None:
         result = runner.read_boot_window(selected['boot_id'], since_us, until_us=until_us, system=system_journal)
     elif until_us is not None:

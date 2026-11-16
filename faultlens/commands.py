@@ -188,10 +188,10 @@ class CommandRunner:
         validate_window(since_us, until_us)
         return self._read_boot(boot_id, system=system, since_us=since_us, until_us=until_us)
 
-    def read_event_candidates(self, boot_id: str, query: str, *, system=False) -> Result:
+    def read_event_candidates(self, boot_id: str, query: str, *, system=False, since_us=None, until_us=None) -> Result:
         if not isinstance(query, str) or query not in EVENT_FILTERS:
             raise ValueError("Invalid event query")
-        return self._read_boot(boot_id, system=system, query=query)
+        return self._read_boot(boot_id, system=system, query=query, since_us=since_us, until_us=until_us)
 
     def read_ssh_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
         return self._read_boot(boot_id, system=system, query='ssh_events', since_us=since_us, until_us=until_us)

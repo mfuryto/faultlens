@@ -21,7 +21,7 @@ SETTING_NAMES = dict(zip(SETTING_KEYS, ('Selected boot (index or ID)', 'Use acce
     'Check recording/retention setup', 'Include socket endpoints', 'Search kernel/service events',
     'Search SSH events', 'Search firewall events', 'Atop recording date (YYYYMMDD)',
     'Extended recorded measurements', 'Read live crash evidence', 'Read archived crash evidence',
-    'Earliest journal receipt (Unix us)', 'Latest journal receipt (Unix us)')))
+    'Incident start (date/time)', 'Incident end (date/time)')))
 VIEW_NAMES = {'findings':'Explained findings', 'timeline':'Recorded event timeline',
     'reconstruction':'What the retained chronology shows', 'journal_records':'Original journal records',
     'security_analysis':'Security indicators and their limits', 'ssh_analysis':'SSH authentication evidence',
@@ -169,7 +169,8 @@ class Session:
             if not text:
                 proposed['atop_extended'] = False
         elif key in {'since_us', 'until_us'}:
-            proposed[key] = str(receipt_boundary(text)) if text else ''
+            from .time_window import parse
+            proposed[key] = str(parse(text,allow_microseconds=True)) if text else ''
         validate_window(int(proposed['since_us']) if proposed['since_us'] else None,
                         int(proposed['until_us']) if proposed['until_us'] else None)
         if proposed['atop_extended'] and not proposed['atop_date']:
@@ -440,7 +441,7 @@ class Session:
             'sample_seconds': '0.05 to 1 second. Actual elapsed time controls counter rates.',
             'boot_count': '1 to 7 visible previous boots; include_current opts in to current boot.',
             'atop_date': 'Empty disables replay; otherwise an existing YYYYMMDD recording. atop_extended requires a date. Source host/boot identity stays unverified.',
-            'since_us/until_us': 'Empty or nonnegative Unix microseconds through year 9999; start must not exceed end. Collection caps still apply.',
+            'since_us/until_us': 'Explicit date/time with Z or numeric timezone offset; empty clears. Existing Unix microseconds also work. Start must not exceed end; all requested journal searches share the bounds.',
             'Scope': 'system_journal selects accessible system journals without elevation. Other source toggles request their existing read-only adapters.',
             'Privacy': 'No masking of collected administrator evidence. Controls are escaped; no clipboard, shell, report export or upload is provided.',
             'Confidence': 'No matches is not an all-clear. Confirmed reports are not confirmed attacks or root causes.',

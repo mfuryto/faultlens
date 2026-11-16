@@ -455,3 +455,20 @@ All 63 constrained synthetic runs passed one-CPU-affinity and
 62.90 MiB. These are parser/frontend
 process checks, not real VPS RAM requirements or SSH/production incident acceptance.
 Native journal/Atop startup and storage latency remain outside synthetic measurements.
+
+## Incident time selection — 2026-11-16
+
+All 28 modes passed ten fresh-process runs on Linux/Python 3.14.4 with unchanged
+50 MiB CLI / 80 MiB Textual, <1 s CPU and <2 s wall budgets. The integrated mode
+passes its exact microsecond bounds through all requested journal searches.
+
+| Mode | Median wall | Max wall | Median CPU | Max RSS |
+| --- | ---: | ---: | ---: | ---: |
+| diagnose-integrated | 0.1249 s | 0.1301 s | 0.1128 s | 42.25 MiB |
+| tui-diagnostic | 0.9338 s | 1.0209 s | 0.5148 s | 63.42 MiB |
+
+All 63 constrained synthetic runs passed one-CPU-affinity and
+128/256/512 MiB virtual-address-space ceilings; maximum RSS was
+62.97 MiB. These are synthetic process
+regressions, not target-server/SSH qualification or VM RAM requirements. Real native
+journal traversal, storage latency and incident reconstruction remain outside them.

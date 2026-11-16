@@ -87,3 +87,10 @@ read-only failed-service source. Automated verification and synthetic previews a
 recorded in [the milestone design](architecture/milestone-1-current-overview.md).
 Operator usefulness and target-server/SSH acceptance remain pending; this is not a
 claim that stabilization or the milestone's acceptance is complete.
+
+### Incident period selection
+
+Readable explicit-offset date/time selection and consistent journal-query bounds are
+tracked in [the time-window design](architecture/incident-time-window.md). Existing
+Unix-microsecond settings remain compatible. This is milestone 2 work; real server
+usefulness and cross-server/SSH acceptance remain pending.

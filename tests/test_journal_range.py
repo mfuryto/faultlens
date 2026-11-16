@@ -64,10 +64,10 @@ class JournalRangeTests(unittest.TestCase):
         self.assertEqual(1001, data['reconstruction']['first_record']['realtime_us'])
         self.assertEqual('unknown', data['journal_window']['completeness'])
 
-    def test_targeted_queries_keep_independent_scope(self):
+    def test_targeted_queries_share_requested_receipt_bounds(self):
         runner = RangeRunner([record(realtime=1500)], kernel=[candidate(realtime=500), candidate(realtime=2500, monotonic=200)])
         data = diagnose(runner, since_us=1000, until_us=2000, search_events=True)
-        self.assertEqual(2, data['event_search']['queries'][0]['candidates_examined'])
+        self.assertEqual(0, data['event_search']['queries'][0]['candidates_examined'])
         self.assertEqual(1, data['records_examined'])
 
     def test_reversed_or_invalid_bounds_fail_before_command_execution(self):
