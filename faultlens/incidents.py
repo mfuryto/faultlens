@@ -1,4 +1,5 @@
 """Evidence-backed event rules; no automatic attribution of a freeze or root cause."""
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 import re
 
@@ -31,6 +32,10 @@ class Finding:
     recommendations: tuple[str, ...]
     cause_confidence: str = 'Unknown'
     reported_measurements: dict[str, int] = field(default_factory=dict)
+
+    def to_dict(self):
+        """Copy the flat finding schema and nested JSON evidence without re-walking dataclasses."""
+        return deepcopy(vars(self))
 
 
 # Patterns describe kernel messages, not arbitrary mentions in application output.
@@ -340,7 +345,7 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
     data.update(state='available' if records else 'unavailable', coverage='bounded_tail',
                 records_examined=len(records), record_limit_reached=limited,
                 unsupported_messages=unsupported,
-                findings=[asdict(finding) for finding in findings],
+                findings=[finding.to_dict() for finding in findings],
                 last_record=records[-1].reference() if records else None,
                 timeline=timeline(findings, records), reconstruction=describe(records, findings, limited, unsupported),
                 shutdown_assessment='Marker observed; completion unknown' if any(

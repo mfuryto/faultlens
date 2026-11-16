@@ -34,6 +34,19 @@ def literal(value):
     return Text(json.dumps(str(value),ensure_ascii=True)[1:-1],style=styles.get(str(value),''))
 
 
+class WorkspaceTabs(TabbedContent):
+    """Keep explicit tab selection ahead of stale focus and activation messages."""
+    def on_tabs_tab_activated(self,event):
+        if event.tabs.parent is self and event.tab.id!=event.tabs.active:
+            event.prevent_default()
+            event.stop()
+
+    def on_tab_pane_focused(self,event):
+        if event.tab_pane.id!=self.active:
+            event.prevent_default()
+            event.stop()
+
+
 class RawDialog(ModalScreen):
     """Secondary raw evidence browser; source values remain referenced, not copied."""
     BINDINGS=[Binding('escape','back','Back'),Binding('q','dismiss','Close')]
@@ -322,6 +335,7 @@ class FaultlensApp(App):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
+        self.table_models={}; self.rendered_tables={}
         self.initial_collect=initial_collect; self.search_query=''
         self.collection_attempts={}; self.collection_states={}; self.closing=False; self.workspace_ready=False
         self.settings_store=settings_store; self.settings_status=settings_status
@@ -336,16 +350,19 @@ class FaultlensApp(App):
     def compose(self):
         yield Header(show_clock=False)
         yield Static('Read-only diagnostics; no elevation. User preferences may be saved.',id='status-line',markup=False)
-        with TabbedContent(initial='page-0',id='sections'):
+        with WorkspaceTabs(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
-                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
-                    yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
-                    if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
+                    if page==0: yield from self.section_widgets(page)
         yield Footer()
 
+    def section_widgets(self,page):
+        yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
+        yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
+        if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
+
     def on_mount(self):
-        for page in range(8): self.populate(page)
+        self.populate(self.page)
         self.query_one('#grid-0',DataTable).focus()
         self.call_after_refresh(self.start_workspace)
 
@@ -360,8 +377,7 @@ class FaultlensApp(App):
 
     def relayout(self):
         if self.is_running:
-            for page in range(8):
-                if self.query('#grid-'+str(page)): self.populate(page)
+            if self.query('#grid-'+str(self.page)): self.populate(self.page)
 
     def check_action(self,action,parameters):
         if action in {'previous_tab','next_tab','open','refresh','original','search','next_match','previous_match','help','summary'}:
@@ -376,24 +392,36 @@ class FaultlensApp(App):
     def last_source(self): return next(reversed(self.snapshots),0)
 
     def populate(self,page):
-        table=self.query_one('#grid-'+str(page),DataTable); selected=table.cursor_row; table.clear(columns=True)
-        data=self.data(page); columns,entries=page_table(page,data,self.session.settings)
+        table=self.query_one('#grid-'+str(page),DataTable); selected=table.cursor_row
+        data=self.data(page); options=tuple(asdict(self.session.settings).values())
+        cached=self.table_models.get(page)
+        if cached is not None and cached[0] is data and cached[1]==options:
+            model=cached[2]
+        else:
+            model=page_table(page,data,self.session.settings)
+            self.table_models[page]=(data,options,model)
+        columns,entries=model
         if data is None and page<7: entries=[collection_entry(page,self.collection_states.get(page,'not_collected'))]
         if page==7 and self.settings_store is not None:
             entries=[replace(entry,cells=(*entry.cells[:2],'User preference')) for entry in entries]
         self.entries[page]=entries
-        visible=list(range(len(columns)))
-        if self.size.width<70 and len(columns)>2:
-            visible=[0,1,2] if page in {0,1,2,4} else [0,1]
-        usable=max(12,self.size.width-6-2*len(visible))
-        if len(visible)==3:
-            widths=[max(4,int((usable-9)*0.55)),max(4,usable-9-int((usable-9)*0.55)),9]
-        else:
-            weights=({2:[0.45,0.55],4:[0.25,0.23,0.15,0.37] if page<3 else [0.27,0.19,0.39,0.15] if page in {5,6} else [0.34,0.18,0.18,0.30],5:[0.08,0.18,0.16,0.17,0.41]})[len(visible)]
-            widths=[max(4,int(usable*weight)) for weight in weights]
-        for index,width in zip(visible,widths): table.add_column(columns[index],width=width)
-        for index,entry in enumerate(entries): table.add_row(*(literal(entry.cells[c]) for c in visible),key=str(index))
-        if entries: table.move_cursor(row=min(selected,len(entries)-1))
+        view=(self.size.width,self.collection_states.get(page),self.settings_store is not None)
+        rendered=self.rendered_tables.get(page)
+        if rendered is None or rendered[0] is not model or rendered[1]!=view:
+            table.clear(columns=True)
+            visible=list(range(len(columns)))
+            if self.size.width<70 and len(columns)>2:
+                visible=[0,1,2] if page in {0,1,2,4} else [0,1]
+            usable=max(12,self.size.width-6-2*len(visible))
+            if len(visible)==3:
+                widths=[max(4,int((usable-9)*0.55)),max(4,usable-9-int((usable-9)*0.55)),9]
+            else:
+                weights=({2:[0.45,0.55],4:[0.25,0.23,0.15,0.37] if page<3 else [0.27,0.19,0.39,0.15] if page in {5,6} else [0.34,0.18,0.18,0.30],5:[0.08,0.18,0.16,0.17,0.41]})[len(visible)]
+                widths=[max(4,int(usable*weight)) for weight in weights]
+            for index,width in zip(visible,widths): table.add_column(columns[index],width=width)
+            for index,entry in enumerate(entries): table.add_row(*(literal(entry.cells[c]) for c in visible),key=str(index))
+            if entries: table.move_cursor(row=min(selected,len(entries)-1))
+            self.rendered_tables[page]=(model,view)
         if page==7:
             summary=literal('Collection options apply on source entry or refresh; server settings are unchanged.')
             if self.settings_status: summary.append('\n').append(literal(self.settings_status))
@@ -425,16 +453,20 @@ class FaultlensApp(App):
     def select_page(self,page): self.query_one('#sections',TabbedContent).active='page-'+str(page)
     def action_previous_tab(self): self.select_page((self.page-1)%8)
     def action_next_tab(self): self.select_page((self.page+1)%8)
-    def on_tabbed_content_tab_activated(self,event):
+    async def on_tabbed_content_tab_activated(self,event):
         sections=self.query_one('#sections',TabbedContent)
         if event.tabbed_content is not sections or event.pane.id!=sections.active: return
         page=int(event.pane.id.removeprefix('page-'))
+        if not self.query('#grid-'+str(page)):
+            await event.pane.mount(*self.section_widgets(page))
+        if event.pane.id!=sections.active: return
         if page!=self.page: self.page=page; self.populate(self.page)
         self.update_status()
         self.query_one('#grid-'+str(self.page),DataTable).focus()
         self.ensure_snapshot()
 
     def ensure_snapshot(self):
+        if self.query_one('#sections',TabbedContent).active!='page-'+str(self.page): return
         if not self.workspace_ready or not self.initial_collect or self.closing or self.page>=6 or self.job is not None: return
         options=asdict(self.session.settings)
         if self.page in self.snapshots and self.snapshot_options.get(self.page)==options: return
@@ -456,6 +488,7 @@ class FaultlensApp(App):
         try:
             value=await self.collector(page,options)
             self.snapshots[page]=value; self.snapshot_options[page]=asdict(options)
+            self.table_models.clear()
             self.collection_states[page]='completed'
             self.notice='Snapshot collected. Open a row for meaning and original evidence.'
         except asyncio.CancelledError:

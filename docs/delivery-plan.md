@@ -1,7 +1,7 @@
 # Faultlens delivery plan
 
-Status: active operating plan, 2026-11-16. Milestone 2 is active by owner request.
-Milestone 1 was exercised on the owner server; product acceptance remains open.
+Status: active operating plan, 2026-11-16. Milestone 3 automated qualification is
+active by owner request. Earlier operator-usefulness acceptance remains open.
 This is the single forward-work sequence. It supersedes the priority list in
 [stabilization.md](stabilization.md); that document remains the current capability/gap inventory.
 The original specification remains the product goal, not a record of delivered features.
@@ -109,7 +109,8 @@ Exit evidence:
 
 ### 2 — Useful incident investigations
 
-Status: active by owner request. See [the investigation design](architecture/milestone-2-investigation.md).
+Status: implementation delivered, including readable time selection and unavailable-log
+corrections. Operator usefulness acceptance remains open. See [the investigation design](architecture/milestone-2-investigation.md).
 
 Deliver Security, History, Diagnostics and their Evidence links as end-to-end workflows:
 select a problem period, see relevant observations, inspect support, understand missing
@@ -136,7 +137,10 @@ Exit evidence:
 
 ### 3 — Cross-server acceptance and stabilization
 
-Status: queued; regression coverage also runs within every earlier milestone.
+Status: automated platform qualification active. Initial candidates are Debian 12 /
+Python 3.11 and Ubuntu 24.04 / Python 3.12 on x86-64; see
+[qualification scope and evidence](architecture/platform-qualification.md). Neither
+is claimed production-supported before the actual server/SSH gates pass.
 
 Select and record exact supported Debian/Ubuntu releases before making support claims.
 Exercise contrasting configurations: small VPS, container/many virtual interfaces,
@@ -187,16 +191,12 @@ part of safe development, separate from auditing the operator's server.
   explicitly change priority. Urgent security defects get a documented exception.
 - Keep code/docs/comments/commits/PRs in English and communication with the owner in Norwegian.
 
-Current delivery: milestone 2 time selection adds readable incident dates and
-consistent bounds across all requested journal searches; see
-[the time-window design](architecture/incident-time-window.md). The History →
-Diagnostics → Evidence workflow and two-hour Atop window were delivered in PR #51.
+Current delivery: milestone 3 makes native process checks and the full regression
+suite reproducible on the initial Debian/Ubuntu qualification candidates. The strict
+CI profile retains read-only tokens and action/image pins. Missing optional tools,
+missing system journal and frontend-absent/reviewed setups are explicit test cases.
 
-Current corrective delivery: unavailable or unreadable logs must not produce a
-no-match assessment. CLI and TUI distinguish unassessed, partially assessed and
-readable no-match evidence while retaining independent findings.
-
-Next acceptance task: exercise the chosen incident period on the operator server,
-review source states/messages, and record usefulness feedback. The next implementation
-milestone is contrasting-server qualification (milestone 3); do not claim supported
-environments or close operator acceptance from synthetic checks alone.
+Next acceptance task: exercise a real incident period on the operator server and a
+materially different server over SSH; record OS/Python/tool versions, access scope,
+usefulness, terminal behavior and workload impact. Those gates remain pending.
+No milestone or production-support claim is closed by container/CI checks alone.

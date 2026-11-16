@@ -1,6 +1,5 @@
 """Narrow SSH journal observations; local administrators can inspect identities and original evidence."""
 from collections import Counter
-from dataclasses import asdict
 import ipaddress
 import re
 
@@ -91,7 +90,7 @@ def search(runner, boot_id, *, system=False, since_us=None, until_us=None):
     output.update(state='available', reason='candidates_examined' if records else 'no_candidates_returned',
         parse_state='valid' if records else 'empty', candidates_examined=len(records),
         record_limit_reached=limited, unsupported_messages_in_response=unsupported,
-        unclassified_candidates=len(records)-len(findings), records=[evidence_record(entry) for entry in records], findings=[asdict(finding) for finding in findings],
+        unclassified_candidates=len(records)-len(findings), records=[evidence_record(entry) for entry in records], findings=[finding.to_dict() for finding in findings],
         finding_counts_by_rule=dict(sorted(Counter(finding.rule_id for finding in findings).items())),
         timeline=timeline(findings, records), candidate_window=None if not records else {
             'first_candidate': records[0].reference(), 'last_candidate': records[-1].reference()})

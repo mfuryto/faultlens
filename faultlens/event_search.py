@@ -1,5 +1,4 @@
 """Two fixed bounded candidate queries over one immutable accessible journal boot."""
-from dataclasses import asdict
 
 from .candidate_review import explain
 from .journal import BOOT_ID, MAX_RECORDS, SHUTDOWN_REQUEST, UNIT_START_FAILED, entries, evidence_record, validate_window
@@ -79,7 +78,7 @@ def search(runner, boot_id, *, system=False, show_evidence=False, since_us=None,
                     reason='candidates_examined' if records else 'no_candidates_returned',
                     candidates_examined=len(records), record_limit_reached=limited,
                     unsupported_messages_in_response=unsupported, candidate_window=window,
-                    findings=[asdict(finding) for finding in findings], timeline=timeline(findings, records),
+                    findings=[finding.to_dict() for finding in findings], timeline=timeline(findings, records),
                     candidate_review=explain(records, matched, query))
     completed = sum(item['state'] == 'available' for item in results)
     output = unresolved(system=system,since_us=since_us,until_us=until_us)

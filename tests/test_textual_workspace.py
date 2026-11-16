@@ -7,7 +7,7 @@ import unittest
 from dataclasses import asdict
 from unittest.mock import patch
 
-from textual.widgets import DataTable,Input,Static,TabbedContent
+from textual.widgets import DataTable,Input,Static,TabbedContent,TabPane,Tabs
 from faultlens.textual_app import FaultlensApp,DetailDialog,RawDialog,SourceDialog,ValueDialog
 from faultlens.models import Observation,report
 from faultlens.tui_model import Session
@@ -166,6 +166,61 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press('escape'); await asyncio.wait_for(stopped.wait(),1)
             self.assertIsNone(app.job); self.assertNotIn(0,app.snapshots)
 
+    async def test_late_focus_from_previous_pane_cannot_undo_explicit_tab_selection(self):
+        app=self.app()
+        async with app.run_test(size=(100,30)) as pilot:
+            await pilot.pause(.01);app.select_page(7);await pilot.pause(.01)
+            sections=app.query_one('#sections',TabbedContent)
+            app.select_page(1)
+            sections.post_message(TabPane.Focused(app.query_one('#page-7',TabPane)))
+            await self.wait_until(pilot,lambda: app.page==1)
+            self.assertEqual('page-1',sections.active)
+            self.assertEqual(1,app.page)
+            app.query_one('#grid-1',DataTable).focus();await pilot.pause(.01)
+            self.assertEqual('page-1',sections.active)
+            await pilot.press('right');self.assertEqual(2,app.page)
+
+    async def test_late_inner_tab_activation_cannot_undo_newer_selection(self):
+        app=self.app()
+        async with app.run_test(size=(100,30)) as pilot:
+            await pilot.pause(.01)
+            sections=app.query_one('#sections',TabbedContent);tabs=sections.query_one(Tabs)
+            app.select_page(5);await pilot.pause(.01)
+            tabs.post_message(Tabs.TabActivated(tabs,sections.get_tab('page-0')))
+            await pilot.pause(.03)
+            self.assertEqual('page-5',sections.active)
+            self.assertEqual(5,app.page)
+            await pilot.click('#'+sections.get_tab('page-2').id)
+            self.assertEqual(2,app.page)
+
+    async def test_unopened_diagnostic_and_evidence_tables_are_not_built_during_startup_or_resize(self):
+        from faultlens.incidents import diagnose
+        from tests.test_incidents import JournalRunner,record
+        data=diagnose(JournalRunner([record('Out of memory: Killed process 42',__CURSOR='s=synthetic')]),show_evidence=True)
+        original=copy.deepcopy(data);calls=[]
+        def table(page,source,settings):
+            calls.append(page);return page_table(page,source,settings)
+        app=self.app();app.snapshots[5]=data
+        with patch('faultlens.textual_app.page_table',side_effect=table):
+            async with app.run_test(size=(100,30)) as pilot:
+                await pilot.pause(.01);await pilot.resize_terminal(110,32);await pilot.pause(.01)
+                self.assertNotIn(5,calls);self.assertNotIn(6,calls)
+                self.assertFalse(app.query("#grid-5"));self.assertFalse(app.query("#grid-6"))
+                app.select_page(5);await pilot.pause(.02)
+                self.assertIn(5,calls);self.assertNotIn(6,calls)
+                self.assertTrue(app.query("#grid-5"));self.assertFalse(app.query("#grid-6"))
+                self.assertTrue(any(row.kind=='finding' for row in app.entries[5]))
+                before=calls.count(5)
+                await pilot.resize_terminal(120,34);await pilot.pause(.01)
+                self.assertEqual(before,calls.count(5))
+                replacement=copy.deepcopy(data);replacement['findings'][0]['title']='Synthetic replacement finding'
+                app.snapshots[5]=replacement;app.populate(5);await pilot.pause(.01)
+                self.assertTrue(any(row.cells[0]=='Synthetic replacement finding' for row in app.entries[5]))
+                app.select_page(6);await pilot.pause(.02)
+                self.assertIn(6,calls)
+                self.assertIs(replacement,next(row.original for row in app.entries[6] if row.cells[0]=='Full original report'))
+        self.assertEqual(original,data)
+
     async def test_opening_source_tabs_loads_once_and_reuses_cached_sections(self):
         calls=[]
         async def collect(page,settings): calls.append((page,asdict(settings))); return status_report()
@@ -211,6 +266,18 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             release.set()
             await self.wait_until(pilot,lambda: 2 in app.snapshots and app.job is None)
             self.assertEqual([0,2],calls); self.assertIn(2,app.snapshots)
+
+    async def test_queued_tab_activation_does_not_collect_the_previous_page(self):
+        calls=[]
+        async def collect(page,settings): calls.append(page);return status_report()
+        app=FaultlensApp(collector=collect,initial_collect=False)
+        async with app.run_test(size=(100,30)) as pilot:
+            app.select_page(1);await self.wait_until(pilot,lambda: app.page==1)
+            app.initial_collect=True
+            app.select_page(2)
+            app.ensure_snapshot()
+            await self.wait_until(pilot,lambda: 2 in app.snapshots and app.job is None)
+            self.assertEqual([2],calls)
 
     async def test_failed_tab_read_does_not_retry_until_refresh_or_changed_options(self):
         calls=[]

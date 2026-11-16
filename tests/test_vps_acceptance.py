@@ -5,11 +5,15 @@ import subprocess
 import sys
 import unittest
 
+from tests.resource_diagnostics import emit,capture
+
 
 class ConstrainedAcceptanceTests(unittest.TestCase):
     def test_one_cpu_address_space_profiles(self):
         script=Path(__file__).resolve().parents[1]/'scripts/vps_acceptance.py'
-        result=subprocess.run([sys.executable,'-I',str(script),'--json'],capture_output=True,text=True,timeout=30,check=True)
+        result=capture([sys.executable,'-I',str(script),'--json'],capture_output=True,text=True,timeout=30,check=False)
+        emit(result)
+        self.assertEqual(0,result.returncode,'Synthetic resource command failed; see bounded resource metadata above.')
         data=json.loads(result.stdout)
         self.assertTrue(data['synthetic'])
         self.assertFalse(data['deployment_test'])

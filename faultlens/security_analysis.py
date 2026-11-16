@@ -1,6 +1,5 @@
 """Bounded, explainable security indicators from already collected evidence."""
 from collections import defaultdict, deque
-from dataclasses import asdict
 import ipaddress
 import statistics
 
@@ -25,8 +24,8 @@ RECOMMENDATIONS = (
 
 
 def finding(rule, title, observation, evidence, reasoning, thresholds):
-    return asdict(Finding(rule, title, observation, 'Possible', 'warning', evidence,
-                          reasoning, thresholds, LIMITATIONS, RECOMMENDATIONS))
+    return Finding(rule, title, observation, 'Possible', 'warning', evidence,
+                          reasoning, thresholds, LIMITATIONS, RECOMMENDATIONS).to_dict()
 
 
 def _largest_window(values, width_us, *, distinct_ports=False):

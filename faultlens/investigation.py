@@ -17,11 +17,13 @@ def excerpt(value,limit=512):
 
 
 def linked_records(data,finding):
-    result=[]
+    result=[];seen=set()
     for reference in resolve(data,finding)['References']:
         for linked in reference['Retained source evidence']:
             record=linked['Original evidence']
-            if not any(record is item for item in result): result.append(record)
+            identity=id(record)
+            if identity not in seen:
+                seen.add(identity);result.append(record)
     return result
 
 

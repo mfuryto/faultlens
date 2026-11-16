@@ -1,5 +1,4 @@
 """Local namespace counter sampling; no endpoints, packets or attack attribution."""
-from dataclasses import asdict
 import math
 import re
 import time
@@ -131,6 +130,6 @@ def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.s
     data.update(state='unavailable' if not available else 'partial' if incomplete else 'available',
                 sample={'requested_seconds': sample_seconds, 'elapsed_seconds': elapsed if valid_time else None},
                 namespace='current', completeness='unknown', attack_assessment='Unknown', root_cause='Unknown',
-                findings=[asdict(finding) for finding in findings])
+                findings=[finding.to_dict() for finding in findings])
     data['limitations'].extend(LIMITATIONS)
     return data

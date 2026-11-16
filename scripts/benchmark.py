@@ -250,6 +250,7 @@ def main():
         values = {'startup_wall_median_seconds': round(statistics.median(wall), 4),
                   'startup_wall_max_seconds': round(max(wall), 4),
                   'cpu_median_seconds': round(statistics.median(s['cpu_seconds'] for s in samples), 4),
+                  'cpu_max_seconds': round(max(s['cpu_seconds'] for s in samples), 4),
                   'peak_rss_max_mib': round(max(s['peak_rss_mib'] for s in samples), 2)}
         # Tolerant regression limits, not promised production performance.
         rss_limit=80 if command.startswith('tui-') else 50
