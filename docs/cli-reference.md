@@ -246,3 +246,13 @@ do not fall back to a whole boot.
 Atop remains a separately labeled two-hour context window, and pstore remains
 unattributed to a time/boot. This does not promise complete evidence for the selected
 period. See [time-selection design](architecture/incident-time-window.md).
+
+## Unavailable log evidence
+
+A failed boot listing, inaccessible/failed journal read, empty unusable tail or
+unreadable message bodies are presented as not assessed, rather than no faults
+found. A no-match statement applies only to a readable tail that was actually
+examined. Requested but unavailable searches are distinct from searches that were
+not requested. Partial journal/SSH/firewall coverage prevents an overall no-fault
+assessment. Findings from independently available sources remain visible with their
+own scope and unchanged confidence; no permission-denial cause is guessed.

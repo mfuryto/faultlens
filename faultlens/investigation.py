@@ -55,19 +55,31 @@ def examples(data):
 def story(data):
     groups=examples(data)
     faults=[row for row in groups if row[0]['severity'] in {'critical','warning'}]
-    available=data.get('state')=='available'
+    available=data.get('state')=='available' and data.get('records_examined',0)>0
+    target=data.get('event_search')
+    log_gap=bool(data.get('unsupported_messages')) or any(
+        data.get(key,{}).get('state') not in {None,'available','not_requested'} or data.get(key,{}).get('unsupported_messages_in_response',0)
+        for key in ('event_search','ssh_analysis','firewall_analysis'))
+    log_gap|=any(query['state']!='available' or query.get('unsupported_messages_in_response',0) for query in (target or {}).get('queries',[]))
     if faults:
         answer='Recorded problems to investigate: '+'; '.join(row[0]['title'] for row in faults[:2])+'.'
         step='Open a reported problem for its actual message, time and follow-up. Match it to your symptom before attributing the incident.'
     elif not available:
         answer='The selected journal evidence could not be assessed. No fault or absence of faults can be established.'
         step='Check the selected boot and journal scope. With existing authorized access, inspect journalctl --system --list-boots --no-pager; Faultlens never elevates.'
+    elif log_gap:
+        answer='Available journal records were examined, but some requested log evidence could not be assessed. What happened remains unverified.'
+        step='Inspect the log-source gaps and available records before assessing the incident. Missing or unreadable logs are not evidence that no fault occurred.'
     else:
-        answer='No supported fault pattern matched the checked evidence.'
+        answer='No supported fault pattern matched the readable retained journal tail.'
         step='Set the incident boot/time in Settings, enable broader event search, and inspect the last retained message. No match does not rule out a failure.'
+    if faults and not available:
+        answer+=' The selected journal tail could not be assessed; these reports come from independently available sources.'
+    elif faults and log_gap:
+        answer+=' Some requested log evidence could not be assessed.'
     if not faults and unclassified_records(data):
         answer+=' Unclassified warning/event records need manual review.'
-    if available and not faults and data.get('event_search',{}).get('state')=='available':
+    if available and not faults and not log_gap and (target or {}).get('state')=='available':
         step='No supported fault was identified even with broader search. Match the incident time, inspect unclassified candidates and optional Atop/crash evidence; logging may not retain the cause.'
     selected=data.get('selected_boot')
     scope='Selected boot '+str(selected['index']) if selected else 'Boot not resolved'
@@ -77,9 +89,18 @@ def story(data):
     gaps=[]
     if data.get('record_limit_reached'): gaps.append('Tail limit reached: earlier records were omitted; enable broader event search.')
     if data.get('journal_scope',{}).get('requested')=='visible': gaps.append('Visible scope may contain personal logs only. Select system journal for server evidence; existing access is required.')
-    if data.get('event_search',{}).get('state') not in {'available','partial'}: gaps.append('Broader event search was not usable or not requested; the tail can miss earlier faults.')
+    if target is None or target.get('state')=='not_requested':
+        gaps.append('Broader event search was not requested; the tail can miss earlier faults.')
+    elif target.get('state')=='unavailable':
+        gaps.append('Broader event search could not be assessed in the selected boot/scope; no absence of events can be established.')
+    if data.get('unsupported_messages',0): gaps.append('Some retained journal message bodies could not be assessed.')
+    for key,label in (('ssh_analysis','SSH'),('firewall_analysis','Firewall')):
+        source=data.get(key)
+        if source and source['state']!='available': gaps.append(label+' log search could not be assessed in the requested scope.')
+        elif source and source.get('unsupported_messages_in_response',0): gaps.append(label+' log message bodies could not be fully assessed.')
     for query in data.get('event_search',{}).get('queries',[]):
         if query['state']!='available': gaps.append(query['query']+' search could not be assessed within its requested scope; no empty-success or wider retry is inferred.')
+        elif query.get('unsupported_messages_in_response',0): gaps.append(query['query']+' message bodies could not be fully assessed.')
     for key,label in (('atop','Resource recording'),('pstore','Live crash evidence'),('pstore_archive','Archived crash evidence')):
         source=data.get(key,{})
         if source.get('state')!='available': gaps.append(label+': '+str(source.get('state','not requested'))+'.')
