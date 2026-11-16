@@ -127,7 +127,7 @@ def workflow_errors(data: bytes) -> list[str]:
         assert job['runs-on'] == 'ubuntu-24.04'
         assert type(job['timeout-minutes']) is int and 1 <= job['timeout-minutes'] <= 10
         steps = job['steps']
-        assert len(steps) == 4
+        assert len(steps) == 5
         checkout = steps[0]
         assert set(checkout) == {'name', 'uses', 'with'}
         assert SHA_ACTION.fullmatch(checkout['uses'])
@@ -135,8 +135,9 @@ def workflow_errors(data: bytes) -> list[str]:
         assert checkout['with'] == {'fetch-depth': 0, 'persist-credentials': False}
         for step, command in zip(steps[1:], (
                 'python3 scripts/security_check.py',
-                'python3 -m venv /tmp/faultlens-ui-env\n/tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-tui.txt',
-                '/tmp/faultlens-ui-env/bin/python -m unittest discover -s tests -v')):
+                'python3 -m venv /tmp/faultlens-ui-env\n/tmp/faultlens-ui-env/bin/python -m pip download --disable-pip-version-check --require-hashes --only-binary=:all: --dest /tmp/faultlens-platform-wheels -r requirements-tui.txt\n/tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --no-index --find-links=/tmp/faultlens-platform-wheels --require-hashes --only-binary=:all: -r requirements-tui.txt',
+                '/tmp/faultlens-ui-env/bin/python -m unittest discover -s tests -v',
+                '/tmp/faultlens-ui-env/bin/python scripts/platform_acceptance.py --target ubuntu-24.04 --frontend\ndocker pull python@sha256:726d304906fa5eb468e5531e366548d1903286352f5adb54ef508ac01fbd80c6\n/tmp/faultlens-ui-env/bin/python scripts/platform_acceptance.py --target debian-12 --container')):
             assert set(step) == {'name', 'run'}
             assert step['run'] == command
         assert all(isinstance(step['name'], str) for step in steps)

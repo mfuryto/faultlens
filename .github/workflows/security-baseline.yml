@@ -24,7 +24,7 @@
   "jobs": {
     "baseline": {
       "runs-on": "ubuntu-24.04",
-      "timeout-minutes": 5,
+      "timeout-minutes": 8,
       "steps": [
         {
           "name": "Check out repository",
@@ -40,11 +40,15 @@
         },
         {
           "name": "Install hash-locked optional frontend",
-          "run": "python3 -m venv /tmp/faultlens-ui-env\n/tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-tui.txt"
+          "run": "python3 -m venv /tmp/faultlens-ui-env\n/tmp/faultlens-ui-env/bin/python -m pip download --disable-pip-version-check --require-hashes --only-binary=:all: --dest /tmp/faultlens-platform-wheels -r requirements-tui.txt\n/tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --no-index --find-links=/tmp/faultlens-platform-wheels --require-hashes --only-binary=:all: -r requirements-tui.txt"
         },
         {
           "name": "Test collectors and the real terminal workspace",
           "run": "/tmp/faultlens-ui-env/bin/python -m unittest discover -s tests -v"
+        },
+        {
+          "name": "Qualify Ubuntu and isolated Debian process contracts",
+          "run": "/tmp/faultlens-ui-env/bin/python scripts/platform_acceptance.py --target ubuntu-24.04 --frontend\ndocker pull python@sha256:726d304906fa5eb468e5531e366548d1903286352f5adb54ef508ac01fbd80c6\n/tmp/faultlens-ui-env/bin/python scripts/platform_acceptance.py --target debian-12 --container"
         }
       ]
     }

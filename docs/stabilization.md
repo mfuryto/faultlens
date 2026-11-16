@@ -94,3 +94,12 @@ Readable explicit-offset date/time selection and consistent journal-query bounds
 tracked in [the time-window design](architecture/incident-time-window.md). Existing
 Unix-microsecond settings remain compatible. This is milestone 2 work; real server
 usefulness and cross-server/SSH acceptance remain pending.
+
+### Reproducible contrasting-platform gates
+
+The strict baseline now includes native CLI process checks on Ubuntu 24.04/Python
+3.12 and a digest-pinned, non-root/offline/read-only Debian 12/Python 3.11 sequence.
+Debian tests the dependency-free CLI before optional frontend installation, the
+full suite after offline hash-locked installation, and native contracts again.
+See [qualification](architecture/platform-qualification.md). These are automated
+qualification candidates, not completed real-server/SSH or production-support gates.

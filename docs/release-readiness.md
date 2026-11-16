@@ -35,6 +35,16 @@ No host configuration, recorder or firewall service is installed or enabled.
 The combined server test entrypoint is `.venv/bin/python scripts/server_check.py`; see
 [summary states, optional sources and root/native-only scope](server-check.md).
 
+## Initial platform qualification candidates
+
+The automated candidates are Debian 12 with Python 3.11 and Ubuntu 24.04 with Python
+3.12 on x86-64. These exact targets have reproducible native-process/regression gates
+in the existing baseline workflow; see [platform qualification](architecture/platform-qualification.md).
+A container shares the host kernel, and hosted CI does not replace real SSH, workload
+or service/history qualification. Production support remains unclaimed until those
+operator gates pass. Docker is a developer/CI prerequisite for this optional matrix,
+not an application or operator-server dependency.
+
 ## Deployment acceptance matrix
 
 Before calling a version supported, run and record the following on each selected
