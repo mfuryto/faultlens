@@ -94,7 +94,7 @@ class CorrelationTests(unittest.TestCase):
         self.assertEqual('unverified', data['atop']['boot_identity'])
         self.assertEqual('synthetic.test', data['atop']['samples'][0]['recorded_hostname'])
         _, start, end = runner.atop_calls[0]
-        self.assertEqual(1800, end - start)
+        self.assertEqual(7200, end - start)
 
     def test_correlation_cap_is_reported_without_changing_event_confidence(self):
         records = [record('Out of memory: Killed process 42', realtime=(EPOCH + 15) * 1000000,
@@ -136,7 +136,7 @@ class CorrelationTests(unittest.TestCase):
         self.assertEqual([], runner.atop_calls)
 
     def test_reset_out_of_window_and_missing_recordings_do_not_fabricate_overlap(self):
-        for text in (sample(reset=True), sample(EPOCH - 1000)):
+        for text in (sample(reset=True), sample(EPOCH - 4000)):
             data = diagnose(AtopRunner(text=text), atop_date='20260101')
             self.assertEqual([], data['atop']['correlations'])
         runner = AtopRunner()
@@ -198,7 +198,7 @@ class RecordingBoundaryTests(unittest.TestCase):
         self.assertEqual((14,), capture.call_args.kwargs['pass_fds'])
         self.assertEqual('-I', capture.call_args.args[0][1])
         closed.assert_called_once_with(14)
-        for start, end in ((-1, EPOCH), (EPOCH, EPOCH + 1801), (True, EPOCH)):
+        for start, end in ((-1, EPOCH), (EPOCH, EPOCH + 7201), (True, EPOCH)):
             with self.assertRaises(ValueError):
                 CommandRunner().read_atop('20260101', start, end)
 

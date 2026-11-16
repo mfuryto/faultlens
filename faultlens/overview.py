@@ -54,10 +54,11 @@ def incidents(runner=None, *, boot_count=3, system_journal=False, include_curren
         data.update(state='unavailable', reason='no_selected_boots_visible')
         return data
     for boot in selected:
-        detail = diagnose(snapshot, boot_id=boot['boot_id'], system_journal=system_journal)
+        detail = diagnose(snapshot, boot_id=boot['boot_id'], system_journal=system_journal, show_evidence=True)
         context = detail['reconstruction']
         summary = {
             'boot': dict(boot), 'state': detail['state'],
+            'notable_reports': _notable(detail),
             'journal_collection': detail['journal_collection'],
             'records_examined': detail['records_examined'],
             'record_limit_reached': detail['record_limit_reached'],
@@ -77,3 +78,16 @@ def incidents(runner=None, *, boot_count=3, system_journal=False, include_curren
                 coverage='bounded_boot_summaries' if available else 'unavailable',
                 reason='selected_boots_examined' if available == len(selected) else 'one_or_more_boots_unavailable')
     return data
+
+
+def _notable(data):
+    from .investigation import examples,linked_records,utc,excerpt
+    rows=[]
+    for finding,count,source in examples(data)[:3]:
+        records=linked_records(data,finding)
+        reference=finding['evidence'][0] if finding['evidence'] else {}
+        rows.append({'title':finding['title'],'rule_id':finding['rule_id'],'report_count':count,
+            'time':utc(reference.get('realtime_us')),
+            'message_excerpt':excerpt(records[0]['message']) if records else 'Original message unavailable',
+            'reference':reference})
+    return rows

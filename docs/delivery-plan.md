@@ -1,7 +1,7 @@
 # Faultlens delivery plan
 
-Status: active operating plan, 2026-11-16. Milestone 1 is in progress; no milestone
-is accepted as complete.
+Status: active operating plan, 2026-11-16. Milestone 2 is active by owner request.
+Milestone 1 was exercised on the owner server; product acceptance remains open.
 This is the single forward-work sequence. It supersedes the priority list in
 [stabilization.md](stabilization.md); that document remains the current capability/gap inventory.
 The original specification remains the product goal, not a record of delivered features.
@@ -86,7 +86,7 @@ separate 'phase complete' claim for every small patch.
 
 ### 1 — Useful current-server overview
 
-Status: in progress. The screen/source contract is recorded in
+Status: implemented and exercised by the owner; usefulness acceptance remains open. The screen/source contract is recorded in
 [the milestone 1 design](architecture/milestone-1-current-overview.md).
 
 Deliver System, Health and Network using the contract above. Before coding, record
@@ -109,7 +109,7 @@ Exit evidence:
 
 ### 2 — Useful incident investigations
 
-Status: queued behind milestone 1.
+Status: active by owner request. See [the investigation design](architecture/milestone-2-investigation.md).
 
 Deliver Security, History, Diagnostics and their Evidence links as end-to-end workflows:
 select a problem period, see relevant observations, inspect support, understand missing
@@ -187,5 +187,5 @@ part of safe development, separate from auditing the operator's server.
   explicitly change priority. Urgent security defects get a documented exception.
 - Keep code/docs/comments/commits/PRs in English and communication with the owner in Norwegian.
 
-Next implementation task: milestone 1, beginning with concrete System/Health/Network
-normal/attention/unavailable screen contracts and the minimal source-gap review.
+Next implementation task: milestone 2, delivering the History → Diagnostics → Evidence
+fault-investigation workflow. Keep operator acceptance separate from automated checks.

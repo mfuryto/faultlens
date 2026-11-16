@@ -436,3 +436,22 @@ and 128/256/512 MiB virtual-address-space profiles; maximum RSS was
 62.95 MiB. These are process regression
 checks, not actual VM RAM requirements or target-server/SSH acceptance. Native tool
 startup, real storage latency and real incident coverage remain outside these fixtures.
+
+## Evidence-led investigation workflow — 2026-11-16
+
+All 28 modes passed ten fresh-process runs on Linux/Python 3.14.4. The actual
+`tui-diagnostic` mode now opens a finding interpretation and its readable original
+record dialog, in addition to mounting the selected-row evidence reader. The incidents
+mode includes bounded named report/message examples. Existing 50 MiB CLI / 80 MiB
+Textual, <1 s CPU and <2 s wall budgets remain unchanged.
+
+| Mode | Median wall | Max wall | Median CPU | Max RSS |
+| --- | ---: | ---: | ---: | ---: |
+| incidents | 0.1034 s | 0.1044 s | 0.0967 s | 26.36 MiB |
+| tui-diagnostic | 0.9198 s | 0.9251 s | 0.5072 s | 63.53 MiB |
+
+All 63 constrained synthetic runs passed one-CPU-affinity and
+128/256/512 MiB virtual-address-space ceilings; maximum RSS was
+62.90 MiB. These are parser/frontend
+process checks, not real VPS RAM requirements or SSH/production incident acceptance.
+Native journal/Atop startup and storage latency remain outside synthetic measurements.

@@ -347,7 +347,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         elif args.command in {"history", "diagnose"}:
             from .incidents import history, diagnose
             data = (history(runner, system_journal=args.system_journal) if args.command == "history" else
-                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended, search_ssh=args.search_ssh, show_evidence=args.show_evidence, search_firewall=args.search_firewall))
+                    diagnose(runner, args.boot, args.atop_date, system_journal=args.system_journal, search_events=args.search_events, boot_id=args.boot_id, until_us=args.until_us, since_us=args.since_us, atop_extended=args.atop_extended, search_ssh=args.search_ssh, show_evidence=args.show_evidence or (not args.json and not args.details), search_firewall=args.search_firewall))
             if args.command == "diagnose" and args.pstore:
                 from .pstore import analyze
                 data["pstore"] = analyze(pstore_collector)

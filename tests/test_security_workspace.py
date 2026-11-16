@@ -32,7 +32,7 @@ class SecurityWorkspaceTests(unittest.TestCase):
         for sources,expected in zip(cases,('partial','unavailable')):
             data=analyze(sources,command='security')
             columns,entries=page_table(3,data,Settings())
-            coverage=next(row for row in entries if row.cells[0]=='Current network security coverage')
+            coverage=next(row for row in entries if row.cells[0]=='Current network signals')
             self.assertEqual(expected,coverage.cells[1]); self.assertEqual('Unknown',data['attack_assessment'])
             summary=guide(data)['Summary']
             self.assertIn('incomplete' if expected=='partial' else 'unavailable',summary)

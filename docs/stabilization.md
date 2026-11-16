@@ -19,11 +19,10 @@ Important practical gaps:
 
 - Atop host/boot identity is unverified. Matching times or host-name strings alone
   do not prove the recording belongs to the selected boot.
-- The replay window is 30 minutes around the last retained journal record. Historical
+- The replay window is two hours around the last retained journal record, within unchanged capture limits and one recording file. Historical
   traffic comparison requires six contiguous comparable samples. A 600-second recorder
-  cannot normally supply six such samples in that window. The current result must
-  remain insufficient history; a separately designed, explicitly bounded longer-window
-  option is preferable to silently changing server sampling or inventing a baseline.
+  can now supply six such samples when retained data permits. Short, reset, gapped
+  or midnight-limited windows still remain insufficient history; no baseline is invented.
 - SSH classification is narrow password/invalid-user evidence, not all key/PAM/MFA
   authentication. Firewall classification recognizes selected UFW-labelled kernel
   records, not an arbitrary active ruleset. IPv6 socket/interface support does not

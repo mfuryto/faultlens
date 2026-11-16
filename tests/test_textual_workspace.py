@@ -143,6 +143,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         app=FaultlensApp(initial_collect=False); app.snapshots[5]=session.data
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.01); app.select_page(5); await pilot.pause(0.01)
+            app.query_one('#grid-5',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[5]) if row.kind=='finding_group'))
             await pilot.press('enter'); self.assertIsInstance(app.screen,SourceDialog)
             screen=app.screen; self.assertEqual(64,screen.query_one(DataTable).row_count)
             self.assertGreater(len(screen.entries),64)

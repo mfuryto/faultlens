@@ -201,14 +201,17 @@ class HistoricalCollectionTests(unittest.TestCase):
         self.assertEqual('unavailable', history(runner)['state'])
         self.assertEqual([], runner.requested)
 
-    def test_cli_history_and_diagnose_render_safe_metadata_only(self):
+    def test_cli_history_and_diagnose_preserve_safe_evidence_contracts(self):
         runner = JournalRunner([record('Kernel panic - not syncing: \x1b]52;c;private\x07')])
         for args in (['history'], ['diagnose', '--previous-boot'], ['diagnose', '--json']):
             output = io.StringIO()
             self.assertEqual(0, main(args, runner=runner, stdout=output))
             self.assertNotIn('\x1b', output.getvalue())
-            self.assertNotIn('52;c', output.getvalue())
-            self.assertNotIn('private', output.getvalue())
+            if args==['diagnose','--previous-boot']:
+                self.assertIn('private',output.getvalue())
+                self.assertIn('\\u001b',output.getvalue())
+            else:
+                self.assertNotIn('private', output.getvalue())
 
     def test_cli_rejects_unsafe_or_misplaced_boot_selection(self):
         for args in (['diagnose', '--boot', '1'], ['diagnose', '--boot', '-129'],

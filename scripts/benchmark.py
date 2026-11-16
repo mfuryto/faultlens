@@ -42,9 +42,18 @@ def worker(command: str) -> dict:
                 if command=='tui-health':
                     from textual.widgets import DataTable
                     app.query_one('#grid-1',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[1]) if row.kind=='failed_services'))
+                if command=='tui-diagnostic':
+                    from textual.widgets import DataTable
+                    app.query_one('#grid-5',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[5]) if row.kind=='finding'))
                 app.action_open()
                 await pilot.pause(0.01)
                 if len(app.screen_stack)!=2: raise RuntimeError('Workspace did not open the selected record')
+                if command=='tui-diagnostic':
+                    await pilot.click('#references')
+                    from faultlens.textual_app import RecordsDialog
+                    if not isinstance(app.screen,RecordsDialog): raise RuntimeError('Readable source evidence did not open')
+                    if not app.screen.records: raise RuntimeError('Original diagnostic records were not linked')
+                    await pilot.press('escape')
                 await pilot.press('escape')
         asyncio.run(exercise())
         usage=resource.getrusage(resource.RUSAGE_SELF)

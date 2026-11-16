@@ -90,9 +90,9 @@ class IncidentOverviewTests(unittest.TestCase):
         runner.results = dict.fromkeys(IDS, Result('completed', '', 1))
         self.assertEqual('unavailable', incidents(runner)['state'])
 
-    def test_caps_shutdown_uncertainty_and_redaction_survive_summary(self):
+    def test_caps_shutdown_uncertainty_and_bounded_examples_survive_summary(self):
         runner = OverviewRunner(count=2)
-        rows = [record('private-unit message', _BOOT_ID=IDS[1], monotonic=index,
+        rows = [record('private-unit message', _BOOT_ID=IDS[1], monotonic=index, __CURSOR='s=synthetic'+str(index),
                        _TRANSPORT='journal', _PID='1', _COMM='systemd', MESSAGE_ID=SHUTDOWN_REQUEST)
                 for index in range(501)]
         runner.results[IDS[1]] = Result('completed', '\n'.join(map(json.dumps, rows)), 0)
@@ -104,7 +104,8 @@ class IncidentOverviewTests(unittest.TestCase):
         self.assertEqual('Marker observed; completion unknown', summary['shutdown_assessment'])
         self.assertEqual('Unknown', summary['root_cause'])
         self.assertEqual('unknown', summary['completeness'])
-        self.assertNotIn('private-unit', json.dumps(data))
+        self.assertIn('private-unit message', summary['notable_reports'][0]['message_excerpt'])
+        self.assertLessEqual(len(summary['notable_reports']),3)
         self.assertNotIn('findings', summary)
 
     def test_seven_boot_limit_and_sparse_indices(self):

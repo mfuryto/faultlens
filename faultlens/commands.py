@@ -150,7 +150,7 @@ class CommandRunner:
         from .recordings import open_recording, recording_date
         recording_date(date)
         if (type(start) is not int or type(end) is not int or not 0 <= start <= end
-                or end - start > 1800):
+                or end - start > 7200):
             raise ValueError("Invalid recording time window")
         executable = trusted_tool("atop")
         if executable is None:

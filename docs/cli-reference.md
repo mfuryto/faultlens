@@ -212,3 +212,13 @@ structured schema, and --show-evidence for retained ordinary journal originals.
 Optional sources still require their existing flags. In the TUI, open Summary and
 next steps or select a reading/finding; Technical details and Evidence Explorer
 retain original objects. See [readable results](readable-results.md).
+
+Readable `diagnose` output starts with a fault-investigation narrative: actual
+retained message excerpts, UTC receipt timestamps, explanations and next steps. It
+retains evidence locally in memory for this view. `--json` keeps its existing
+explicit `--show-evidence` contract; `--details` remains the technical view.
+`incidents` additionally retains up to three 512-character report excerpts per
+examined boot with references and named problems. These are administrator data,
+not anonymized examples. Complete originals are available through explicit diagnosis.
+Atop replay covers a bounded two-hour window around the last retained journal receipt
+in one explicitly dated recording; other capture limits and clock protections remain.

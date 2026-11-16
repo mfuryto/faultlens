@@ -63,9 +63,9 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | System | Prioritized resource/service review readings, a next step and grouped access to all measurements |
 | Health | Operational readings and observed failed services, separate from journal/recording readiness and tool/default details |
 | Network | Error/gap/activity-prioritized interface examples, protocol review counts and optional sockets; all interfaces remain in a paged table |
-| Security | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
-| History | Visible boots, examined/unexamined status, report counts and retained-record counts; Select boot pins its ID and opens Diagnostics, which loads the selected boot |
-| Diagnostics | Grouped reports and separate journal/security/recording/crash sources; open groups to inspect individual reports |
+| Signals | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
+| History | Retained UTC ranges and named report examples; Investigate this boot pins its ID and opens Diagnostics |
+| Diagnostics | Investigation answer, actual message excerpts, timestamps and follow-up; all grouped reports and sources remain accessible |
 | Evidence | Explicit access to complete original report/source trees |
 | Settings | Typed per-user preferences, saved on valid changes; no server configuration editor |
 
@@ -214,3 +214,47 @@ throughput total. Requested CLI socket output retains all endpoint rows; TUI soc
 remain available in their own domain table. `--details`/`--json` retain full source data.
 
 See [milestone 1 design and acceptance](architecture/milestone-1-current-overview.md).
+
+## Find what went wrong
+
+Start in **History**. Choose the boot covering the symptom using its retained UTC
+range and reported-problem example. Enter opens that boot's actual bounded message
+examples; **Investigate this boot** pins the immutable boot identity and loads
+Diagnostics. No host configuration is changed. Times are retained journal receipt
+times, not guaranteed incident or power-on boundaries.
+
+**Diagnostics** starts with an investigation answer, named reports and actual source
+message excerpts. Open a report to read its timestamp, meaning, uncertainty and next
+investigation. **Records** opens readable original messages; **Original fields**
+retains the complete references/metadata. Original messages are escaped as literal
+text. Six representative source/rule groups are highlighted; all groups/reports stay
+available below. The same record can appear in several query views; counts are not
+independent incidents.
+
+**Evidence** presents the same finding/record links for the last retained source
+report. It never starts a collection. Readable linked records are paged sixteen at a
+time so repeated authentication/firewall reports cannot create an unbounded widget
+list. Full retained originals remain available. Unclassified candidate warnings can
+be read without calling them benign or inventing a fault classification.
+
+If no supported fault matched, inspect the last retained message and the explicit
+source gaps. Use Settings for the incident boot/time bounds and broader event search;
+add an existing Atop date or crash sources when relevant. Broader event candidates
+cover the selected boot and can fall outside the ordinary tail's requested time range;
+compare exact timestamps. Missing logs or silence do not prove a freeze or a crash.
+A shutdown request means initiation, not verified completion. A recorded OOM kill can
+explain a process stopping without establishing the underlying shortage or host outage.
+
+Atop now examines up to two hours centered on the last retained journal receipt,
+within existing sample/byte/native execution limits. It uses one explicit recording
+file only; midnight/missing neighboring files can leave coverage partial. It does not
+change recorder configuration, automatically switch files or verify host/boot identity.
+
+The former Security tab is labeled **Signals** to reflect supporting incident evidence,
+not comprehensive host-security assessment. The CLI `security` command is unchanged.
+
+History/Diagnostics/Evidence also show a selected-row reader below the table in
+terminals at least twenty rows high. It shows retained message text, its meaning and
+first follow-up without opening JSON. Smaller terminals keep Enter/Records navigation
+and hide that extra panel to preserve table space. See the
+[rendered synthetic workflow](architecture/milestone-2-investigation.md#rendered-workflow-examples).

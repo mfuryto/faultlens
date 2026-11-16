@@ -448,6 +448,9 @@ def render(data,out):
     view=guide(data)
     print('Faultlens - '+data['command'].capitalize()+' (read-only)',file=out)
     line(out,view['Summary'])
+    if data['command']=='diagnose':
+        from .investigation import render as render_investigation
+        render_investigation(data,out)
     if data.get('observations'):
         print('\nCurrent readings',file=out)
         for item in data['observations']:
@@ -487,6 +490,10 @@ def render(data,out):
         for item in data['summaries']:
             detail=boot_summary_view(item)
             line(out,detail['Observed'],'  ')
+            from .investigation import history_detail
+            context=history_detail(item)
+            line(out,'Retained UTC range: '+context['Retained UTC range'],'    ')
+            for text in context['Recorded examples']: line(out,'Recorded: '+text,'    ')
             line(out,'Boot ID: '+detail['Boot identity'],'    ')
             for text in detail['What it means']: line(out,text,'    ')
             for step in detail['What you can do']: advice_line(out,step,'    ','Next: ')

@@ -82,7 +82,7 @@ class JournalWindowTests(unittest.TestCase):
             return Result('completed', sample(), 0)
         runner.read_atop = read_atop
         data = diagnose(runner, until_us=(EPOCH + 1000) * 1000000, atop_date='20260101')
-        self.assertEqual(EPOCH + 915, calls[0][1])
+        self.assertEqual(EPOCH + 3615, calls[0][1])
         self.assertEqual('available', data['atop']['state'])
 
     def test_unresolved_boot_never_runs_a_historical_read(self):
