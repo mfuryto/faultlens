@@ -205,8 +205,10 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             async with app.run_test(size=(100,30)) as pilot:
                 await pilot.pause(.01);await pilot.resize_terminal(110,32);await pilot.pause(.01)
                 self.assertNotIn(5,calls);self.assertNotIn(6,calls)
+                self.assertFalse(app.query("#grid-5"));self.assertFalse(app.query("#grid-6"))
                 app.select_page(5);await pilot.pause(.02)
                 self.assertIn(5,calls);self.assertNotIn(6,calls)
+                self.assertTrue(app.query("#grid-5"));self.assertFalse(app.query("#grid-6"))
                 self.assertTrue(any(row.kind=='finding' for row in app.entries[5]))
                 before=calls.count(5)
                 await pilot.resize_terminal(120,34);await pilot.pause(.01)

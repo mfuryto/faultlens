@@ -353,10 +353,13 @@ class FaultlensApp(App):
         with WorkspaceTabs(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
-                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
-                    yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
-                    if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
+                    if page==0: yield from self.section_widgets(page)
         yield Footer()
+
+    def section_widgets(self,page):
+        yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
+        yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
+        if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
 
     def on_mount(self):
         self.populate(self.page)
@@ -450,10 +453,13 @@ class FaultlensApp(App):
     def select_page(self,page): self.query_one('#sections',TabbedContent).active='page-'+str(page)
     def action_previous_tab(self): self.select_page((self.page-1)%8)
     def action_next_tab(self): self.select_page((self.page+1)%8)
-    def on_tabbed_content_tab_activated(self,event):
+    async def on_tabbed_content_tab_activated(self,event):
         sections=self.query_one('#sections',TabbedContent)
         if event.tabbed_content is not sections or event.pane.id!=sections.active: return
         page=int(event.pane.id.removeprefix('page-'))
+        if not self.query('#grid-'+str(page)):
+            await event.pane.mount(*self.section_widgets(page))
+        if event.pane.id!=sections.active: return
         if page!=self.page: self.page=page; self.populate(self.page)
         self.update_status()
         self.query_one('#grid-'+str(self.page),DataTable).focus()

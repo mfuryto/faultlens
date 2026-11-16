@@ -125,3 +125,9 @@ schema and checks nested mutation isolation. After this change, ten fresh Debian
 diagnostic-worker runs used at most 0.785 CPU seconds, 0.988 wall seconds and
 65.688 MiB RSS locally. Fixed CPU limits remain sensitive to runner hardware;
 passing synthetic checks still does not qualify production workload impact.
+
+Unopened panes now also defer mounting their tables and detail fields until first
+entry. Their tabs remain available from startup, and collection still begins on
+entry. Resize, repeated navigation, settings and evidence dialogs remain covered
+by the complete suite. Ten fresh Debian diagnostic workers after deferred mounting
+used at most 0.766 CPU seconds, 0.939 wall seconds and 67.235 MiB RSS locally.
