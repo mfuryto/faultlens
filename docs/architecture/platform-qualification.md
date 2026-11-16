@@ -117,3 +117,11 @@ are preserved. Ten fresh diagnostic-worker runs under the same Debian constraint
 used at most 0.845 CPU seconds, 1.014 wall seconds and 65.278 MiB RSS locally.
 These observations do not replace the unchanged CI resource limits or real-server
 acceptance.
+
+Profiling also identified generic recursive dataclass conversion of every finding
+as a CPU cost on Python 3.11. Findings now deep-copy their flat field mapping and
+nested JSON evidence directly. Regression coverage compares the complete previous
+schema and checks nested mutation isolation. After this change, ten fresh Debian
+diagnostic-worker runs used at most 0.785 CPU seconds, 0.988 wall seconds and
+65.688 MiB RSS locally. Fixed CPU limits remain sensitive to runner hardware;
+passing synthetic checks still does not qualify production workload impact.

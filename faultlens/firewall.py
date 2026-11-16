@@ -1,6 +1,5 @@
 """Kernel firewall-labelled reports; no rule execution or final-verdict inference."""
 from collections import Counter
-from dataclasses import asdict
 import ipaddress
 import re
 
@@ -124,7 +123,7 @@ def search(runner, boot_id, *, system=False, since_us=None, until_us=None):
     result.update(state='available', reason='candidates_examined' if records else 'no_candidates_returned',
         parse_state='valid' if records else 'empty', candidates_examined=len(records), record_limit_reached=limited,
         unsupported_messages_in_response=unsupported, unclassified_candidates=len(records)-len(findings),
-        records=[evidence_record(entry) for entry in records], findings=[asdict(value) for value in findings],
+        records=[evidence_record(entry) for entry in records], findings=[value.to_dict() for value in findings],
         timeline=positions, reported_label_counts=dict(sorted(Counter(
             value.evidence[0]['packet']['reported_label'] for value in findings).items())),
         candidate_window=None if not records else {'first_candidate':records[0].reference(),'last_candidate':records[-1].reference()})

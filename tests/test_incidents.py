@@ -106,6 +106,22 @@ class JournalParserTests(unittest.TestCase):
 
 
 class RuleTests(unittest.TestCase):
+    def test_finding_serialization_matches_schema_and_copies_nested_evidence(self):
+        from dataclasses import asdict
+        from faultlens.incidents import Finding
+        value=Finding('synthetic.rule','Synthetic title','Synthetic report','Confirmed','warning',
+            [{'reference':{'indices':[1,2]},'packet':{'port':443}}], 'Synthetic reasoning',
+            {'count':2}, ('Synthetic limit',), ('Inspect locally',),reported_measurements={'pid':42})
+        result=value.to_dict()
+        self.assertEqual(asdict(value),result)
+        result['evidence'][0]['reference']['indices'].append(3)
+        result['evidence'][0]['packet']['port']=80
+        result['thresholds']['count']=99
+        result['reported_measurements']['pid']=99
+        self.assertEqual([1,2],value.evidence[0]['reference']['indices'])
+        self.assertEqual(443,value.evidence[0]['packet']['port'])
+        self.assertEqual(2,value.thresholds['count']);self.assertEqual(42,value.reported_measurements['pid'])
+
     def findings(self, *values):
         return analyze(entries(listing(values), BOOT)[0])
 
