@@ -103,3 +103,8 @@ Debian tests the dependency-free CLI before optional frontend installation, the
 full suite after offline hash-locked installation, and native contracts again.
 See [qualification](architecture/platform-qualification.md). These are automated
 qualification candidates, not completed real-server/SSH or production-support gates.
+
+The contrasting-platform gate exposed delayed focus from an inactive pane overriding
+a newer tab selection. A workspace focus guard and deterministic regression now keep
+the explicit section selected; 30 one-CPU Debian repetitions passed without relaxing
+the existing navigation or resource limits.

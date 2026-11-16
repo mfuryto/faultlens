@@ -75,7 +75,7 @@ Use the baseline result for the exact commit as execution evidence. Do not subst
 a previous green run or the table itself for an actual check. Candidate/implementation,
 automated verification and operator acceptance remain separate statuses.
 
-Local verification on 2026-11-16: all 541 tests passed on development Python 3.14.4
+Initial local verification on 2026-11-16: all 541 tests passed on development Python 3.14.4
 and in pinned Debian/Python 3.11.18. Both Debian native passes (frontend absent and
 reviewed) completed all five contracts. Network coverage was partial and system
 journal evidence unavailable, as expected for this minimal image; these states were
@@ -86,3 +86,12 @@ Failed container runs expose only bounded test identities/counts and the process
 state/exit code. Assertion bodies, subtest payloads and native evidence are excluded
 from this failure summary. Native contract failures point to the fixed local
 reproduction command; the same container cleanup and qualification gates apply.
+
+Qualification exposed an intermittent workspace-selection defect: delayed focus from
+an inactive pane could reactivate it after a new section was explicitly selected.
+The workspace now ignores those stale focus messages while preserving normal focus
+in the active section. A deterministic regression failed before the guard and passed
+after it. The previously intermittent cached-tab navigation sequence passed 30
+repetitions under the same one-CPU Debian constraints after the fix. No navigation
+timeout, CPU/RSS/wall budget or required check was relaxed. The complete current
+revision remains gated by native checks and full suites in both CI environments.

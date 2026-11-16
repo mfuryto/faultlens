@@ -7,7 +7,7 @@ import unittest
 from dataclasses import asdict
 from unittest.mock import patch
 
-from textual.widgets import DataTable,Input,Static,TabbedContent
+from textual.widgets import DataTable,Input,Static,TabbedContent,TabPane
 from faultlens.textual_app import FaultlensApp,DetailDialog,RawDialog,SourceDialog,ValueDialog
 from faultlens.models import Observation,report
 from faultlens.tui_model import Session
@@ -165,6 +165,20 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press('right'); self.assertEqual(1,app.page)
             await pilot.press('escape'); await asyncio.wait_for(stopped.wait(),1)
             self.assertIsNone(app.job); self.assertNotIn(0,app.snapshots)
+
+    async def test_late_focus_from_previous_pane_cannot_undo_explicit_tab_selection(self):
+        app=self.app()
+        async with app.run_test(size=(100,30)) as pilot:
+            await pilot.pause(.01);app.select_page(7);await pilot.pause(.01)
+            sections=app.query_one('#sections',TabbedContent)
+            app.select_page(1)
+            sections.post_message(TabPane.Focused(app.query_one('#page-7',TabPane)))
+            await pilot.pause(.05)
+            self.assertEqual('page-1',sections.active)
+            self.assertEqual(1,app.page)
+            app.query_one('#grid-1',DataTable).focus();await pilot.pause(.01)
+            self.assertEqual('page-1',sections.active)
+            await pilot.press('right');self.assertEqual(2,app.page)
 
     async def test_opening_source_tabs_loads_once_and_reuses_cached_sections(self):
         calls=[]

@@ -34,6 +34,14 @@ def literal(value):
     return Text(json.dumps(str(value),ensure_ascii=True)[1:-1],style=styles.get(str(value),''))
 
 
+class WorkspaceTabs(TabbedContent):
+    """Ignore delayed focus messages from panes that are no longer selected."""
+    def on_tab_pane_focused(self,event):
+        if event.tab_pane.id!=self.active:
+            event.prevent_default()
+            event.stop()
+
+
 class RawDialog(ModalScreen):
     """Secondary raw evidence browser; source values remain referenced, not copied."""
     BINDINGS=[Binding('escape','back','Back'),Binding('q','dismiss','Close')]
@@ -336,7 +344,7 @@ class FaultlensApp(App):
     def compose(self):
         yield Header(show_clock=False)
         yield Static('Read-only diagnostics; no elevation. User preferences may be saved.',id='status-line',markup=False)
-        with TabbedContent(initial='page-0',id='sections'):
+        with WorkspaceTabs(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
                     yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
