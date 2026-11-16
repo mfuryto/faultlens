@@ -81,3 +81,8 @@ reviewed) completed all five contracts. Network coverage was partial and system
 journal evidence unavailable, as expected for this minimal image; these states were
 reported without a healthy-server or no-fault claim. Ubuntu execution is enforced by
 the same baseline check for the exact PR/merge revision.
+
+Failed container runs expose only bounded test identities/counts and the process
+state/exit code. Assertion bodies, subtest payloads and native evidence are excluded
+from this failure summary. Native contract failures point to the fixed local
+reproduction command; the same container cleanup and qualification gates apply.

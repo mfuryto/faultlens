@@ -17,11 +17,11 @@ from faultlens.commands import _capture
 IMAGE='python@sha256:726d304906fa5eb468e5531e366548d1903286352f5adb54ef508ac01fbd80c6'
 WHEELS=Path('/tmp/faultlens-platform-wheels')
 TARGETS={'debian-12':('debian','12',(3,11)),'ubuntu-24.04':('ubuntu','24.04',(3,12))}
-CONTAINER_SCRIPT='''python -I -B scripts/platform_acceptance.py --target debian-12
+CONTAINER_SCRIPT='''python -I -B scripts/platform_acceptance.py --target debian-12 2>&1
 python -m venv /tmp/faultlens-ui-env
 /tmp/faultlens-ui-env/bin/python -m pip install --disable-pip-version-check --no-index --find-links=/wheels --require-hashes --only-binary=:all: -r requirements-tui.txt
 /tmp/faultlens-ui-env/bin/python -m unittest discover -s tests -q 2>&1
-/tmp/faultlens-ui-env/bin/python -I -B scripts/platform_acceptance.py --target debian-12 --frontend
+/tmp/faultlens-ui-env/bin/python -I -B scripts/platform_acceptance.py --target debian-12 --frontend 2>&1
 '''
 
 
@@ -90,6 +90,17 @@ def container_argv(cidfile,uid=None,gid=None):
             '--workdir','/workspace',IMAGE,'sh','-ec',CONTAINER_SCRIPT]
 
 
+def failure_summary(output):
+    """Expose test identities/counts only, never assertion payloads or source records."""
+    lines=[]
+    for line in output.splitlines():
+        match=re.match(r'(FAIL|ERROR): [A-Za-z0-9_]+ \(([A-Za-z0-9_.]+)\)',line)
+        if match: lines.append(match[1]+': '+match[2])
+        elif re.fullmatch(r'Ran [0-9]+ tests? in [0-9.]+s|FAILED \([a-z=, 0-9]+\)|OK',line): lines.append(line)
+        elif line.startswith('Platform qualification failed:'): lines.append('Native platform contract failed; reproduce the fixed target locally.')
+    return lines[-12:]
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target',choices=TARGETS,required=True)
@@ -104,7 +115,9 @@ def main(argv=None):
                 cidfile=Path(folder)/'container-id'
                 try:
                     result=_capture(container_argv(cidfile),timeout=240,limit=262144)
-                    if result.state!='completed' or result.returncode!=0: raise ValueError('Isolated Debian qualification failed; inspect locally without uploading native evidence')
+                    if result.state!='completed' or result.returncode!=0:
+                        for line in failure_summary(result.stdout): print('Qualification detail: '+line,file=sys.stderr)
+                        raise ValueError('Isolated Debian qualification failed: '+result.state+'; exit '+str(result.returncode)+'.')
                     print(result.stdout,end='')
                 finally:
                     if cidfile.exists():

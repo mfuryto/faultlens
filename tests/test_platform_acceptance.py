@@ -87,6 +87,21 @@ class PlatformAcceptanceTests(unittest.TestCase):
         self.assertIn('--no-index',check.CONTAINER_SCRIPT);self.assertIn('--require-hashes',check.CONTAINER_SCRIPT)
         with self.assertRaises(ValueError):check.container_argv('/tmp/invented',uid=0,gid=0)
 
+    def test_failure_summary_exposes_test_identity_without_assertion_or_subtest_values(self):
+        output="""Traceback: synthetic-native-evidence
+FAIL: test_example (invented.Example.test_example) (value='synthetic-secret')
+AssertionError: synthetic-native-evidence
+Ran 2 tests in 1.234s
+FAILED (failures=1)
+Platform qualification failed: synthetic-native-evidence
+"""
+        lines=check.failure_summary(output)
+        self.assertIn('FAIL: invented.Example.test_example',lines)
+        self.assertIn('FAILED (failures=1)',lines)
+        self.assertNotIn('synthetic-native-evidence',' '.join(lines))
+        self.assertNotIn('synthetic-secret',' '.join(lines))
+        self.assertEqual(12,len(check.failure_summary(('OK\n')*100)))
+
     def test_timeout_cleans_only_the_container_id_created_by_this_invocation(self):
         calls=[]
         def execute(argv,**limits):
