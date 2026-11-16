@@ -96,6 +96,7 @@ def failure_summary(output):
     for line in output.splitlines():
         match=re.match(r'(FAIL|ERROR): [A-Za-z0-9_]+ \(([A-Za-z0-9_.]+)\)',line)
         if match: lines.append(match[1]+': '+match[2])
+        elif re.fullmatch(r'Resource suite timed out: (?:benchmark|profiles) after=[0-9.unknown]+|Resource worker failed: [a-z-]{1,40}|Resource check: [a-z0-9-]{1,40} cpu=[0-9.unknown]+ wall=[0-9.unknown]+ rss=[0-9.unknown]+ memory=[0-9.unknown]+',line): lines.append(line)
         elif re.fullmatch(r'Ran [0-9]+ tests? in [0-9.]+s|FAILED \([a-z=, 0-9]+\)|OK',line): lines.append(line)
         elif line.startswith('Platform qualification failed:'): lines.append('Native platform contract failed; reproduce the fixed target locally.')
     return lines[-12:]

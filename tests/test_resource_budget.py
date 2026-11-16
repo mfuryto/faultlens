@@ -5,12 +5,16 @@ import subprocess
 import sys
 import unittest
 
+from tests.resource_diagnostics import emit,capture
+
 
 class ResourceBudgetTests(unittest.TestCase):
     def test_synthetic_cli_stays_within_foundation_budget(self):
         script = Path(__file__).resolve().parents[1] / 'scripts/benchmark.py'
-        result = subprocess.run([sys.executable, '-I', str(script), '--iterations', '2', '--json'],
-            capture_output=True, text=True, check=True, timeout=25)
+        result = capture([sys.executable, '-I', str(script), '--iterations', '2', '--json'],
+            capture_output=True, text=True, check=False, timeout=25)
+        emit(result)
+        self.assertEqual(0,result.returncode,'Synthetic resource command failed; see bounded resource metadata above.')
         report = json.loads(result.stdout)
         self.assertTrue(report['synthetic'])
         self.assertEqual({'status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic','tui-health'}, set(report['commands']))

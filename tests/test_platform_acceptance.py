@@ -102,6 +102,24 @@ Platform qualification failed: synthetic-native-evidence
         self.assertNotIn('synthetic-secret',' '.join(lines))
         self.assertEqual(12,len(check.failure_summary(('OK\n')*100)))
 
+    def test_resource_failure_details_exclude_worker_stderr_and_original_payloads(self):
+        from types import SimpleNamespace
+        from tests.resource_diagnostics import emit
+        value={'commands':{'tui-status':{'within_regression_budget':False,'cpu_max_seconds':1.1,'startup_wall_max_seconds':1.2,'peak_rss_max_mib':60,'original':'synthetic-secret'}}}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):emit(SimpleNamespace(returncode=1,stdout=json.dumps(value),stderr='synthetic-secret'))
+        lines=check.failure_summary(output.getvalue())
+        self.assertIn('cpu=1.1',' '.join(lines));self.assertNotIn('synthetic-secret',' '.join(lines))
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):emit(SimpleNamespace(returncode=1,stdout='',stderr="Command ['python', '--worker', 'tui-health'] failed: synthetic-secret"))
+        self.assertEqual(['Resource worker failed: tui-health'],check.failure_summary(output.getvalue()))
+        import subprocess
+        from tests.resource_diagnostics import capture
+        output=io.StringIO()
+        with patch('tests.resource_diagnostics.subprocess.run',side_effect=subprocess.TimeoutExpired('synthetic',25,output='synthetic-secret')),contextlib.redirect_stdout(output),self.assertRaises(subprocess.TimeoutExpired):
+            capture(['python','-I','/invented/benchmark.py'],timeout=25)
+        self.assertEqual(['Resource suite timed out: benchmark after=25'],check.failure_summary(output.getvalue()))
+
     def test_timeout_cleans_only_the_container_id_created_by_this_invocation(self):
         calls=[]
         def execute(argv,**limits):

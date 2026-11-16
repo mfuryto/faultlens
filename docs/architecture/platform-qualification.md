@@ -95,3 +95,8 @@ after it. The previously intermittent cached-tab navigation sequence passed 30
 repetitions under the same one-CPU Debian constraints after the fix. No navigation
 timeout, CPU/RSS/wall budget or required check was relaxed. The complete current
 revision remains gated by native checks and full suites in both CI environments.
+
+Resource-check failures also expose only the synthetic scenario name and numeric
+CPU/wall/RSS/address-space measurements, or the aggregate suite deadline. Worker
+tracebacks, assertion payloads and source evidence remain excluded. A nonzero worker
+or aggregate timeout still fails qualification; no budget is relaxed.
