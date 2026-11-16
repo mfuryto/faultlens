@@ -84,6 +84,14 @@ class InvestigationTests(unittest.TestCase):
         self.assertIn('2026-01-01',row.cells[1]);self.assertIn('OOM',row.cells[3])
         self.assertIn('example-worker',str(row.detail['Recorded examples']))
 
+    def test_reference_deduplication_preserves_distinct_equal_records_and_source_identity(self):
+        first={'reference':{'source':'systemd-journal','boot_id':'a'*32},'message':'Synthetic report'}
+        second=copy.deepcopy(first)
+        finding={'evidence':[{'source_analysis':'ssh_analysis','boot_id':'a'*32,'candidate_indices':[0,0,1]}]}
+        data={'ssh_analysis':{'records':[first,second]},'security_analysis':{'findings':[finding]}}
+        rows=linked_records(data,finding)
+        self.assertEqual(2,len(rows));self.assertIs(first,rows[0]);self.assertIs(second,rows[1])
+
     def test_two_hour_replay_can_include_six_ten_minute_samples_before_anchor(self):
         anchor=EPOCH+7200
         runner=AtopRunner(records=[incident(realtime=anchor*1000000,monotonic=7200000000)],

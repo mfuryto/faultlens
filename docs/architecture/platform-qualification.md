@@ -100,3 +100,20 @@ Resource-check failures also expose only the synthetic scenario name and numeric
 CPU/wall/RSS/address-space measurements, or the aggregate suite deadline. Worker
 tracebacks, assertion payloads and source evidence remain excluded. A nonzero worker
 or aggregate timeout still fails qualification; no budget is relaxed.
+
+A second deterministic regression also rejects a stale activation message from the
+inner tab strip after a newer selection. Both guards preserve real mouse/keyboard
+tab changes. With both guards, another ten cached-navigation sequences and thirty
+GUI benchmark-worker processes (status/diagnostic/health) passed under the same
+one-CPU Debian constraints. Synthetic resource failures now retain numeric maxima
+and aggregate-deadline diagnostics, with the original limits unchanged.
+
+Workspace tables are built on entry and reuse their model while source identity
+and collection settings remain unchanged. Resizing rebuilds only the visible
+table when its width changes; collecting another snapshot invalidates models.
+Evidence reference deduplication remains based on object identity, using a set
+instead of repeated linear scans. Original evidence and distinct equal records
+are preserved. Ten fresh diagnostic-worker runs under the same Debian constraints
+used at most 0.845 CPU seconds, 1.014 wall seconds and 65.278 MiB RSS locally.
+These observations do not replace the unchanged CI resource limits or real-server
+acceptance.
