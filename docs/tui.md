@@ -60,9 +60,9 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 
 | Section | Main table / action |
 | --- | --- |
-| System | Current measurements, values and source states; Enter explains each reading |
-| Health | Tool/service/recording readiness observations; missing data is not host failure |
-| Network | Interface rates and protocol counters; explicitly requested sockets open a separate endpoint table |
+| System | Prioritized resource/service review readings, a next step and grouped access to all measurements |
+| Health | Operational readings and observed failed services, separate from journal/recording readiness and tool/default details |
+| Network | Error/gap/activity-prioritized interface examples, protocol review counts and optional sockets; all interfaces remain in a paged table |
 | Security | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
 | History | Visible boots, examined/unexamined status, report counts and retained-record counts; Select boot pins its ID and opens Diagnostics, which loads the selected boot |
 | Diagnostics | Grouped reports and separate journal/security/recording/crash sources; open groups to inspect individual reports |
@@ -178,3 +178,39 @@ Empty source tables describe this view only: unclassified original records may s
 exist; s explains source coverage and e opens originals.
 
 ![Security workspace without warnings, using invented data](previews/workspace-security.svg)
+
+## Current-server decision views
+
+System, Health and Network use the same interpretation model as their readable CLI
+commands. Each starts with a short answer and next step, followed by Check, Result,
+Assessment and Meaning/next step. Open a row for full context; compact terminals may
+show fewer columns, but values and assessments remain visible. Source-detail tables
+keep their value/status columns within the viewport, including after resizing.
+
+- Critical/Review identifies an observed capacity limit or a specific review hint.
+  A short CPU sample >=90% gets a disclosed review hint, not a sustained-overload or
+  per-process diagnosis. Existing memory/filesystem thresholds remain unchanged.
+- Measured means a value or comparison was collected; it is not a whole-server verdict.
+- Gap/Partial means a required comparison/source was not established. A reset or an
+  inaccessible source never becomes zero activity.
+- Info includes optional tools, configuration hints and unverified defaults. No empty
+  value or automatic configuration change is used to resolve those uncertainties.
+- Active/Idle describes observed interface counters during this sample only. Roles,
+  routes and physical/virtual identity are not guessed from interface names.
+
+Health now runs `health --json` instead of the readiness-only `check` operation. It
+combines a current resource/manager snapshot with readiness observations and a bounded
+system-manager failed-service query. Enter Failed services for unit names, descriptions
+and original rows. Failure state is not verified impact or cause. Previous-boot listing,
+active recorders and date-named files are separate readiness hints, not verified system
+journal coverage or complete replay. Deeper recording checks still follow the existing
+preservation preference; the settings schema is unchanged.
+
+Network shows at most three relevant interface examples; comparison gaps and observed
+error/drop growth take priority over activity. All interfaces contains every retained
+row, including idle entries. RX is received traffic, TX is sent traffic, in bytes per
+second with IEC units. Overlapping virtual/physical layers are never added into a host
+throughput total. Requested CLI socket output retains all endpoint rows; TUI sockets
+remain available in their own domain table. `--details`/`--json` retain full source data.
+
+See [milestone 1 design and acceptance](architecture/milestone-1-current-overview.md).

@@ -84,7 +84,7 @@ class SessionTests(unittest.TestCase):
         session = self.session()
         self.assertEqual(8,len(PAGES))
         with patch('socket.socket',side_effect=AssertionError('No traffic')), patch('builtins.open',side_effect=AssertionError('No file writes')):
-            for page, command in enumerate(('status','check','network','security','incidents','diagnose')):
+            for page, command in enumerate(('status','health','network','security','incidents','diagnose')):
                 session.choose_page(page)
                 session.refresh()
                 self.assertEqual(command,session.data['command'])

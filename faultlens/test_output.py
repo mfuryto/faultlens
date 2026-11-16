@@ -38,6 +38,7 @@ def label(key):
         'health.atop.service_active':'Atop recording service', 'health.journal.service_active':'System journal service',
         'network.counter_growth':'Network pressure/error counters',
         'history.visible.previous_boots':'Accessible previous-boot history',
+        'health.failed_services':'Failed-service source', 'health.failed_service_observations':'Failed service units',
         'tui.current_terminal':'Interactive terminal check', 'tui.textual':'Reviewed Textual frontend',
         'health.journal.config':'Journal configuration'}
     if key in readable:

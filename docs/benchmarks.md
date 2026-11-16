@@ -416,3 +416,23 @@ The optional frontend has an explicit 80 MiB regression bound; the core CLI reta
 45 one-CPU-affinity runs across 128/256/512 MiB address-space ceilings passed; peak
 RSS was 62.89 MiB. These ceilings describe a process, not a VM RAM requirement or
 real SSH/server acceptance.
+
+## Milestone 1 current-server views — 2026-11-16
+
+All 28 modes passed ten fresh-process runs on Linux/Python 3.14.4 with the existing
+50 MiB CLI / 80 MiB Textual, <1 s CPU and <2 s wall budgets. New `health` and
+`tui-health` modes retain 128 invented failed services with long descriptions; the
+Textual mode opens their actual paged source table.
+
+| Mode | Median wall | Max wall | Median CPU | Max RSS |
+| --- | ---: | ---: | ---: | ---: |
+| health | 0.1494 s | 0.1526 s | 0.0398 s | 24.45 MiB |
+| tui-health | 0.5956 s | 0.7193 s | 0.3479 s | 53.70 MiB |
+| tui-status | 0.5806 s | 0.5982 s | 0.3170 s | 51.63 MiB |
+| tui-diagnostic | 0.5610 s | 0.5821 s | 0.4029 s | 63.18 MiB |
+
+All 63 constrained synthetic runs passed across one-CPU-affinity
+and 128/256/512 MiB virtual-address-space profiles; maximum RSS was
+62.95 MiB. These are process regression
+checks, not actual VM RAM requirements or target-server/SSH acceptance. Native tool
+startup, real storage latency and real incident coverage remain outside these fixtures.

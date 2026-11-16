@@ -30,7 +30,7 @@ from . import ui_collection
 
 def literal(value):
     styles={'critical':'bold red','warning':'yellow','unavailable':'dim','partial':'yellow',
-            'available':'green','normal':'green','Confirmed':'cyan','Possible':'yellow','Unknown':'dim'}
+            'available':'green','normal':'green','Critical':'bold red','Review':'yellow','Gap':'yellow','Partial':'yellow','Measured':'cyan','Confirmed':'cyan','Possible':'yellow','Unknown':'dim'}
     return Text(json.dumps(str(value),ensure_ascii=True)[1:-1],style=styles.get(str(value),''))
 
 
@@ -136,8 +136,22 @@ class SourceDialog(ModalScreen):
                 yield Button('Previous',id='previous'); yield Button('Next',id='next'); yield Button('Back',id='back')
 
     def on_mount(self):
-        table=self.query_one(DataTable); table.add_columns(*self.columns); self.populate()
-        table.focus()
+        self.rebuild_table()
+        self.query_one(DataTable).focus()
+
+    def on_resize(self,event):
+        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services'}:
+            self.call_after_refresh(self.rebuild_table)
+
+    def rebuild_table(self):
+        table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
+        if self.entry.kind in {'observations','interfaces','failed_services'}:
+            weights=[0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32]
+            usable=max(12,self.app.size.width-8-2*len(self.columns))
+            for column,weight in zip(self.columns,weights): table.add_column(column,width=max(3,int(usable*weight)))
+        else: table.add_columns(*self.columns)
+        self.populate()
+        if table.row_count: table.move_cursor(row=min(selected,table.row_count-1))
 
     def populate(self):
         table=self.query_one(DataTable); table.clear()
@@ -171,7 +185,8 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in explain: detail=explain[self.entry.kind](source)
+        if self.entry.kind in {'observations','interfaces','failed_services'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
                 'Meaning':'Only retained candidates and supported signatures are shown. No matches is not an all-clear; use original evidence for unclassified records.',
@@ -220,6 +235,7 @@ class FaultlensApp(App):
     #status-line { height: 1; padding: 0 1; background: $boost; }
     TabPane { padding: 0 1; }
     .summary { height: auto; max-height: 4; color: $text-muted; }
+    .current-summary { max-height: 6; }
     DataTable { height: 1fr; }
     .dialog-title { height: auto; max-height: 3; text-style: bold; }
     .hint { height: auto; max-height: 3; color: $text-muted; }
@@ -259,7 +275,7 @@ class FaultlensApp(App):
         with TabbedContent(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
-                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary',markup=False)
+                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary current-summary' if page<3 else 'summary',markup=False)
                     yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
         yield Footer()
 
@@ -303,12 +319,11 @@ class FaultlensApp(App):
         visible=list(range(len(columns)))
         if self.size.width<70 and len(columns)>2:
             visible=[0,1,2] if page in {0,1,2,4} else [0,1]
-        if page==2: visible=[index for index in visible if index<3]
         usable=max(12,self.size.width-6-2*len(visible))
         if len(visible)==3:
             widths=[max(4,int((usable-9)*0.55)),max(4,usable-9-int((usable-9)*0.55)),9]
         else:
-            weights=({2:[0.45,0.55],4:[0.34,0.18,0.18,0.30],5:[0.08,0.18,0.16,0.17,0.41]})[len(visible)]
+            weights=({2:[0.45,0.55],4:[0.25,0.23,0.15,0.37] if page<3 else [0.34,0.18,0.18,0.30],5:[0.08,0.18,0.16,0.17,0.41]})[len(visible)]
             widths=[max(4,int(usable*weight)) for weight in weights]
         for index,width in zip(visible,widths): table.add_column(columns[index],width=width)
         for index,entry in enumerate(entries): table.add_row(*(literal(entry.cells[c]) for c in visible),key=str(index))
@@ -318,6 +333,10 @@ class FaultlensApp(App):
             if self.settings_status: summary.append('\n').append(literal(self.settings_status))
             if self.settings_store is not None:
                 summary.append('\nPreferences file: ').append(literal(str(self.settings_store.path)))
+        elif page<3 and data:
+            from .current_views import build
+            view=build(data,('status','health','network')[page])
+            summary=literal(view['summary']); summary.append('\nNext: ').append(literal(view['next_step']))
         else:
             summary=literal(guide(data)['Summary'] if data else
                 'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
@@ -416,7 +435,7 @@ class FaultlensApp(App):
             self.select_page(5)
             self.notice='Diagnostics uses the selected boot and existing journal/search settings.'; self.update_status()
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline'}:
+        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 
@@ -461,4 +480,9 @@ class FaultlensApp(App):
     def action_summary(self):
         from .workspace import Entry
         data=self.data()
-        if data: self.push_screen(DetailDialog(Entry(('Snapshot meaning and coverage',),data,guide(data)),data))
+        if data:
+            if self.page<3:
+                from .current_views import build
+                detail=build(data,('status','health','network')[self.page])['detail']
+            else: detail=guide(data)
+            self.push_screen(DetailDialog(Entry(('Snapshot meaning and coverage',),data,detail),data))

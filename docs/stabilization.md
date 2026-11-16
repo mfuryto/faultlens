@@ -9,7 +9,7 @@ an arbitrary server froze or guarantee that an attack did not occur.
 
 | Operator question | Current answer | Remaining gap |
 | --- | --- | --- |
-| What is happening now? | CPU/load/RAM/swap/root-filesystem/network readings and selected service checks | No complete live process attribution, all-filesystem/hardware health or full failed-unit inventory |
+| What is happening now? | Prioritized CPU/load/RAM/swap/root-filesystem/network readings and bounded system-service failure context | No complete live process attribution, all-filesystem/hardware health or all-unit/user-service inventory |
 | What happened around an earlier boot/problem? | Immutable journal boot selection, bounded tail/filtered searches, chronology, Atop replay and optional pstore fragments | Logging may be lost; full shutdown completion and arbitrary root cause remain unverified |
 | Was memory/storage/kernel failure reported? | Supported OOM/panic/I/O/filesystem/stall signatures with original references | A signature is not the underlying cause; hardware/vendor evidence and labeled incident validation remain necessary |
 | Is network activity suspicious? | Short counter samples, numeric TCP/UDP sockets, narrow SSH/UFW log signatures and Possible historical indicators | No external-reachability probe, effective firewall-policy audit, socket-owner attribution or comprehensive intrusion detection |
@@ -71,19 +71,20 @@ navigation verify the behavior. A native read-only development-host sample with 
 findings rendered five overview rows and retained Unknown. This does not establish
 actual target-server acceptance or detector calibration; those gates remain open below.
 
-## Next acceptance and priorities
+## Forward delivery sequence
 
-1. Use the corrected workspace on the actual server through SSH; check the known
-   recording date and available journal scope, plus ordinary/admin access separately.
-2. Review a small labeled set of known positive and normal cases. Record misses and
-   false positives before changing thresholds or advertising diagnostic accuracy.
-3. Prioritize a bounded longer historical window and stronger recording/boot provenance
-   if the real incident workflow requires them. Then consider supported authentication
-   formats, live unit failures and process/socket attribution based on actual evidence.
-4. Choose support policy and exact release artifacts only after acceptance. The owner
-   has approved GPL-3.0-or-later; the license and notices are established separately.
-   Publishing an application release still requires explicit authorization.
+The [delivery plan](delivery-plan.md) is the single forward-work sequence from
+2026-11-16. It replaces the former priority list here. This file records actual
+capabilities and known gaps; it is not a second roadmap or evidence of operator
+acceptance. The new milestones prioritize useful current-server decisions, incident
+workflows and cross-server acceptance. General package/CVE and host-security auditing
+are outside this plan; network/authentication/firewall observations serve incident
+investigation where relevant.
 
-No additional feature is silently claimed as implemented. No daemon, database,
-cloud integration, automatic export, server configuration change or blanket package
-installation is required by this plan.
+### Current overview delivery
+
+Milestone 1 implements shared System/Health/Network decision views and a bounded
+read-only failed-service source. Automated verification and synthetic previews are
+recorded in [the milestone design](architecture/milestone-1-current-overview.md).
+Operator usefulness and target-server/SSH acceptance remain pending; this is not a
+claim that stabilization or the milestone's acceptance is complete.

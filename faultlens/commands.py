@@ -19,6 +19,7 @@ class Command(Enum):
     REFERENCE_MEMORY = "reference_memory"
     REFERENCE_FILESYSTEM = "reference_filesystem"
     SYSTEM_STATE = "system_state"
+    FAILED_SERVICES = "failed_services"
     JOURNAL_CONFIG = "journal_config"
     JOURNAL_BOOTS = "journal_boots"
     JOURNAL_SYSTEM_BOOTS = "journal_system_boots"
@@ -28,6 +29,7 @@ class Command(Enum):
 
 
 CATALOG = {
+    Command.FAILED_SERVICES: ("systemctl", ("list-units", "--state=failed", "--type=service", "--all", "--plain", "--no-legend", "--no-pager", "--full")),
     Command.SOCKETS: ("ss", ("-H", "-n", "-O", "-a", "-t", "-u")),
     Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
     Command.REFERENCE_FILESYSTEM: ("df", ("--block-size=1", "--output=size,used,avail,pcent", "/")),

@@ -127,3 +127,7 @@ harmless default-setting explanations.
 limitations and optional bounded repository failure excerpts after the plain summary.
 `--json` retains the existing structured schema and classifications. Grouping changes
 presentation only: checks, counts, collection, permissions and exit codes are unchanged.
+
+The native health worker also checks the bounded failed-service source. Observed failed
+service rows produce attention (WARN), not a failed software test. Use `faultlens health`
+for unit names and context; the checker does not restart or reset services.

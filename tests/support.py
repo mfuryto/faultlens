@@ -55,6 +55,7 @@ class SyntheticRunner:
     def __init__(self):
         self.calls = []
         self.results = {
+            Command.FAILED_SERVICES: Result('completed','',0),
             Command.JOURNAL_CONFIG: Result('completed', '# /etc/systemd/journald.conf\n[Journal]\nStorage=persistent\nSystemMaxUse=64M\nMaxRetentionSec=7day\n', 0),
             Command.SYSTEM_STATE: Result('completed', 'running\n', 0),
             Command.JOURNAL_BOOTS: Result('completed', '-1 ' + 'a' * 32 + ' synthetic previous boot\n0 ' + 'b' * 32 + ' synthetic current boot\n', 0),
@@ -332,3 +333,13 @@ class SyntheticPhase3Runner(SyntheticFirewallRunner):
             rows += [('NET', f'nic{i} {count} {count*1000} 1 2 -1 0 0 0 0 0 0 0 0 0 0 0 0 0') for i in range(32)]
             result.append(extended_sample(rows=rows, timestamp=EPOCH+30*(index+1)))
         return Result('completed', ''.join(result), 0)
+
+
+class SyntheticHealthRunner(SyntheticRunner):
+    """Bounded many-failure scenario; invented units/descriptions, never host state."""
+    def __init__(self):
+        super().__init__()
+        self.results[Command.SYSTEM_STATE]=Result('completed','degraded\n',1)
+        self.results[Command.FAILED_SERVICES]=Result('completed',''.join(
+            'example-'+str(i)+'.service loaded failed failed Synthetic '+('context '*128)+'\n'
+            for i in range(128)),0)

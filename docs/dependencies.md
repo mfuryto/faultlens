@@ -17,7 +17,7 @@ Run with existing access; unavailable evidence does not trigger privilege escala
 | Tool | Used by | Requirement |
 | --- | --- | --- |
 | journalctl | history, incidents, diagnose, previous-boot check | Needed for these journal features; visible records depend on permissions and retention |
-| systemctl | status/check service observations | Needed for service state only |
+| systemctl | status/check/health service observations and bounded failed-service details | Needed for these service-manager observations only |
 | systemd-analyze | check --history merged journald configuration | Optional; uses portable cat-config without --tldr; output compatibility is checked at collection time |
 | ss | network/security --sockets | Optional local TCP/UDP snapshot; existing permissions and network namespace apply |
 | atop | diagnose --atop-date | Optional replay tool; recordings must already exist; Faultlens does not install or enable a recorder |

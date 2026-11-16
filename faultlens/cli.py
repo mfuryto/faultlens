@@ -7,7 +7,7 @@ import unicodedata
 
 from . import __version__
 from .collectors import check, status
-from .models import report
+from .models import report, Observation
 
 
 def safe_text(value: str) -> str:
@@ -274,7 +274,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
     parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes.")
-    parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/network/security or initial TUI setting).")
+    parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/health/network/security or initial TUI setting).")
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
     scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
@@ -354,6 +354,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             if args.command == "diagnose" and args.pstore_archive:
                 from .pstore_archive import analyze as analyze_archive
                 data["pstore_archive"] = analyze_archive(pstore_archive_collector)
+        elif args.command=='health':
+            from .health import collect
+            data=collect(sources,runner,sample_seconds=args.sample_seconds,preservation=args.history)
         else:
             items = (status(sources, runner, args.sample_seconds) if args.command == "status"
                      else check(sources, runner))
@@ -391,6 +394,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             render_history(data, stdout)
         else:
             print("Faultlens " + __version__ + " — read-only " + args.command, file=stdout)
+            if args.command=='health': items=[Observation(**item) for item in data['observations']]
             for item in items:
                 value = (("unavailable" if item.state == "unavailable" else "unknown")
                          if item.value is None else json.dumps(item.value, ensure_ascii=True))
@@ -401,6 +405,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                     print(safe_text("  Limitation: " + limitation), file=stdout)
                 for recommendation in item.recommendations:
                     print(safe_text("  Recommendation: " + recommendation), file=stdout)
+            if 'failed_services' in data:
+                print('Failed-service source: '+json.dumps(data['failed_services'],ensure_ascii=True),file=stdout)
             print("Observations are not a root-cause diagnosis. Use --json for confidence and thresholds.", file=stdout)
         return 0
     except BrokenPipeError:

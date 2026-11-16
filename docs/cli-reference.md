@@ -146,7 +146,9 @@ One-shot CLI exit codes: 0 means a report was rendered (including partial/unavai
 1 means unsupported platform or collection/rendering failure, 2 means invalid arguments,
 and 130 means interrupted collection. Inspect observation states for warnings or gaps;
 exit 0 does not assert that the system is healthy. TUI exit 0 means orderly exit.
-`health` aliases check; calendar history filters and configuration changes remain unimplemented. The TUI now exposes the existing
+`health` combines current operational readings, a bounded failed-service listing and
+diagnostic readiness; `check` remains readiness-only. Calendar history filters and
+configuration changes remain unimplemented. The TUI now exposes the existing
 read-only adapters; see [terminal navigation](tui.md).
 
 Pstore and its systemd archive now expose collected relative filenames, file metadata
