@@ -131,3 +131,16 @@ entry. Their tabs remain available from startup, and collection still begins on
 entry. Resize, repeated navigation, settings and evidence dialogs remain covered
 by the complete suite. Ten fresh Debian diagnostic workers after deferred mounting
 used at most 0.766 CPU seconds, 0.939 wall seconds and 67.235 MiB RSS locally.
+
+Collection completion also checks the tab's current selection before scheduling
+another read. This prevents a queued activation from collecting the previous pane
+while the requested pane mounts. The deterministic regression collects both pages
+without the guard and only the requested page with it. Thirty repetitions of the
+original blocked-read/navigation case and thirty fresh GUI workers passed under
+the same Debian constraints.
+
+The combined focus/activation/blocked-read regression sequence subsequently passed
+thirty repetitions (ninety regression executions), followed by thirty fresh GUI
+workers in the same constrained Debian run. UI tests wait for completed activation
+within the existing three-second helper deadline rather than assuming pane mounting
+finishes after a fixed 50 ms sleep. The complete local suite passed 549 tests.

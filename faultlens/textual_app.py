@@ -466,6 +466,7 @@ class FaultlensApp(App):
         self.ensure_snapshot()
 
     def ensure_snapshot(self):
+        if self.query_one('#sections',TabbedContent).active!='page-'+str(self.page): return
         if not self.workspace_ready or not self.initial_collect or self.closing or self.page>=6 or self.job is not None: return
         options=asdict(self.session.settings)
         if self.page in self.snapshots and self.snapshot_options.get(self.page)==options: return

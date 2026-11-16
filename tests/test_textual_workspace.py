@@ -173,7 +173,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             sections=app.query_one('#sections',TabbedContent)
             app.select_page(1)
             sections.post_message(TabPane.Focused(app.query_one('#page-7',TabPane)))
-            await pilot.pause(.05)
+            await self.wait_until(pilot,lambda: app.page==1)
             self.assertEqual('page-1',sections.active)
             self.assertEqual(1,app.page)
             app.query_one('#grid-1',DataTable).focus();await pilot.pause(.01)
@@ -266,6 +266,18 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             release.set()
             await self.wait_until(pilot,lambda: 2 in app.snapshots and app.job is None)
             self.assertEqual([0,2],calls); self.assertIn(2,app.snapshots)
+
+    async def test_queued_tab_activation_does_not_collect_the_previous_page(self):
+        calls=[]
+        async def collect(page,settings): calls.append(page);return status_report()
+        app=FaultlensApp(collector=collect,initial_collect=False)
+        async with app.run_test(size=(100,30)) as pilot:
+            app.select_page(1);await self.wait_until(pilot,lambda: app.page==1)
+            app.initial_collect=True
+            app.select_page(2)
+            app.ensure_snapshot()
+            await self.wait_until(pilot,lambda: 2 in app.snapshots and app.job is None)
+            self.assertEqual([2],calls)
 
     async def test_failed_tab_read_does_not_retry_until_refresh_or_changed_options(self):
         calls=[]
