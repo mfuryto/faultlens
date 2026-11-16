@@ -40,14 +40,18 @@ class JournalLossTests(unittest.TestCase):
             self.assertEqual(1, len(data['findings']))
             self.assertNotIn('private-unit', json.dumps(data))
 
-    def test_text_and_json_never_echo_raw_content_or_suppression_count(self):
+    def test_readable_evidence_retains_source_while_json_requires_explicit_originals(self):
         for flags in ([], ['--json']):
             output = io.StringIO()
             main(['diagnose'] + flags, runner=JournalRunner([record(
                 'Suppressed 987654 messages from private-unit.service', _TRANSPORT='driver',
                 MESSAGE_ID=JOURNAL_DROPPED)]), stdout=output)
-            self.assertNotIn('private-unit', output.getvalue())
-            self.assertNotIn('987654', output.getvalue())
+            if '--json' in flags:
+                self.assertNotIn('private-unit',output.getvalue())
+            else:
+                self.assertIn('private-unit.service',output.getvalue())
+            if '--json' in flags: self.assertNotIn('987654',output.getvalue())
+            else: self.assertIn('Suppressed 987654',output.getvalue())
             self.assertIn('Journald reported suppressed messages', output.getvalue())
 
     def test_capped_repeated_reports_keep_unknown_coverage_and_causes(self):

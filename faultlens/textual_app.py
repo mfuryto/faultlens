@@ -92,7 +92,7 @@ class DetailDialog(ModalScreen):
                 yield Button('Original',id='original')
                 if self.entry.kind=='finding': yield Button('Records',id='references')
                 if 'Timeline position' in (self.entry.detail or {}): yield Button('Position',id='position')
-                if self.entry.kind=='boot': yield Button('Select boot',id='select-boot',variant='primary')
+                if self.entry.kind=='boot': yield Button('Investigate this boot',id='select-boot',variant='primary')
                 yield Button('Close',id='close')
 
     def action_original(self): self.app.push_screen(RawDialog(self.entry.original))
@@ -104,13 +104,72 @@ class DetailDialog(ModalScreen):
         event.stop()
         if event.button.id=='original': self.action_original()
         elif event.button.id=='position': self.action_position()
-        elif event.button.id=='references': self.app.push_screen(RawDialog(resolve(self.data,self.entry.original),'Referenced source evidence'))
+        elif event.button.id=='references': self.app.push_screen(RecordsDialog(self.data,self.entry.original))
         elif event.button.id=='select-boot':
             source=self.entry.original; boot=source.get('boot',source)
             self.app.session.update_setting('boot_selector',boot['boot_id'])
+            self.app.snapshots.pop(5,None)
+            self.app.snapshot_options.pop(5,None)
+            self.app.collection_attempts.pop(5,None)
             self.dismiss(); self.app.select_page(5)
             self.app.persist_settings()
             self.app.notice='Boot ID selected. Diagnostics loads with the current collection options.'; self.app.update_status()
+        else: self.dismiss()
+
+
+class RecordsDialog(ModalScreen):
+    """Readable, scrollable source messages; exact retained objects remain available."""
+    BINDINGS=[Binding('escape','dismiss','Back'),Binding('e','original','Original fields'),
+              Binding('ctrl+right','next_records','Next records'),Binding('ctrl+left','previous_records','Previous records')]
+
+    def __init__(self,data,finding=None,*,record=None):
+        super().__init__()
+        from .investigation import linked_records
+        self.records=[record] if record is not None else linked_records(data,finding)
+        self.record_offset=0
+        self.linkage=resolve(data,finding) if finding is not None else record
+
+    def messages(self):
+        from .investigation import utc
+        if not self.records:
+            yield Static('No original record resolved. Original fields retain reference details; no source message is guessed.',markup=False)
+        for record in self.records[self.record_offset:self.record_offset+16]:
+            if 'message' in record:
+                metadata=record.get('metadata',{})
+                text=utc(record['reference'].get('realtime_us'))+' | '+str(metadata.get('comm',''))+' | PID '+str(metadata.get('pid',''))
+                yield Static(literal(text),markup=False)
+                yield Static(literal(record['message']),markup=False)
+            else:
+                from .recording_presentation import sample_view
+                yield Static(Text(detail_text(sample_view(record))),markup=False)
+
+    def compose(self):
+        with Vertical(classes='dialog'):
+            yield Static('Recorded source evidence',classes='dialog-title',markup=False)
+            with VerticalScroll(id='readable-records'): yield from self.messages()
+            yield Static('',id='record-position',classes='hint',markup=False)
+            yield Static('Receipt time may differ from event time. e opens complete original fields; Esc returns.',classes='hint',markup=False)
+            with Horizontal(classes='buttons'):
+                yield Button('Previous',id='record-previous'); yield Button('Next',id='record-next')
+                yield Button('Original fields',id='original'); yield Button('Back',id='back')
+
+    def on_mount(self): self.position()
+    def position(self):
+        self.query_one('#record-position',Static).update('Retained records '+str(self.record_offset+1 if self.records else 0)+'–'+str(min(self.record_offset+16,len(self.records)))+' of '+str(len(self.records))+'. Reports can overlap; no independent corroboration is inferred.')
+        self.query_one('#record-previous',Button).disabled=self.record_offset==0
+        self.query_one('#record-next',Button).disabled=self.record_offset+16>=len(self.records)
+    def action_original(self): self.app.push_screen(RawDialog(self.linkage,'Complete source references and originals'))
+    async def change_records(self,step):
+        self.record_offset=max(0,min(max(0,(len(self.records)-1)//16*16),self.record_offset+step))
+        container=self.query_one('#readable-records',VerticalScroll)
+        await container.remove_children(); await container.mount(*self.messages()); container.scroll_home(animate=False); self.position()
+    async def action_next_records(self): await self.change_records(16)
+    async def action_previous_records(self): await self.change_records(-16)
+    async def on_button_pressed(self,event):
+        event.stop()
+        if event.button.id=='original': self.action_original()
+        elif event.button.id=='record-next': await self.action_next_records()
+        elif event.button.id=='record-previous': await self.action_previous_records()
         else: self.dismiss()
 
 
@@ -236,6 +295,7 @@ class FaultlensApp(App):
     TabPane { padding: 0 1; }
     .summary { height: auto; max-height: 4; color: $text-muted; }
     .current-summary { max-height: 6; }
+    .selected-evidence { height: 7; max-height: 9; background: $boost; padding: 0 1; }
     DataTable { height: 1fr; }
     .dialog-title { height: auto; max-height: 3; text-style: bold; }
     .hint { height: auto; max-height: 3; color: $text-muted; }
@@ -275,8 +335,9 @@ class FaultlensApp(App):
         with TabbedContent(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
-                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary current-summary' if page<3 else 'summary',markup=False)
+                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary current-summary' if page<3 or page in {4,5,6} else 'summary',markup=False)
                     yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
+                    if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
         yield Footer()
 
     def on_mount(self):
@@ -290,6 +351,7 @@ class FaultlensApp(App):
 
     def on_resize(self,event):
         for widget in self.query('.summary'): widget.display=event.size.height>=16
+        for widget in self.query('.selected-evidence'): widget.display=event.size.height>=20
         self.call_after_refresh(self.relayout)
 
     def relayout(self):
@@ -323,7 +385,7 @@ class FaultlensApp(App):
         if len(visible)==3:
             widths=[max(4,int((usable-9)*0.55)),max(4,usable-9-int((usable-9)*0.55)),9]
         else:
-            weights=({2:[0.45,0.55],4:[0.25,0.23,0.15,0.37] if page<3 else [0.34,0.18,0.18,0.30],5:[0.08,0.18,0.16,0.17,0.41]})[len(visible)]
+            weights=({2:[0.45,0.55],4:[0.25,0.23,0.15,0.37] if page<3 else [0.27,0.19,0.39,0.15] if page in {5,6} else [0.34,0.18,0.18,0.30],5:[0.08,0.18,0.16,0.17,0.41]})[len(visible)]
             widths=[max(4,int(usable*weight)) for weight in weights]
         for index,width in zip(visible,widths): table.add_column(columns[index],width=width)
         for index,entry in enumerate(entries): table.add_row(*(literal(entry.cells[c]) for c in visible),key=str(index))
@@ -337,6 +399,12 @@ class FaultlensApp(App):
             from .current_views import build
             view=build(data,('status','health','network')[page])
             summary=literal(view['summary']); summary.append('\nNext: ').append(literal(view['next_step']))
+        elif page in {5,6} and data and data['command']=='diagnose':
+            from .investigation import story
+            view=story(data)
+            summary=literal(view['answer']); summary.append('\nNext: ').append(literal(view['next']))
+        elif page==4 and data:
+            summary=literal('Choose the boot covering your incident. Times describe retained records, not exact boot/crash boundaries. Enter opens its context; Investigate this boot opens Diagnostics.')
         else:
             summary=literal(guide(data)['Summary'] if data else
                 'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
@@ -412,6 +480,28 @@ class FaultlensApp(App):
         entries=self.entries.get(self.page,[]); table=self.query_one('#grid-'+str(self.page),DataTable)
         return entries[table.cursor_row] if entries else None
 
+    def on_data_table_row_highlighted(self,event):
+        if len(self.screen_stack)!=1 or self.page not in {4,5,6} or event.data_table.id!='grid-'+str(self.page): return
+        rows=self.entries.get(self.page,[])
+        if not rows or not 0<=event.cursor_row<len(rows): return
+        entry=rows[event.cursor_row];detail=entry.detail or {}
+        text=Text()
+        if self.page==4:
+            text.append(literal('Retained UTC: '+str(detail.get('Retained UTC range','Not examined'))))
+            for example in detail.get('Recorded examples',[])[:1]: text.append('\nRecorded: ').append(literal(example))
+            text.append('\nEnter opens context and Investigate this boot.')
+        else:
+            lines=detail.get('Recorded evidence',detail.get('Recorded message',[]))
+            if not lines and entry.kind=='journal_record':
+                from .investigation import utc,excerpt
+                lines=[utc(entry.original['reference'].get('realtime_us'))+' | '+excerpt(entry.original['message'],2048)]
+            for line in lines[:1]: text.append(literal(line))
+            meaning=detail.get('What it means','Enter opens full context; original source fields remain available.')
+            if isinstance(meaning,str): text.append('\nMeaning: ').append(literal(meaning.split('. ',1)[0]+('.' if '. ' in meaning else '')))
+            steps=detail.get('What you can do',[])
+            if steps: text.append('\nNext: ').append(literal(steps[0]))
+        self.query_one('#selected-evidence-'+str(self.page),Static).update(text)
+
     def action_open(self):
         entry=self.selected()
         if entry: self.open_entry(entry,self.data())
@@ -421,8 +511,8 @@ class FaultlensApp(App):
     def open_entry(self,entry,data):
         if len(self.screen_stack)>=32: return
         if entry.kind=='finding' and entry.detail is None:
-            from .presentation import finding_view
-            entry=replace(entry,detail=finding_view(entry.original))
+            from .investigation import finding_detail
+            entry=replace(entry,detail=finding_detail(data,entry.original))
         if entry.kind=='setting':
             key=entry.original; value=getattr(self.session.settings,key)
             if type(value) is bool:
@@ -434,6 +524,7 @@ class FaultlensApp(App):
         elif entry.kind=='diagnostics_link':
             self.select_page(5)
             self.notice='Diagnostics uses the selected boot and existing journal/search settings.'; self.update_status()
+        elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
         elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services'}:
             self.push_screen(SourceDialog(entry,data))

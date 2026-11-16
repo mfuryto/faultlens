@@ -9,7 +9,7 @@ from .socket_presentation import row_view as socket_view,row_label as socket_lab
 from .recording_presentation import recording_view,sample_view,sample_label
 from .crash_presentation import source_view,record_view,record_label
 
-TABS=('System','Health','Network','Security','History','Diagnostics','Evidence','Settings')
+TABS=('System','Health','Network','Signals','History','Diagnostics','Evidence','Settings')
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,7 @@ def collection_entry(page,state='not_collected'):
 
 def security_entries(data,settings):
     scope=guide(data)
-    rows=[Entry(('Current network security coverage',data.get('state','unknown'),'Live sample',
+    rows=[Entry(('Current network signals',data.get('state','unknown'),'Live sample',
                  'Short counter sample; attack assessment Unknown'),data,scope)]
     observations=data.get('observations',[])
     readable=sum(item['state']!='unavailable' and item['value'] is not None for item in observations)
@@ -100,17 +100,24 @@ def page_table(page,data,settings):
         return ('Check','Result','Assessment','Meaning / next step'),[
             Entry((row.label,row.value,row.assessment,row.meaning),row.original,row.detail,row.kind) for row in view['rows']]
     if page==4:
+        from .investigation import history_detail,utc
         summaries={row['boot']['boot_id']:row for row in data.get('summaries',[])}
         rows=[]
         for boot in data.get('boots',[]):
             summary=summaries.get(boot['boot_id'])
-            detail=boot_summary_view(summary) if summary else {'Observed':'Boot visible; not examined in this overview',
-                'What it means':'Visibility does not establish complete retained history. Select this boot for an explicit diagnosis.'}
-            rows.append(Entry((str(boot['index']),summary['state'] if summary else 'Not examined',
-                str(summary['finding_count']) if summary and summary['state']=='available' else 'Unverified',
-                str(summary['records_examined']) if summary and summary['state']=='available' else 'Unverified',boot['boot_id']),
-                summary or boot,detail,'boot'))
-        return ('Boot','Evidence','Matched reports','Retained records','Boot ID'),rows
+            detail=history_detail(summary) if summary else {'Observed':'Boot visible; not examined in this overview',
+                'What it means':'Select this boot to investigate it; this listing does not establish complete history.'}
+            first=summary.get('first_record') if summary else None
+            last=summary.get('last_record') if summary else None
+            reports=summary.get('notable_reports',[]) if summary else []
+            rows.append(Entry(('Boot '+str(boot['index']),utc(first.get('realtime_us')) if first else 'Not examined',
+                utc(last.get('realtime_us')) if last else 'Not verified',
+                reports[0]['title'] if reports else 'No supported match' if summary and summary['state']=='available' else 'Evidence not assessed',
+                'Enter to investigate'),summary or boot,detail,'boot'))
+        if not rows:
+            empty=collection_entry(4,'failed')
+            rows.append(Entry((*empty.cells,'No boot assessed','Check journal scope'),empty.original,empty.detail))
+        return ('Boot','First retained UTC','Last retained UTC','Reported problem','Next step'),rows
     if page in {3,5}:
         entries=[]
         for representative,count,source in finding_groups(data):
@@ -119,15 +126,17 @@ def page_table(page,data,settings):
                                   str(count)+' matched reports; not distinct incidents'),members,None,'finding_group'))
         if page==3: entries.extend(security_entries(data,settings))
         if page==5:
+            entries=investigation_entries(data)+entries
             entries.append(Entry(('Selected boot chronology',data.get('state','unknown'),'Main retained tail',
                 str(data.get('records_examined',0))+' records; not a complete boot'),data,None,'timeline'))
         entries.extend(source_entries(data))
-        return ('Finding / evidence','Confidence / state','Source','Meaning'),entries
+        return (('Finding / evidence','Time / confidence','Recorded message / source','Next step') if page==5 else ('Finding / evidence','Confidence / state','Source','Meaning')),entries
     # Evidence is an explicit, secondary entry to complete source originals.
-    entries=[Entry(('Full original report',data['command'],'All retained fields'),data,None,'raw')]
+    entries=investigation_entries(data) if data['command']=='diagnose' else []
+    entries.append(Entry(('Full original report',data['command'],'All retained fields','Open original'),data,None,'raw'))
     for entry in source_entries(data):
-        entries.append(Entry((entry.cells[0],entry.cells[1],'Complete retained source'),entry.original,None,'raw'))
-    return ('Evidence source','Report / state','Contents'),entries
+        entries.append(Entry((entry.cells[0],entry.cells[1],'Complete retained source','Open original'),entry.original,None,'raw'))
+    return ('Evidence / finding','Time / state','Observed evidence','Next step'),entries
 
 
 def _group_members(data,representative,source):
@@ -202,3 +211,31 @@ def detail_text(detail):
         elif not isinstance(value,dict): lines.append('  '+escaped(value))
         lines.append('')
     return '\n'.join(lines)
+
+
+def investigation_entries(data):
+    from .investigation import story,examples,finding_detail,excerpt,utc,unclassified_records
+    view=story(data)
+    answer=Entry(('Investigation answer',data.get('state','unknown'),view['answer'],'Enter for next steps'),data,
+        {'Observed':view['answer'],'What you can do':[view['next']],
+         'Selected evidence':view['scope'],'Cause':view['cause'],'Last evidence':view['ending'],
+         'Missing coverage':view['gaps']})
+    rows=[]
+    for finding,count,source in examples(data):
+        detail=finding_detail(data,finding)
+        rows.append(Entry((finding['title'],detail['Recorded evidence'][0].split(' | ',1)[0],
+            detail['Recorded evidence'][0].split(' | ',1)[-1],str(count)+' reports; Enter explains'),
+            finding,detail,'finding'))
+    for record in unclassified_records(data):
+        rows.append(Entry(('Unclassified warning/event',utc(record['reference'].get('realtime_us')),
+            excerpt(record['message']),'Enter reads actual message'),record,
+            {'What it means':'Selected by source metadata; no supported fault meaning or cause was assigned.'},'journal_record'))
+    records=data.get('journal_records',[])
+    if records:
+        last=records[-1]
+        rows.append(Entry(('Last retained journal message',utc(last['reference'].get('realtime_us')),
+            excerpt(last['message']),'Later conditions unknown'),last,
+            {'Recorded message':[utc(last['reference'].get('realtime_us'))+' | '+excerpt(last['message'],2048)],
+             'What it means':view['ending'],'What you can do':[view['next']]},'journal_record'))
+    rows.append(answer)
+    return rows

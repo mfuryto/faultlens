@@ -10,7 +10,7 @@ from .recordings import recording_date
 
 MAX_SAMPLES = 256
 MAX_CORRELATIONS = 500
-WINDOW_SECONDS = 1800
+WINDOW_SECONDS = 7200
 
 
 def _sample(rows, reset):
@@ -122,7 +122,7 @@ def attach(data: dict, records, runner, date: str, *, extended=False):
               'correlation_limit_reached': False, 'coverage': None,
               'limitations': ['Wall-clock overlap is Possible only; it does not verify host/boot identity or a cause.',
                               'Memory free/cache are snapshots, not MemAvailable or evidence of memory pressure.',
-                              'One recording and a 30-minute window centered on the last journal record are examined.',
+                              'One recording and a two-hour window centered on the last journal record are examined.',
                               'RESET CPU aggregates are excluded; input authenticity and complete coverage are not established.']}
     output['limitations'].extend([
         'CPU percentages are aggregate tick shares over each recorded interval, not instantaneous peaks or per-CPU measurements.',
@@ -147,9 +147,10 @@ def attach(data: dict, records, runner, date: str, *, extended=False):
     if max(offsets) - min(offsets) > CLOCK_MAPPING_TOLERANCE_US:
         output['reason'] = 'ambiguous_journal_clock_mapping'
         return
-    end = records[-1].realtime_us // 1000000 + 900
+    end = records[-1].realtime_us // 1000000 + WINDOW_SECONDS // 2
     start = max(0, end - WINDOW_SECONDS)
     output.update(window_start_s=start, window_end_s=end)
+    output['limitations'].append('One date-named recording only; midnight or missing adjacent recordings can truncate coverage. No automatic cross-file replay occurs.')
     result = runner.read_atop_extended(date, start, end) if extended else runner.read_atop(date, start, end)
     if result.state not in {'completed', 'window_complete'} or (result.state == 'completed' and result.returncode != 0):
         output['reason'] = 'recording_collection_unavailable'

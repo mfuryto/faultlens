@@ -41,11 +41,12 @@ class OverlayRuleTests(unittest.TestCase):
                      'overlayfs warning', 'exit code 137', 'Container failed to exit within 15s of signal 15'):
             self.assertEqual([], diagnose(JournalRunner([record(text)]))['findings'], text)
 
-    def test_control_or_private_suffix_is_never_emitted_or_loosely_classified(self):
+    def test_original_suffix_is_literal_and_never_loosely_classified(self):
         for payload in ('synthetic-private-payload', '\x1b]52;c;synthetic\x07'):
             output = io.StringIO()
             main(['diagnose'], runner=JournalRunner([record(warning() + payload)]), stdout=output)
-            self.assertNotIn(payload, output.getvalue())
+            if '\x1b' in payload: self.assertNotIn(payload,output.getvalue())
+            else: self.assertIn(payload,output.getvalue())
             self.assertNotIn('Kernel reported OverlayFS layer reuse', output.getvalue())
 
     def test_targeted_candidates_become_matches_without_losing_other_unknowns(self):

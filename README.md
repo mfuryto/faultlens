@@ -189,3 +189,9 @@ terms. It comes **without warranty**, including implied merchantability or fitne
 for a particular purpose. See [LICENSE](LICENSE) for the full terms and [NOTICE](NOTICE)
 for the project grant. [Third-party dependencies](docs/third-party.md) retain their
 respective licenses.
+
+For an earlier failure, follow **History → Investigate this boot → Diagnostics →
+Records/Evidence**. Named reports show actual retained messages and UTC receipt times,
+what they may explain and the next investigation. No match is not an all-clear; missing
+coverage and the last retained message are explained explicitly. See the
+[fault-investigation workflow](docs/tui.md#find-what-went-wrong).

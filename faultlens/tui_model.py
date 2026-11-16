@@ -8,7 +8,7 @@ from .models import report
 from .network import collect as network
 from .overview import incidents
 
-PAGES = ('System Overview', 'System Health', 'Network Status', 'Security Analysis',
+PAGES = ('System Overview', 'System Health', 'Network Status', 'Incident Signals',
          'Incident History', 'Diagnostics', 'Evidence Explorer', 'Settings')
 SETTING_KEYS = ('boot_selector', 'system_journal', 'sample_seconds', 'boot_count',
                 'include_current', 'preservation', 'sockets', 'search_events',
