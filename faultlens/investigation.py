@@ -36,7 +36,10 @@ def finding_detail(data,finding):
     if not lines:
         for reference in finding.get('evidence',[])[:3]:
             lines.append(utc(reference.get('realtime_us'))+' | '+finding['observation'])
-    return {'Source scope':'Broader event-search candidates can cover the whole selected boot, outside the retained tail or requested tail window; compare exact receipt times.',
+    window=data.get('journal_window',data.get('event_search',{}).get('requested_window',{}))
+    bounded=window.get('since_realtime_us') is not None or window.get('until_realtime_us') is not None
+    return {'Source scope':('Requested journal receipt-time bounds apply to the tail and all journal searches; compare exact receipt times.' if bounded else
+            'Broader event-search candidates cover the selected boot and can extend beyond the retained tail; compare exact receipt times.'),
             'Recorded evidence':lines or ['No separately retained original linked; inspect source references.'],
             **detail,'Evidence linkage':('Resolved '+str(len(records))+' retained source records.' if records else
             'Original message not retained or reference unresolved; no message was guessed.')}
@@ -69,12 +72,14 @@ def story(data):
     selected=data.get('selected_boot')
     scope='Selected boot '+str(selected['index']) if selected else 'Boot not resolved'
     window=data.get('journal_window',{})
-    scope+='; requested UTC '+utc(window.get('since_realtime_us'))+' to '+utc(window.get('until_realtime_us')) if window.get('since_realtime_us') is not None or window.get('until_realtime_us') is not None else ''
+    scope+='; requested UTC '+(utc(window['since_realtime_us']) if window.get('since_realtime_us') is not None else 'open start')+' to '+(utc(window['until_realtime_us']) if window.get('until_realtime_us') is not None else 'open end') if window.get('since_realtime_us') is not None or window.get('until_realtime_us') is not None else ''
     scope+='; journal '+data.get('journal_scope',{}).get('requested','not verified')+'; '+str(data.get('records_examined',0))+' retained tail records.'
     gaps=[]
     if data.get('record_limit_reached'): gaps.append('Tail limit reached: earlier records were omitted; enable broader event search.')
     if data.get('journal_scope',{}).get('requested')=='visible': gaps.append('Visible scope may contain personal logs only. Select system journal for server evidence; existing access is required.')
     if data.get('event_search',{}).get('state') not in {'available','partial'}: gaps.append('Broader event search was not usable or not requested; the tail can miss earlier faults.')
+    for query in data.get('event_search',{}).get('queries',[]):
+        if query['state']!='available': gaps.append(query['query']+' search could not be assessed within its requested scope; no empty-success or wider retry is inferred.')
     for key,label in (('atop','Resource recording'),('pstore','Live crash evidence'),('pstore_archive','Archived crash evidence')):
         source=data.get(key,{})
         if source.get('state')!='available': gaps.append(label+': '+str(source.get('state','not requested'))+'.')

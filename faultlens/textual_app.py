@@ -263,6 +263,9 @@ class ValueDialog(ModalScreen):
         with Vertical(classes='edit-dialog'):
             yield Static(literal(self.label_text),classes='dialog-title')
             yield Input(value=self.value,max_length=64,id='value')
+            if self.label_text in {'Incident start (date/time)','Incident end (date/time)'}:
+                from .time_window import HELP
+                yield Static(HELP,markup=False)
             yield Static('Enter applies and saves preferences; Esc cancels.' if self.persistent else 'Session only. Enter applies; Esc cancels.',id='validation',markup=False)
             with Horizontal(classes='buttons'):
                 yield Button('Apply',id='apply',variant='primary'); yield Button('Cancel',id='cancel')
@@ -295,6 +298,7 @@ class FaultlensApp(App):
     TabPane { padding: 0 1; }
     .summary { height: auto; max-height: 4; color: $text-muted; }
     .current-summary { max-height: 6; }
+    .incident-summary { max-height: 8; }
     .selected-evidence { height: 7; max-height: 9; background: $boost; padding: 0 1; }
     DataTable { height: 1fr; }
     .dialog-title { height: auto; max-height: 3; text-style: bold; }
@@ -335,7 +339,7 @@ class FaultlensApp(App):
         with TabbedContent(initial='page-0',id='sections'):
             for page,title in enumerate(TABS):
                 with TabPane(title,id='page-'+str(page)):
-                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary current-summary' if page<3 or page in {4,5,6} else 'summary',markup=False)
+                    yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
                     yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
                     if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
         yield Footer()
@@ -402,7 +406,7 @@ class FaultlensApp(App):
         elif page in {5,6} and data and data['command']=='diagnose':
             from .investigation import story
             view=story(data)
-            summary=literal(view['answer']); summary.append('\nNext: ').append(literal(view['next']))
+            summary=literal(view['answer']); summary.append('\nScope: ').append(literal(view['scope'])); summary.append('\nNext: ').append(literal(view['next']))
         elif page==4 and data:
             summary=literal('Choose the boot covering your incident. Times describe retained records, not exact boot/crash boundaries. Enter opens its context; Investigate this boot opens Diagnostics.')
         else:
@@ -518,6 +522,9 @@ class FaultlensApp(App):
             if type(value) is bool:
                 self.session.update_setting(key); self.persist_settings(); self.populate(7); self.update_status()
             else:
+                if key in {'since_us','until_us'}:
+                    from .time_window import display
+                    value=display(value) if value else ''
                 def save(text):
                     self.session.update_setting(key,text); self.persist_settings(); self.populate(7); self.update_status()
                 self.push_screen(ValueDialog(entry.cells[0],value,save,persistent=self.settings_store is not None))

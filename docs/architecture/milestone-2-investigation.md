@@ -86,3 +86,7 @@ Do not manufacture a crash or service failure for acceptance testing.
 All 28 benchmark modes passed ten iterations and all 63 constrained-process runs
 passed the unchanged budgets. The diagnostic benchmark opens a real finding and
 readable linked record dialog. See [resource measurements](../benchmarks.md#evidence-led-investigation-workflow--2026-11-16).
+
+The next delivery aligns all requested journal searches with the selected incident
+period and adds explicit-offset date/time input; see [time selection](incident-time-window.md).
+This supersedes the earlier whole-boot-only event-search scope when bounds are set.

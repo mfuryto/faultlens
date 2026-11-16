@@ -23,9 +23,13 @@ class SearchRunner(JournalRunner):
         assert command in {Command.JOURNAL_BOOTS, Command.JOURNAL_SYSTEM_BOOTS}
         return self.boot_result
 
-    def read_event_candidates(self, boot_id, query, *, system=False):
+    def read_event_candidates(self, boot_id, query, *, system=False, since_us=None, until_us=None):
         self.searches.append((boot_id, query, system))
-        return self.candidates[query]
+        result=self.candidates[query]
+        if result.state=='completed' and result.returncode==0 and (since_us is not None or until_us is not None):
+            rows=[json.loads(line) for line in result.stdout.splitlines()]
+            return Result('completed',listing([row for row in rows if (since_us is None or int(row['__REALTIME_TIMESTAMP'])>=since_us) and (until_us is None or int(row['__REALTIME_TIMESTAMP'])<=until_us)]),0)
+        return result
 
     def read_system_boot(self, boot_id):
         return self.read_boot(boot_id)

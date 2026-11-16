@@ -1,5 +1,10 @@
 # Phase 2: bounded historical journal tails
 
+Historical design note: readable --since/--until input and consistent receipt-time
+bounds for all requested journal searches are now defined by
+[incident time selection](incident-time-window.md). That delivery supersedes the
+whole-boot-only event-search scope described below when bounds are set.
+
 `diagnose --until-us` ends the ordinary journal tail at an explicit receipt-time
 boundary instead of the latest available records. This allows a bounded look back
 around a reference from targeted search without retrieving an entire boot. It does

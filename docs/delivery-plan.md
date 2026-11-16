@@ -187,5 +187,12 @@ part of safe development, separate from auditing the operator's server.
   explicitly change priority. Urgent security defects get a documented exception.
 - Keep code/docs/comments/commits/PRs in English and communication with the owner in Norwegian.
 
-Next implementation task: milestone 2, delivering the History → Diagnostics → Evidence
-fault-investigation workflow. Keep operator acceptance separate from automated checks.
+Current delivery: milestone 2 time selection adds readable incident dates and
+consistent bounds across all requested journal searches; see
+[the time-window design](architecture/incident-time-window.md). The History →
+Diagnostics → Evidence workflow and two-hour Atop window were delivered in PR #51.
+
+Next acceptance task: exercise the chosen incident period on the operator server,
+review source states/messages, and record usefulness feedback. The next implementation
+milestone is contrasting-server qualification (milestone 3); do not claim supported
+environments or close operator acceptance from synthetic checks alone.

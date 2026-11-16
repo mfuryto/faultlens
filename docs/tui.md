@@ -239,9 +239,9 @@ be read without calling them benign or inventing a fault classification.
 
 If no supported fault matched, inspect the last retained message and the explicit
 source gaps. Use Settings for the incident boot/time bounds and broader event search;
-add an existing Atop date or crash sources when relevant. Broader event candidates
-cover the selected boot and can fall outside the ordinary tail's requested time range;
-compare exact timestamps. Missing logs or silence do not prove a freeze or a crash.
+add an existing Atop date or crash sources when relevant. Broader event candidates use the same inclusive receipt-time bounds as the ordinary
+tail and SSH/firewall searches. Without bounds they cover the selected boot; compare
+exact receipt timestamps and source limits. Missing logs or silence do not prove a freeze or a crash.
 A shutdown request means initiation, not verified completion. A recorded OOM kill can
 explain a process stopping without establishing the underlying shortage or host outage.
 
@@ -258,3 +258,18 @@ terminals at least twenty rows high. It shows retained message text, its meaning
 first follow-up without opening JSON. Smaller terminals keep Enter/Records navigation
 and hide that extra panel to preserve table space. See the
 [rendered synthetic workflow](architecture/milestone-2-investigation.md#rendered-workflow-examples).
+
+## Select the incident period
+
+In Settings, edit **Incident start (date/time)** and **Incident end (date/time)**.
+Enter a UTC time such as `2026-11-14T22:20:00Z`, or include the known local offset
+such as `2026-11-14T23:20:00+01:00`. The table displays the equivalent UTC time.
+A timezone is required; relative expressions and ambiguous local clock times are
+not inferred. Empty input clears a boundary. Existing Unix-microsecond input and
+saved preferences still work; the saved schema remains unchanged. Invalid or
+reversed edits retain the previous preference values.
+
+Open Diagnostics to collect the selected boot/period, or refresh if already there.
+The summary shows the requested UTC range. Journal tail, broader kernel/systemd
+search, SSH and firewall queries use the same bounds. Source limits still apply;
+Atop and pstore have their separately explained temporal/identity limitations.

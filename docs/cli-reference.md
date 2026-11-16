@@ -77,7 +77,8 @@ See [stable boot selection](architecture/phase-2-boot-selection.md).
 `--until-us` can end the ordinary tail at a reference's exact `realtime_us` value
 to inspect an older bounded window. Add `--since-us` to select an inclusive start,
 or use it alone for a start-bounded tail. Reversed ranges are rejected; the 500-record
-cap still applies. Targeted search scope stays unchanged. See
+cap still applies. All requested journal searches, including broader event, SSH and
+firewall searches, use the same inclusive receipt-time bounds. See
 [historical journal windows](architecture/phase-2-journal-window.md).
 `incidents --boot-count 3` summarizes previous visible boots from one listing;
 `--system-journal` preserves explicit scope and `--include-current` opts in to boot 0.
@@ -222,3 +223,26 @@ examined boot with references and named problems. These are administrator data,
 not anonymized examples. Complete originals are available through explicit diagnosis.
 Atop replay covers a bounded two-hour window around the last retained journal receipt
 in one explicitly dated recording; other capture limits and clock protections remain.
+
+## Select an incident by date and time
+
+Use explicit timezone offsets or UTC; Faultlens does not guess the host timezone:
+
+```sh
+./bin/faultlens diagnose --previous-boot --system-journal --search-events \
+  --since '2026-11-14T23:20:00+01:00' \
+  --until '2026-11-14T23:40:00+01:00'
+```
+
+Replace the example dates with the incident period and select the relevant boot.
+`--since`/`--until` accept ISO dates with `T` or a space, hour/minute, optional
+seconds and at most six fractional digits, followed by `Z` or `+HH:MM`/`-HH:MM`.
+Timezone-free and relative expressions are rejected. The corresponding `--since-us`
+and `--until-us` options remain exact Unix microseconds; each human/numeric pair is
+mutually exclusive. Inclusive bounds apply to every requested journal query before
+the record cap and are validated again on returned records. Empty bounded results
+do not fall back to a whole boot.
+
+Atop remains a separately labeled two-hour context window, and pstore remains
+unattributed to a time/boot. This does not promise complete evidence for the selected
+period. See [time-selection design](architecture/incident-time-window.md).

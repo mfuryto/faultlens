@@ -92,7 +92,7 @@ def page_table(page,data,settings):
     if page==7:
         return ('Collection option','Value','Scope'),[
             Entry((SETTING_NAMES[key],('On' if getattr(settings,key) else 'Off') if type(getattr(settings,key)) is bool
-                   else str(getattr(settings,key) or 'Not selected'),'Session only'),key,None,'setting') for key in SETTING_KEYS]
+                   else setting_value(settings,key),'Session only'),key,None,'setting') for key in SETTING_KEYS]
     if data is None: return ('Item','Value','Status'),[collection_entry(page)]
     if page in {0,1,2}:
         from .current_views import build
@@ -239,3 +239,10 @@ def investigation_entries(data):
              'What it means':view['ending'],'What you can do':[view['next']]},'journal_record'))
     rows.append(answer)
     return rows
+
+
+def setting_value(settings,key):
+    if key in {'since_us','until_us'}:
+        from .time_window import display
+        return display(getattr(settings,key))
+    return str(getattr(settings,key) or 'Not selected')
