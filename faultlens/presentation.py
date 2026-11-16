@@ -336,11 +336,17 @@ def guide(data):
                 meaning.append('Selected boot '+str(selected['index'])+' (ID '+selected['boot_id']+').')
             if data.get('journal_window',{}).get('mode')!='tail':
                 meaning.append('Receipt-time bounds restrict this query; log receipt time is not necessarily the event time.')
-            if not groups: meaning.append('No supported journal pattern matched the checked journal evidence. This does not rule out a crash, attack or freeze.')
+            if data.get('state')!='available' or not data.get('records_examined'):
+                meaning.append('The selected journal tail could not be assessed; no pattern-matching conclusion is available for that source.')
+            elif data.get('unsupported_messages',0):
+                meaning.append('Some retained journal message bodies could not be assessed; no conclusion is available for those messages.')
+            elif not data.get('findings'):
+                meaning.append('No supported journal pattern matched the readable retained tail. This applies only to that assessed source, not unavailable or unrequested logs, and does not rule out a crash, attack or freeze.')
     for key,description in (('ssh_analysis','SSH authentication'),('firewall_analysis','firewall logging')):
         source=data.get(key)
         if source:
             if source['state']!='available': meaning.append(description+' evidence was unavailable in this scope; absence of events is not established.')
+            elif source.get('unsupported_messages_in_response',0): meaning.append('Some '+description+' message bodies could not be assessed; unreadable messages do not establish absent events.')
             elif not source['findings']: meaning.append('No supported '+description+' pattern matched these checked records; unclassified originals remain in technical evidence.')
     if 'atop' in data:
         atop=data['atop']

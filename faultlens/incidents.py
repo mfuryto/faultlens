@@ -350,8 +350,8 @@ def diagnose(runner=None, boot_index=None, atop_date=None, *, system_journal=Fal
         data['limitations'].append('Earlier entries were omitted by the record cap.')
     if unsupported:
         data['limitations'].append('Some messages were binary, missing or oversized and could not be classified.')
-    if not findings:
-        data['limitations'].append('No supported event signatures matched; the cause remains unknown.')
+    if not findings and records and not unsupported:
+        data['limitations'].append('No supported event signatures matched the readable retained tail; the cause remains unknown.')
     if atop_date is not None:
         from .atop import attach
         attach(data, records, runner, atop_date, extended=atop_extended)

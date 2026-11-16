@@ -192,6 +192,10 @@ consistent bounds across all requested journal searches; see
 [the time-window design](architecture/incident-time-window.md). The History →
 Diagnostics → Evidence workflow and two-hour Atop window were delivered in PR #51.
 
+Current corrective delivery: unavailable or unreadable logs must not produce a
+no-match assessment. CLI and TUI distinguish unassessed, partially assessed and
+readable no-match evidence while retaining independent findings.
+
 Next acceptance task: exercise the chosen incident period on the operator server,
 review source states/messages, and record usefulness feedback. The next implementation
 milestone is contrasting-server qualification (milestone 3); do not claim supported

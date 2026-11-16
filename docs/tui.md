@@ -273,3 +273,8 @@ Open Diagnostics to collect the selected boot/period, or refresh if already ther
 The summary shows the requested UTC range. Journal tail, broader kernel/systemd
 search, SSH and firewall queries use the same bounds. Source limits still apply;
 Atop and pstore have their separately explained temporal/identity limitations.
+
+Diagnostics and Evidence distinguish unavailable/partly unreadable logs from a
+readable source with no supported matches. A requested search that failed is never
+labeled not requested. Independent findings remain inspectable when the main journal
+is unavailable; the summary explicitly identifies the missing main source.
