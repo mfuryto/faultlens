@@ -1,8 +1,8 @@
 # Faultlens delivery plan
 
-Status: active operating plan, updated 2026-11-18. The owner prioritizes correcting
-the boot-centered investigation workflow before further milestone 3 acceptance.
-Earlier operator-usefulness acceptance remains open.
+Status: active operating plan, updated 2026-11-18. The problem-centered workflow
+is delivered and the owner reports a general SSH smoke-test pass. Milestone 3
+continues with real-incident/workload and contrasting-server evidence.
 This is the single forward-work sequence. It supersedes the priority list in
 [stabilization.md](stabilization.md); that document remains the current capability/gap inventory.
 The original specification remains the product goal, not a record of delivered features.
@@ -154,17 +154,23 @@ Exit evidence:
 
 ### 3 — Cross-server acceptance and stabilization
 
-Status: automated qualification available; operator acceptance waits for the active
-milestone 2 workflow correction. Initial candidates are Debian 12 /
+Status: automated qualification and the corrected milestone 2 workflow are delivered;
+owner-server context and a general SSH smoke-test pass are recorded. Remaining
+real-incident, workload and contrasting-server acceptance are active.
+Initial candidates are Debian 12 /
 Python 3.11 and Ubuntu 24.04 / Python 3.12 on x86-64; see
 [qualification scope and evidence](architecture/platform-qualification.md). Neither
 is claimed production-supported before the actual server/SSH gates pass.
 
 Owner-server evidence is now recorded in the [server acceptance record](acceptance/server-qualification.md):
-the owner reported a passing combined server test and confirmed exclusive SSH use.
-Exact target versions, detailed interaction/usefulness approval, real workload impact
-and a materially different second server remain open. SSH usage alone is not approval
-of all interaction or incident workflows.
+the owner reported a passing combined server test on Ubuntu 26.04/x86_64, Python
+3.14.4/Textual 8.2.8, revision `a6d667107cf32b518764f6c490521d92f33340a0`,
+and a 158 × 39 terminal, then confirmed that everything appeared to work over SSH
+after the supplied checklist. Accept this as general SSH smoke-test approval, without
+inventing per-case outcomes or repeating that same broad request. System journal
+coverage and positive incident evidence remain unverified in that run; real workload
+impact and a materially different second server still need evidence. This observed
+owner target does not automatically change the automated qualification/support list.
 
 Select and record exact supported Debian/Ubuntu releases before making support claims.
 Exercise contrasting configurations: small VPS, container/many virtual interfaces,
@@ -265,10 +271,11 @@ suite reproducible on the initial Debian/Ubuntu qualification candidates. The st
 CI profile retains read-only tokens and action/image pins. Missing optional tools,
 missing system journal and frontend-absent/reviewed setups are explicit test cases.
 
-Current acceptance task: exercise Problems now, a selected period and Before restart
-on the operator server and a
-materially different server over SSH; record OS/Python/tool versions, access scope,
-usefulness, terminal behavior and workload impact. Those gates remain pending.
+Current acceptance task: retain the owner-server general SSH approval and context
+already received. Obtain contrasting-server results and, where actual incident data
+exists, verify useful Problems now/selected-period/Before restart explanations and
+workload impact. Do not repeat the same generic owner smoke-test request. Record
+missing evidence/access honestly; these remaining gates are pending.
 Use the [single follow-up session and gate table](acceptance/server-qualification.md#one-concrete-follow-up-session)
 to update the received results instead of starting unrelated implementation work.
 No milestone or production-support claim is closed by container/CI checks alone.
@@ -315,3 +322,11 @@ manual transcription for exact-target evidence without collecting host identitie
 logs or endpoints. Keep local edits/execution-time changes unverified and actual SSH
 interaction/usefulness explicitly pending. No configuration/trust change, report upload,
 new source feature or dependency is added; existing operator/second-server gates stay open.
+
+M3 owner-server acceptance update, 2026-11-18: reconcile the latest supplied context
+receipt and general SSH approval in the versioned acceptance record. Software,
+security and both resource groups were reported passing on the owner's server.
+Continue with contrasting-server and real-incident/workload evidence, not another
+unrelated feature or repeated generic owner-server smoke test. Missing target access
+leaves those gates pending; neither container qualification nor this documentation
+update closes M3 or starts the queued package implementation.

@@ -4,7 +4,40 @@ Recorded 2026-11-18. This is the versioned record for real-server evidence under
 the [delivery plan](../delivery-plan.md). Automated qualification, owner-reported
 execution and explicit operator acceptance are separate evidence categories.
 
-## Owner server A: evidence received
+## Owner server A: latest evidence and SSH feedback
+
+The owner supplied a new combined server-check result after updating staging and
+then reported that everything appeared to work over SSH following the concrete
+interaction checklist. This is a general owner-reported SSH smoke-test pass; no
+failures were reported. Individual checklist outcomes, the SSH client and measured
+workload impact were not supplied. Do not require the owner to repeat the same broad
+smoke test merely because its outcomes were not itemized.
+
+| Context or check | Latest owner-reported result | Scope |
+| --- | --- | --- |
+| OS / architecture | Ubuntu 26.04 / x86_64 | Observed target; not an automatic extension of production-support claims |
+| Python / Textual | 3.14.4 / 8.2.8 | Runtime versions recorded by the checker |
+| Checkout HEAD at start | `a6d667107cf32b518764f6c490521d92f33340a0` | Revision observation only; local edits and changes during execution were not verified |
+| Terminal | 158 columns × 39 rows; interactive input/output | Recorded size; actual SSH use and general interaction confirmed separately by owner |
+| Software/security/performance/constrained tests | All groups reported pass | No test failures; the pasted summary did not include individual test counts |
+| Current measurements / reference comparisons | 17 measurements; 8 comparisons agreed | Source availability and selected comparison tolerances, not host-health certification |
+| Optional tools / readiness checks | 9 detected; 15 checks completed | Tool versions and effective logging defaults are not established by counts |
+| Network / socket / session sources | Readable | No completeness, user-activity or external-reachability claim |
+| Visible journal investigations | Problems now, automatic recent period and Before restart queries readable | Some sources or usable incident records missing; positive detection not verified |
+| System journal investigations | Unavailable in all three modes | No absence of faults established; the result does not determine the access/availability cause |
+| Journal settings | 6 explicit assignments not established | Defaults may apply; no configuration change indicated by that fact alone |
+| SSH / firewall positive detections | No usable messages in the checked accessible logs | No conclusion about absent events |
+| Atop replay / crash readers | Not requested | Optional historical evidence remains unverified |
+| Manual SSH smoke test | General pass reported after the checklist | Navigation/use feedback accepted at this scope; specific cancellation, preference and incident outcomes were not itemized |
+
+The exact execution date was not supplied. This receipt supersedes the older run
+for recorded target context and current source-coverage outcomes, not for unrelated
+claims about source authenticity, fault absence or complete server acceptance.
+The owner-server observation is Ubuntu 26.04/Python 3.14.4, distinct from the
+Debian 12/Python 3.11 and Ubuntu 24.04/Python 3.12 automated qualification candidates.
+No native messages, user identities or endpoints are copied into this record.
+
+## Owner server A: earlier evidence (retained history)
 
 The owner supplied the readable output from
 `.venv/bin/python scripts/server_check.py`, invoked as the ordinary checkout owner.
@@ -44,13 +77,13 @@ not complete milestone 3 or establish an error-free, secure or production-suppor
 server. Earlier journal access troubleshooting is separate from this run; the
 current checker result alone must not be relabeled as confirmed permission denial.
 
-## Remaining acceptance gates
+## Acceptance gates and outcomes
 
 | Gate | Current status | Evidence needed to close it |
 | --- | --- | --- |
-| Exact target identity | Not recorded | Tested commit, OS release, Python and frontend version; no host identity or diagnostic logs required |
-| SSH interaction | Usage confirmed; detailed acceptance open | All tabs, quick switching during collection, resize, details, refresh/cancel, normal quit and Ctrl-C work in the actual client |
-| Saved preferences | Not confirmed by owner | One valid setting survives restart as the same Unix user; save/load status is understandable |
+| Exact target context | Recorded for latest run | Source cleanliness and execution date remain unverified; no repeat metadata request needed for this run |
+| SSH interaction | General owner-reported smoke-test pass | Preserve the general approval; ask for specific outcomes only if needed to investigate a defect or qualify an unexercised case |
+| Saved preferences | Included in requested smoke-test checklist; no separate result supplied | General SSH approval is recorded; persistence is not independently attested as a separate result |
 | Real incident investigation | Not confirmed by owner | A problem now, chosen period across restarts or pre-restart inquiry shows actual messages, source gaps and a sensible next step through Investigate → Records |
 | Existing administrator access | Not reported for this version | Native-only results with existing authorized access when relevant; no account/group or logging changes required |
 | Optional historical/crash evidence | Not requested in received run | Explicit existing recording date/crash readers when applicable; absent evidence remains a gap |
@@ -128,6 +161,8 @@ Existing [server-check options](../server-check.md) provide optional native-only
 Atop and pstore checks; rerunning the full software suite is not needed merely to
 try another source scope. No release publication is authorized by this record.
 
-The earlier owner report predates the problem-centered workflow correction. It is
-not acceptance of the new entry points. The existing synthetic walkthrough remains
-explicitly synthetic; native time-window and actual SSH usefulness gates stay open.
+The earlier report predates the problem-centered workflow correction; the latest
+report and general SSH feedback above concern the corrected entry points. The
+synthetic walkthrough remains explicitly synthetic. Real incident reconstruction,
+measured workload impact and materially different second-server acceptance remain
+open; general owner-server SSH approval does not close these separate gates.
