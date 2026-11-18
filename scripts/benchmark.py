@@ -225,7 +225,7 @@ def positive_iterations(value):
     return parsed
 
 
-def main():
+def main(runtime=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--json', action='store_true', help='Emit all measurements as JSON for automation.')
     parser.add_argument('--details', action='store_true', help='Show the per-mode measurement table.')
@@ -237,13 +237,19 @@ def main():
     if args.worker:
         print(json.dumps(worker(args.worker)))
         return 0
-    summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {}}
+    if runtime is None:
+        sys.path.insert(0,str(Path(__file__).resolve().parent))
+        from resource_runtime import prepared
+        with prepared() as runtime:
+            return main(runtime)
+    summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {},
+               'runtime': {key:value for key,value in runtime.items() if key!='interpreter_options'}}
     passed = True
     for command in ('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic','tui-health'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()
-            result = subprocess.run([sys.executable, '-I', str(Path(__file__).resolve()), '--worker', command],
+            result = subprocess.run([sys.executable, '-I', *runtime['interpreter_options'], str(Path(__file__).resolve()), '--worker', command],
                                     check=True, capture_output=True, text=True, timeout=10)
             wall.append(time.monotonic() - started)
             samples.append(json.loads(result.stdout))

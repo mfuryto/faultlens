@@ -16,6 +16,8 @@ class ConstrainedAcceptanceTests(unittest.TestCase):
         self.assertEqual(0,result.returncode,'Synthetic resource command failed; see bounded resource metadata above.')
         data=json.loads(result.stdout)
         self.assertTrue(data['synthetic'])
+        self.assertEqual('private_checked_hash',data['runtime']['bytecode_cache'])
+        self.assertGreater(data['runtime']['preparation_wall_seconds'],0)
         self.assertFalse(data['deployment_test'])
         self.assertTrue(data['passed'])
         self.assertEqual(21,len(data['profiles']))

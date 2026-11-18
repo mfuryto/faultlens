@@ -17,6 +17,8 @@ class ResourceBudgetTests(unittest.TestCase):
         self.assertEqual(0,result.returncode,'Synthetic resource command failed; see bounded resource metadata above.')
         report = json.loads(result.stdout)
         self.assertTrue(report['synthetic'])
+        self.assertEqual('private_checked_hash',report['runtime']['bytecode_cache'])
+        self.assertGreater(report['runtime']['preparation_wall_seconds'],0)
         self.assertEqual({'status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'tui-status', 'tui-diagnostic','tui-health'}, set(report['commands']))
         for command, measurements in report['commands'].items():
             with self.subTest(command=command):
