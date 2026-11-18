@@ -75,3 +75,17 @@ System/status can read existing local logind through `loginctl` and fall back to
 installed or enabled, no native session is controlled, and no DNS lookup or remote
 query is requested. Missing or unsupported sources leave other System readings
 available. See [session coverage and bounded collection](login-sessions.md).
+
+## Planned Debian package
+
+The approved delivery is a downloadable `.deb`, with no project APT repository.
+APT will resolve required distribution runtime dependencies from existing configured
+package sources. CLI and the reviewed TUI must work without a user-managed virtual
+environment. The exact Textual packaging strategy must be qualified on target releases
+before delivery; current source-checkout instructions still apply today.
+
+Atop and other optional diagnostic tools will not be automatic installation
+dependencies. Their packages can enable services, so recorder installation and policy
+remain explicit administrator choices. No package script or application startup may
+bootstrap dependencies with pip or downloads. See the
+[package milestone](delivery-plan.md#4--installable-debian-package) for acceptance gates.

@@ -361,7 +361,7 @@ class FaultlensApp(App):
     DataTable { height: 1fr; }
     .dialog-title { height: auto; max-height: 3; text-style: bold; }
     .hint { height: auto; max-height: 3; color: $text-muted; }
-    ModalScreen { align: center middle; background: $background 60%; }
+    ModalScreen { align: center middle; background: $background; }
     .dialog { width: 96%; height: 94%; padding: 0 1; border: round $primary; background: $surface; }
     .edit-dialog { width: 90%; max-width: 72; height: auto; max-height: 100%; padding: 0 1; border: round $primary; background: $surface; }
     .edit-dialog #validation { height: 1; }
