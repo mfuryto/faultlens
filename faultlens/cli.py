@@ -272,9 +272,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     stdout = stdout or sys.stdout
     stderr = stderr or sys.stderr
     argv = list(sys.argv[1:] if argv is None else argv)
-    if not argv and getattr(sys.stdin, 'isatty', lambda: False)() and getattr(stdout, 'isatty', lambda: False)() and (platform or sys.platform) == 'linux':
+    if not argv:
         argv = ['tui']
-    parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux observations; investigate problems now, a period or before restart.")
+    parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux diagnostics. With no arguments, open the terminal workspace; use explicit commands for scripts.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
     parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate"), default="status")
     parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")

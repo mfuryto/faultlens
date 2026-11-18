@@ -202,6 +202,23 @@ class EntrypointTests(unittest.TestCase):
         self.assertEqual(0,main(['health','--json'],sources=SyntheticSources(),runner=SyntheticRunner(),stdout=output))
         self.assertEqual('health',json.loads(output.getvalue())['command'])
 
+    def test_no_arguments_select_workspace_without_silent_cli_fallback(self):
+        for terminal in (False, True):
+            with (patch('sys.stdin.isatty',return_value=terminal),
+                  patch('faultlens.tui.run',return_value=7) as run,
+                  patch('faultlens.collectors.status',side_effect=AssertionError('No CLI collection'))):
+                self.assertEqual(7,main([],stdout=io.StringIO(),platform='linux'))
+                run.assert_called_once()
+        output=io.StringIO()
+        with patch('sys.stdin.isatty',return_value=False):
+            self.assertEqual(1,main([],stderr=output,platform='linux'))
+        self.assertIn('interactive',output.getvalue())
+        self.assertIn('status --json',output.getvalue())
+        with patch('faultlens.tui.run',side_effect=AssertionError('CLI remains independent')):
+            output=io.StringIO()
+            self.assertEqual(0,main(['--json'],sources=SyntheticSources(),runner=SyntheticRunner(),stdout=output))
+            self.assertEqual('status',json.loads(output.getvalue())['command'])
+
     def test_terminal_entrypoint_uses_administrator_defaults(self):
         from faultlens.tui import run
         with (patch('sys.stdin.isatty',return_value=True),
