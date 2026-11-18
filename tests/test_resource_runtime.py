@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.resource_runtime import prepared
+from scripts.resource_runtime import prepared, stdlib_sources
 
 
 class RuntimeTests(unittest.TestCase):
@@ -56,3 +56,20 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(old_prefix,sys.pycache_prefix)
         self.assertTrue(prefixes)
         self.assertTrue(all(not path.exists() for path in prefixes))
+
+    def test_stdlib_scan_prunes_unrelated_package_and_test_trees(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'included.py').write_text('value=1\n')
+            for name in ('site-packages','dist-packages','tests','test','__pycache__'):
+                (root/name).mkdir()
+                (root/name/'excluded.py').write_text('value=2\n')
+            visited=[]
+            walk=os.walk
+            def record_walk(*args,**kwargs):
+                for item in walk(*args,**kwargs):
+                    visited.append(Path(item[0]))
+                    yield item
+            with patch('scripts.resource_runtime.os.walk',side_effect=record_walk):
+                self.assertEqual([root/'included.py'],list(stdlib_sources(root)))
+            self.assertEqual([root],visited)

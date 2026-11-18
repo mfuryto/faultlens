@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from importlib import metadata, util
 from pathlib import Path
+import os
 import py_compile
 import re
 import sys
@@ -12,11 +13,19 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def stdlib_sources(root):
+    excluded = {'site-packages', 'dist-packages', 'test', 'tests', '__pycache__', 'ensurepip', 'idlelib', 'tkinter', 'turtledemo'}
+    for directory, children, names in os.walk(root):
+        children[:] = sorted(name for name in children if name not in excluded)
+        for name in sorted(names):
+            if name.endswith('.py'):
+                yield Path(directory) / name
+
+
 def source_files():
     """Only this checkout, the interpreter stdlib and the reviewed frontend closure."""
     stdlib = Path(sysconfig.get_path('stdlib'))
-    excluded = {'site-packages', 'dist-packages', 'test', 'tests', '__pycache__', 'ensurepip', 'idlelib', 'tkinter', 'turtledemo'}
-    files = {path for path in stdlib.rglob('*.py') if not excluded.intersection(path.relative_to(stdlib).parts)}
+    files = set(stdlib_sources(stdlib))
     for directory in ('faultlens', 'scripts', 'tests'):
         files.update((ROOT / directory).rglob('*.py'))
     for line in (ROOT / 'requirements-tui.txt').read_text().splitlines():
