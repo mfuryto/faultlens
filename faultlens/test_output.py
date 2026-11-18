@@ -167,6 +167,18 @@ def server_summary(data):
 def render_server(data,out,*,details=False):
     worked,unavailable,actions,attention=server_summary(data)
     print('Faultlens server test',file=out)
+    if data.get('environment'):
+        context=data['environment']; release=context['os_release']
+        print('Test context: '+safe(release.get('id') or 'OS unknown')+' '+safe(release.get('version_id') or 'version unknown')+
+              ' | Python '+safe(context['python'])+' | '+safe(context['architecture'])+
+              ' | Textual '+safe(context['textual'] or 'unavailable'),file=out)
+        print('Checkout revision at start: '+safe(context['checkout_revision'] or 'unavailable')+
+              ' (local edits not verified).',file=out)
+        terminal=context['terminal']
+        print('Terminal: '+(str(terminal['columns'])+' columns x '+str(terminal['rows'])+' rows'
+              if terminal['columns'] is not None and terminal['rows'] is not None else 'size unavailable')+
+              '; interactive input/output: '+str(terminal['input_interactive'])+'/'+str(terminal['output_interactive'])+
+              '. Actual SSH interaction remains a manual check.',file=out)
     if data['counts']['FAIL']:
         print('Some checks failed. Review the failures below.',file=out)
     elif data['counts']['WARN']:

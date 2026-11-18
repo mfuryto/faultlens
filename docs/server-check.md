@@ -150,3 +150,18 @@ readers remain in the separate diagnostic probe and are not repeated per flow.
 The System login-session source is checked without including identities or original
 records in the test report. Use Faultlens itself for the original administrator data.
 Manual SSH usability, a known incident and a second server remain acceptance gates.
+
+## Acceptance context
+
+The report includes OS ID/release, Python, architecture, installed Textual version,
+checkout revision observed at the start, and input/output terminal status and dimensions
+when available. The same compact receipt is shown by default and retained under
+`environment` in JSON. It contains no host/user identities, network addresses, Git
+remote URLs or diagnostic logs. No file is saved or uploaded automatically.
+
+The checkout revision is not a clean-tree attestation or a claim that files stayed
+unchanged throughout testing. Root/non-owner context leaves revision unavailable and
+never changes Git trust. Missing metadata is distinct from test failures. Interactive
+terminal status does not verify SSH navigation or operator usefulness. Pair the receipt
+with [manual acceptance results](acceptance/server-qualification.md), and retain
+`git status --short --branch` when establishing source provenance.

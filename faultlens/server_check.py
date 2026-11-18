@@ -11,6 +11,7 @@ import subprocess
 
 from . import __version__
 from .commands import _capture
+from .acceptance_context import collect as acceptance_context
 
 ROOT = Path(__file__).resolve().parents[1]
 STATES = ('PASS', 'WARN', 'MISSING', 'SKIP', 'FAIL')
@@ -237,6 +238,7 @@ def check_server(*, live_only=False, boot=0, atop_date=None, pstore=False, detai
     worker_argv('diagnose',boot=boot,atop_date=atop_date,pstore=pstore)
     uid=os.geteuid() if uid is None else uid
     owner=ROOT.stat().st_uid if owner is None else owner
+    context=acceptance_context()
     checks=terminal()
     missing_frontend=any(value['key']=='tui.textual' and value['state']=='MISSING' for value in checks)
     missing_git=shutil.which('git',path='/usr/bin:/usr/sbin:/bin:/sbin') is None
@@ -288,6 +290,7 @@ def check_server(*, live_only=False, boot=0, atop_date=None, pstore=False, detai
     counts={state:sum(item['state']==state for item in checks) for state in STATES}
     return {'schema_version':1,'version':__version__,'command':'server-check',
             'collected_at':datetime.now(timezone.utc).isoformat(),
+            'environment':context,
             'overall':'FAIL' if counts['FAIL'] else 'ATTENTION' if counts['WARN'] or counts['MISSING'] else 'PASS',
             'counts':counts,'checks':checks,
             'limitations':['Read-only checks never install tools, elevate, change services/configuration or save diagnostic reports.',

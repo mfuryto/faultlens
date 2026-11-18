@@ -62,20 +62,35 @@ rebooting or changing server configuration. A workflow may correctly explain why
 incident cannot be reconstructed. Acceptance should assess that explanation as well
 as positive findings; missing sources must never become an all-clear.
 
+## Recording context with the server checker
+
+New server-check runs include a local context receipt in both readable and JSON output:
+OS ID/release, Python, architecture, frontend version, checkout HEAD observed at the
+start and actual terminal dimensions when available. Run the checker directly in the
+SSH terminal to record its interactive dimensions; piping or redirecting it correctly
+leaves output-terminal dimensions unavailable. No hostname, username, remote URL,
+SSH peer, raw environment or diagnostic evidence is included in the receipt. It is
+printed only; no upload or new report file is created.
+
+The revision is an observation, not proof of the source tested: local edits and changes
+during execution are not verified. Continue to report checkout status separately.
+Root/non-owner runs skip Git revision collection without changing Git trust or ownership.
+Unavailable metadata does not fail software checks or establish unsupported software.
+An interactive terminal is not proof of SSH use, correct rendering or useful findings;
+operator acceptance remains explicitly unrecorded. Record actual outcomes in the table
+above only after feedback. Older results are not retroactively attributed to a revision.
+
 ## One concrete follow-up session
 
-Run as the trusted checkout owner in the actual SSH terminal. These metadata commands
-read the checkout/environment only; they do not collect incident evidence:
+Run as the trusted checkout owner in the actual SSH terminal. The checker prints the context receipt
+and runs bounded live checks with existing access. Its output contains summaries,
+not original incident evidence:
 
 ```sh
 cd /home/codex/faultlens
 git status --short --branch
-git rev-parse HEAD
-cat /etc/os-release
-.venv/bin/python --version
-.venv/bin/python -c 'from importlib.metadata import version; print("Textual", version("textual"))'
-stty size
-.venv/bin/python bin/faultlens tui
+.venv/bin/python scripts/server_check.py --live-only
+.venv/bin/python bin/faultlens
 ```
 
 Use the same checkout-relative commands if another server uses a different directory.

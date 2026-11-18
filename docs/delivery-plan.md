@@ -308,3 +308,10 @@ Report runtime preparation explicitly; verify cold-source invalidation and cache
 cleanup. Require independent first-attempt CI runs and repeated restricted Debian
 resource checks before claiming the avoidable overhead addressed; hardware speed
 variation and real-server acceptance remain distinct. See stabilization.md.
+
+Bounded M3 acceptance traceability, 2026-11-18: include allowlisted local OS/runtime,
+revision-at-start and actual terminal-size context in server-check output. This reduces
+manual transcription for exact-target evidence without collecting host identities,
+logs or endpoints. Keep local edits/execution-time changes unverified and actual SSH
+interaction/usefulness explicitly pending. No configuration/trust change, report upload,
+new source feature or dependency is added; existing operator/second-server gates stay open.

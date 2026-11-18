@@ -63,6 +63,18 @@ class TestPresentationTests(unittest.TestCase):
         self.assertIn('logged-in session source was readable',text)
         self.assertNotIn('System measurements collected',text)
 
+    def test_acceptance_context_is_readable_without_claiming_ssh_or_clean_source(self):
+        data=report([])
+        data['environment']={'os_release':{'id':'debian','version_id':'12'},'python':'3.11.18',
+            'architecture':'x86_64','textual':'8.2.8','checkout_revision':'a'*40,
+            'terminal':{'columns':100,'rows':30,'input_interactive':True,'output_interactive':True}}
+        out=io.StringIO();render_server(data,out)
+        text=out.getvalue()
+        self.assertIn('Python 3.11.18',text)
+        self.assertIn('local edits not verified',text)
+        self.assertIn('100 columns x 30 rows',text)
+        self.assertIn('SSH interaction remains a manual check',text)
+
     def test_details_retain_every_original_check_advice_and_failure_excerpt(self):
         data=example()
         data['checks'].append(dict(row('repository.extra','FAIL','Invented failure.','Inspect this check.'),
