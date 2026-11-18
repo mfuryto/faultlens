@@ -142,6 +142,12 @@ Python 3.11 and Ubuntu 24.04 / Python 3.12 on x86-64; see
 [qualification scope and evidence](architecture/platform-qualification.md). Neither
 is claimed production-supported before the actual server/SSH gates pass.
 
+Owner-server evidence is now recorded in the [server acceptance record](acceptance/server-qualification.md):
+the owner reported a passing combined server test and confirmed exclusive SSH use.
+Exact target versions, detailed interaction/usefulness approval, real workload impact
+and a materially different second server remain open. SSH usage alone is not approval
+of all interaction or incident workflows.
+
 Select and record exact supported Debian/Ubuntu releases before making support claims.
 Exercise contrasting configurations: small VPS, container/many virtual interfaces,
 ordinary user and existing administrator access, missing tools/systemd/history,
@@ -199,4 +205,6 @@ missing system journal and frontend-absent/reviewed setups are explicit test cas
 Next acceptance task: exercise a real incident period on the operator server and a
 materially different server over SSH; record OS/Python/tool versions, access scope,
 usefulness, terminal behavior and workload impact. Those gates remain pending.
+Use the [single follow-up session and gate table](acceptance/server-qualification.md#one-concrete-follow-up-session)
+to update the received results instead of starting unrelated implementation work.
 No milestone or production-support claim is closed by container/CI checks alone.

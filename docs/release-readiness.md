@@ -34,6 +34,9 @@ No host configuration, recorder or firewall service is installed or enabled.
 
 The combined server test entrypoint is `.venv/bin/python scripts/server_check.py`; see
 [summary states, optional sources and root/native-only scope](server-check.md).
+The [operator-server acceptance record](acceptance/server-qualification.md) separates
+the received passing server-test result and confirmed SSH usage from unverified
+interaction, incident usefulness, exact versions and second-server gates.
 
 ## Initial platform qualification candidates
 

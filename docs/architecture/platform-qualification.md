@@ -69,7 +69,8 @@ new daemon. No failure of an optional diagnostic source is labeled a healthy ser
 | Debian 12, Python 3.11.18, pinned x86-64 container | Native CLI before/after reviewed frontend, full suite; missing systemctl/journalctl/ss/Atop are handled explicitly | Booted service manager, real incident history, SSH and workload impact |
 | Ubuntu 24.04, Python 3.12, hosted x86-64 CI | Full suite and native CLI with reviewed frontend; each exact revision is gated by the baseline check | Operator configuration, existing administrator access, SSH and workload impact |
 | Development Python 3.14.4 | Full synthetic regression suite | Does not select a supported server distribution |
-| Operator server and materially different second server | Existing read-only server checker/manual workflow available | OS/tool/access observations, incident usefulness and terminal acceptance not yet recorded as approved |
+| Owner server A | Owner reports passing combined server checks and confirms SSH usage; [received evidence](../acceptance/server-qualification.md) | Exact revision/versions, detailed terminal/usefulness acceptance and real workload impact remain open |
+| Materially different second server | No owner execution result received | Existing read-only checker and manual workflow remain to be exercised |
 
 Use the baseline result for the exact commit as execution evidence. Do not substitute
 a previous green run or the table itself for an actual check. Candidate/implementation,
