@@ -27,6 +27,10 @@ def collect(execute=success, **kwargs):
 
 
 class ServerCheckTests(unittest.TestCase):
+    def setUp(self):
+        context=patch('faultlens.server_check.acceptance_context',return_value={})
+        context.start(); self.addCleanup(context.stop)
+
     def test_fixed_dispatch_bounds_and_pass_summary(self):
         calls=[]
         def execute(argv,**kwargs):
