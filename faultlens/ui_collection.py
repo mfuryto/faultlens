@@ -13,6 +13,8 @@ def arguments(page,settings):
     commands=('status','health','network','security','incidents','diagnose')
     if type(page) is not int or not 0<=page<len(commands): raise ValueError('Not a source page')
     args=[commands[page],'--json']
+    if page==5 and settings.investigation_mode:
+        args=['investigate','--json','--mode',settings.investigation_mode]
     if page in {0,1,2,3}: args+=['--sample-seconds',str(settings.sample_seconds)]
     if page==1 and settings.preservation: args+=['--history']
     if page in {2,3} and settings.sockets: args+=['--sockets']
@@ -21,7 +23,13 @@ def arguments(page,settings):
         args+=['--boot-count',str(settings.boot_count)]
         if settings.include_current: args+=['--include-current']
     if page==5:
-        args+=['--boot-id' if len(settings.boot_selector)==32 else '--boot',settings.boot_selector,'--show-evidence']
+        if not settings.investigation_mode and not settings.boot_selector: raise ValueError('Technical reader requires a boot selector')
+        if settings.boot_selector:
+            args+=['--boot-id' if len(settings.boot_selector)==32 else '--boot',settings.boot_selector]
+        if not settings.investigation_mode: args+=['--show-evidence']
+        else: args+=['--sample-seconds',str(settings.sample_seconds)]
+        if settings.investigation_mode=='now' and settings.sockets: args+=['--sockets']
+        if settings.investigation_mode and not settings.search_events: args+=['--no-search-events']
         for key,flag in (('search_events','--search-events'),('search_ssh','--search-ssh'),
                          ('search_firewall','--search-firewall'),('pstore','--pstore'),('pstore_archive','--pstore-archive')):
             if getattr(settings,key): args.append(flag)
@@ -29,7 +37,7 @@ def arguments(page,settings):
             args+=['--atop-date',settings.atop_date]
             if settings.atop_extended: args+=['--atop-extended']
         for key,flag in (('since_us','--since-us'),('until_us','--until-us')):
-            if getattr(settings,key): args+=[flag,getattr(settings,key)]
+            if getattr(settings,key) and (not settings.investigation_mode or settings.investigation_mode=='period'): args+=[flag,getattr(settings,key)]
     return args
 
 

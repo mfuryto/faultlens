@@ -51,7 +51,8 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
     if ui!=('8.2.8' if frontend else None): raise ValueError('Optional frontend does not match the expected reviewed/absent setup')
     checks=[]
     commands=(('status',),('health',),('network','--sockets'),('history','--system-journal'),
-              ('diagnose','--boot','0','--system-journal','--search-events'))
+              ('diagnose','--boot','0','--system-journal','--search-events'),
+              ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'))
     for options in commands:
         result=execute([sys.executable,'-I','-B',str(ROOT/'bin/faultlens'),*options,'--json'],timeout=30,limit=4194304)
         if result.state!='completed' or result.returncode!=0: raise ValueError('Native CLI contract did not complete: '+options[0])
@@ -67,9 +68,14 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
             raise ValueError('Native failed-service source state was not reported')
         if options[0]=='network' and (data.get('state') not in {'available','partial'} or data.get('sockets',{}).get('state') not in {'available','unavailable'}):
             raise ValueError('Native network/socket source states were not reported')
-        if options[0] in {'history','diagnose'} and data.get('state') not in {'available','unavailable'}:
+        if options[0] in {'history','diagnose','investigate'} and data.get('state') not in ({'available','partial','unavailable'} if options[0]=='investigate' else {'available','unavailable'}):
             raise ValueError('Native journal source state was not reported')
-        if options[0]=='diagnose' and data.get('state')=='unavailable':
+        if options[0]=='investigate':
+            if (data.get('mode')!='period' or data.get('current')!={} or data.get('boot_filter',{}).get('requested') is not None
+                    or data.get('requested_window')!={'since_realtime_us':0,'until_realtime_us':1}
+                    or not isinstance(data.get('query_coverage'),dict) or 'tail' not in data['query_coverage']):
+                raise ValueError('Primary period investigation contract is invalid')
+        if options[0] in {'diagnose','investigate'} and data.get('state')=='unavailable':
             readable=execute([sys.executable,'-I','-B',str(ROOT/'bin/faultlens'),*options],timeout=30,limit=4194304)
             if readable.state!='completed' or readable.returncode!=0 or 'could not be assessed' not in readable.stdout or any(
                     phrase in readable.stdout for phrase in ('No supported journal pattern matched','No supported fault pattern matched')):

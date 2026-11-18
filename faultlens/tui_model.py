@@ -13,15 +13,15 @@ PAGES = ('System Overview', 'System Health', 'Network Status', 'Incident Signals
 SETTING_KEYS = ('boot_selector', 'system_journal', 'sample_seconds', 'boot_count',
                 'include_current', 'preservation', 'sockets', 'search_events',
                 'search_ssh', 'search_firewall', 'atop_date', 'atop_extended',
-                'pstore', 'pstore_archive', 'since_us', 'until_us')
+                'pstore', 'pstore_archive', 'since_us', 'until_us', 'investigation_mode')
 
 
-SETTING_NAMES = dict(zip(SETTING_KEYS, ('Selected boot (index or ID)', 'Use accessible system journals',
+SETTING_NAMES = dict(zip(SETTING_KEYS, ('Optional boot filter (index or ID)', 'Use accessible system journals',
     'Sample duration (seconds)', 'Previous boots to summarize', 'Include current boot',
     'Check recording/retention setup', 'Include socket endpoints', 'Search kernel/service events',
     'Search SSH events', 'Search firewall events', 'Atop recording date (YYYYMMDD)',
     'Extended recorded measurements', 'Read live crash evidence', 'Read archived crash evidence',
-    'Incident start (date/time)', 'Incident end (date/time)')))
+    'Incident start (date/time)', 'Incident end (date/time)', 'Investigation entry')))
 VIEW_NAMES = {'findings':'Explained findings', 'timeline':'Recorded event timeline',
     'reconstruction':'What the retained chronology shows', 'journal_records':'Original journal records',
     'security_analysis':'Security indicators and their limits', 'ssh_analysis':'SSH authentication evidence',
@@ -65,11 +65,12 @@ class Settings:
     pstore_archive: bool = False
     since_us: str = ''
     until_us: str = ''
+    investigation_mode: str = ''
 
     @classmethod
     def administrator_defaults(cls, *, sample_seconds=0.1):
         """Enable read-only coverage; journal scope and dated replay remain explicit."""
-        return cls(sample_seconds=sample_seconds,include_current=True,preservation=True,
+        return cls(sample_seconds=sample_seconds,boot_selector='',investigation_mode='now',include_current=True,preservation=True,
                    sockets=True,search_events=True,search_ssh=True,search_firewall=True,
                    pstore=True,pstore_archive=True)
 
@@ -159,7 +160,11 @@ class Session:
         if type(current) is bool:
             proposed[key] = not current
         elif key == 'boot_selector':
-            proposed[key] = boot_identity(text) if len(text) == 32 else str(boot_index(text))
+            proposed[key] = (boot_identity(text) if len(text) == 32 else str(boot_index(text))) if text else ''
+        elif key == 'investigation_mode':
+            from .workflows import MODES
+            if text not in MODES: raise ValueError('Use now, period or before-restart')
+            proposed[key]=text
         elif key == 'sample_seconds':
             proposed[key] = interval(text)
         elif key == 'boot_count':
@@ -173,6 +178,10 @@ class Session:
             proposed[key] = str(parse(text,allow_microseconds=True)) if text else ''
         validate_window(int(proposed['since_us']) if proposed['since_us'] else None,
                         int(proposed['until_us']) if proposed['until_us'] else None)
+        if not proposed['investigation_mode'] and not proposed['boot_selector']:
+            raise ValueError('Choose a primary investigation entry to clear the technical boot selector')
+        if proposed['investigation_mode']=='period' and (not proposed['since_us'] or not proposed['until_us']):
+            raise ValueError('Set both period boundaries first, or use A selected period in Investigate')
         if proposed['atop_extended'] and not proposed['atop_date']:
             raise ValueError('Set an existing recording date before enabling extended Atop')
         self.settings = Settings(**proposed)
@@ -202,6 +211,10 @@ class Session:
         elif self.page == 4:
             data = incidents(self.runner, boot_count=self.settings.boot_count,
                 system_journal=self.settings.system_journal, include_current=self.settings.include_current)
+        elif self.settings.investigation_mode:
+            from .workflows import collect
+            data=collect(self.runner,sources=self.sources,pstore_collector=self.pstore_collector,
+                pstore_archive_collector=self.pstore_archive_collector,**investigation_options(self.settings))
         else:
             selector = self.settings.boot_selector
             data = diagnose(self.runner, None if len(selector) == 32 else int(selector),
@@ -437,7 +450,7 @@ class Session:
             'Search': '/ enters up to 64 printable ASCII characters; Enter finds, Esc cancels, Ctrl-U clears. n/N finds the next/previous matching row or scalar line, wrapping at the ends. Literal case-insensitive search covers current row labels/previews and full direct scalar values, or the open escaped scalar. It does not filter rows, search unopened trees, collect data or interpret regular expressions.',
             'Settings': 'Session only; no system configuration or report writes. Enter toggles booleans or edits values. Esc cancels an edit; Ctrl-U clears it.',
             'Explained views': 'Enter opens readable measurements, findings, boot summaries, interface samples, sockets, recording samples and crash fragments. Technical details retains original data. Known source views offer raw metadata through e; Full report and Evidence Explorer remain raw trees.',
-            'boot_selector': 'An index from -128 to 0 or a visible 32-character lowercase hexadecimal boot ID. History selection pins the ID.',
+            'boot_selector': 'Optional: clear for all accessible boots, or choose an index from -128 to 0 / visible 32-character ID. Problems now and selected-period actions start unfiltered.',
             'sample_seconds': '0.05 to 1 second. Actual elapsed time controls counter rates.',
             'boot_count': '1 to 7 visible previous boots; include_current opts in to current boot.',
             'atop_date': 'Empty disables replay; otherwise an existing YYYYMMDD recording. atop_extended requires a date. Source host/boot identity stays unverified.',
@@ -454,3 +467,17 @@ class Session:
             self.stack = [(self.data['timeline'], 'Retained boot-local timeline', self.selected, self.scroll, 'timeline')]
             self.selected, self.scroll = 0, 0
             self.notice = 'Main retained timeline only; filtered timelines remain inside their source views.'
+
+
+def investigation_options(settings):
+    selector=settings.boot_selector
+    period=settings.investigation_mode=='period'
+    return {'mode':settings.investigation_mode,'boot_id':selector if len(selector)==32 else None,
+        'boot_index':int(selector) if selector and len(selector)!=32 else None,
+        'since_us':int(settings.since_us) if period and settings.since_us else None,
+        'until_us':int(settings.until_us) if period and settings.until_us else None,
+        'system_journal':settings.system_journal,'search_events':settings.search_events,
+        'search_ssh':settings.search_ssh,'search_firewall':settings.search_firewall,
+        'sample_seconds':settings.sample_seconds,'sockets':settings.sockets,
+        'atop_date':settings.atop_date or None,'atop_extended':settings.atop_extended,
+        'pstore':settings.pstore,'pstore_archive':settings.pstore_archive}

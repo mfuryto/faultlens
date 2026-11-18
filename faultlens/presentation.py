@@ -262,6 +262,11 @@ def boot_summary_view(item):
 
 
 def guide(data):
+    if data.get('command')=='investigate':
+        from .workflows import story
+        view=story(data)
+        return {'Summary':view['answer'],'What the evidence means':[view['scope'],view['cause'],view['ending']],
+                'What you can do':[view['next']],'Important limits':data['limitations']+view['gaps']}
     observations=data.get('observations',[])
     warning=sum(o['state'] in {'warning','critical'} for o in observations)
     missing=sum(o['state']=='unavailable' or o['value'] is None for o in observations)
@@ -430,6 +435,9 @@ def render_sockets(snapshot,out):
 
 
 def render(data,out):
+    if data['command']=='investigate':
+        from .workflows import render as render_workflow
+        render_workflow(data,out);return
     if data['command'] in {'status','health','check','network'}:
         from .current_views import build
         view=build(data)

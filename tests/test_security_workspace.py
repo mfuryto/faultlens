@@ -19,7 +19,7 @@ class SecurityWorkspaceTests(unittest.TestCase):
         self.assertGreater(len(entries),3)
         self.assertTrue(any('No supported network indicators' in row.cells[0] for row in entries))
         link=next(row for row in entries if row.kind=='diagnostics_link')
-        self.assertEqual('-1',link.original['boot_selector'])
+        self.assertEqual('',link.original['boot_selector']);self.assertEqual('now',link.original['investigation_mode'])
         self.assertEqual('visible',link.original['journal_scope'])
         self.assertTrue(link.original['search_ssh'])
         self.assertEqual(original,data); self.assertEqual([],data['findings'])

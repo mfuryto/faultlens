@@ -121,12 +121,14 @@ class DetailDialog(ModalScreen):
         elif event.button.id=='select-boot':
             source=self.entry.original; boot=source.get('boot',source)
             self.app.session.update_setting('boot_selector',boot['boot_id'])
+            if self.app.session.settings.investigation_mode:
+                self.app.session.update_setting('investigation_mode','now' if boot.get('index')==0 else 'before-restart')
             self.app.snapshots.pop(5,None)
             self.app.snapshot_options.pop(5,None)
             self.app.collection_attempts.pop(5,None)
             self.dismiss(); self.app.select_page(5)
             self.app.persist_settings()
-            self.app.notice='Boot ID selected. Diagnostics loads with the current collection options.'; self.app.update_status()
+            self.app.notice='Optional boot filter selected. Investigate loads the explicitly selected context.'; self.app.update_status()
         else: self.dismiss()
 
 
@@ -212,12 +214,12 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services'}:
+        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'observations','interfaces','failed_services'}:
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details'}:
             weights=[0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32]
             usable=max(12,self.app.size.width-8-2*len(self.columns))
             for column,weight in zip(self.columns,weights): table.add_column(column,width=max(3,int(usable*weight)))
@@ -257,13 +259,55 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in {'observations','interfaces','failed_services'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
                 'Meaning':'Only retained candidates and supported signatures are shown. No matches is not an all-clear; use original evidence for unclassified records.',
                 'Coverage limits':source.get('limitations',[]) if isinstance(source,dict) else ['Counts are reports, not separate incidents.']}
         self.app.push_screen(DetailDialog(Entry((self.heading,),source,detail),self.data))
+
+
+class PeriodDialog(ModalScreen):
+    """Apply both explicit time boundaries atomically; invalid edits save nothing."""
+    BINDINGS=[Binding('escape','cancel','Cancel')]
+
+    def __init__(self,start,end,callback):
+        super().__init__();self.start,self.end,self.callback=start,end,callback
+
+    def compose(self):
+        from .time_window import display,HELP
+        with Vertical(classes='edit-dialog'):
+            yield Static('Investigate a selected period — boot filter optional',classes='dialog-title',markup=False)
+            yield Static(HELP,markup=False)
+            yield Input(value=display(self.start) if self.start else '',placeholder='Start with timezone',id='period-start',max_length=64)
+            yield Input(value=display(self.end) if self.end else '',placeholder='End with timezone',id='period-end',max_length=64)
+            yield Static('Both boundaries are required. Enter applies the complete range.',id='period-validation',markup=False)
+            with Horizontal(classes='buttons'):
+                yield Button('Investigate period',id='period-apply',variant='primary')
+                yield Button('Cancel',id='period-cancel')
+
+    def on_mount(self):self.query_one('#period-start',Input).focus()
+    def action_cancel(self):self.dismiss()
+    def apply(self):
+        from .time_window import parse
+        from .journal import validate_window
+        try:
+            start=parse(self.query_one('#period-start',Input).value)
+            end=parse(self.query_one('#period-end',Input).value)
+            validate_window(start,end)
+        except (ValueError,argparse.ArgumentTypeError):
+            self.query_one('#period-validation',Static).update('Use valid start/end with explicit timezone; start must not exceed end. Nothing was saved.')
+            return
+        self.dismiss();self.callback(start,end)
+    def on_input_submitted(self,event):
+        event.stop()
+        if event.input.id=='period-start':self.query_one('#period-end',Input).focus()
+        else:self.apply()
+    def on_button_pressed(self,event):
+        event.stop()
+        if event.button.id=='period-apply':self.apply()
+        else:self.dismiss()
 
 
 class ValueDialog(ModalScreen):
@@ -401,7 +445,10 @@ class FaultlensApp(App):
             model=page_table(page,data,self.session.settings)
             self.table_models[page]=(data,options,model)
         columns,entries=model
-        if data is None and page<7: entries=[collection_entry(page,self.collection_states.get(page,'not_collected'))]
+        if data is None and page<7 and not (page==5 and self.session.settings.investigation_mode): entries=[collection_entry(page,self.collection_states.get(page,'not_collected'))]
+        elif data is None and page==5 and self.session.settings.investigation_mode:
+            status=collection_entry(page,self.collection_states.get(page,'not_collected'))
+            entries=entries[:-1]+[replace(status,cells=(status.cells[0],status.cells[1],status.cells[2],'Choose an inquiry or refresh/retry'))]
         if page==7 and self.settings_store is not None:
             entries=[replace(entry,cells=(*entry.cells[:2],'User preference')) for entry in entries]
         self.entries[page]=entries
@@ -431,12 +478,12 @@ class FaultlensApp(App):
             from .current_views import build
             view=build(data,('status','health','network')[page])
             summary=literal(view['summary']); summary.append('\nNext: ').append(literal(view['next_step']))
-        elif page in {5,6} and data and data['command']=='diagnose':
+        elif page in {5,6} and data and data['command'] in {'diagnose','investigate'}:
             from .investigation import story
             view=story(data)
             summary=literal(view['answer']); summary.append('\nScope: ').append(literal(view['scope'])); summary.append('\nNext: ').append(literal(view['next']))
         elif page==4 and data:
-            summary=literal('Choose the boot covering your incident. Times describe retained records, not exact boot/crash boundaries. Enter opens its context; Investigate this boot opens Diagnostics.')
+            summary=literal('Optional boot history browser. For a problem now or a time range, open Investigate directly. Retained record times are not boot/crash boundaries.')
         else:
             summary=literal(guide(data)['Summary'] if data else
                 'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
@@ -539,6 +586,24 @@ class FaultlensApp(App):
             if steps: text.append('\nNext: ').append(literal(steps[0]))
         self.query_one('#selected-evidence-'+str(self.page),Static).update(text)
 
+    def start_investigation(self,mode,*,start=None,end=None):
+        self.session.settings=replace(self.session.settings,investigation_mode=mode,boot_selector='',
+            since_us=str(start) if start is not None else self.session.settings.since_us,
+            until_us=str(end) if end is not None else self.session.settings.until_us)
+        self.persist_settings()
+        self.snapshots.pop(5,None);self.snapshot_options.pop(5,None);self.collection_attempts.pop(5,None)
+        if self.page!=5:self.select_page(5)
+        elif self.job is None:self.action_refresh()
+        else:self.notice='New inquiry selected; waiting for the active read to finish.';self.update_status()
+
+    def setting_changed(self):
+        self.persist_settings()
+        if self.page==5 and self.session.settings.investigation_mode:
+            self.collection_attempts.pop(5,None)
+            if self.job is None:self.action_refresh()
+            else:self.notice='Filter changed; waiting for the active read to finish.';self.update_status()
+        else:self.populate(self.page);self.update_status()
+
     def action_open(self):
         entry=self.selected()
         if entry: self.open_entry(entry,self.data())
@@ -546,6 +611,13 @@ class FaultlensApp(App):
         if len(self.screen_stack)==1: event.stop(); self.action_open()
 
     def open_entry(self,entry,data):
+        if entry.context is not None: data=entry.context
+        if entry.kind=='investigation_start':
+            if entry.original=='period':
+                self.push_screen(PeriodDialog(self.session.settings.since_us,self.session.settings.until_us,
+                    lambda start,end:self.start_investigation('period',start=start,end=end)))
+            else: self.start_investigation(entry.original)
+            return
         if len(self.screen_stack)>=32: return
         if entry.kind=='finding' and entry.detail is None:
             from .investigation import finding_detail
@@ -553,20 +625,20 @@ class FaultlensApp(App):
         if entry.kind=='setting':
             key=entry.original; value=getattr(self.session.settings,key)
             if type(value) is bool:
-                self.session.update_setting(key); self.persist_settings(); self.populate(7); self.update_status()
+                self.session.update_setting(key); self.setting_changed()
             else:
                 if key in {'since_us','until_us'}:
                     from .time_window import display
                     value=display(value) if value else ''
                 def save(text):
-                    self.session.update_setting(key,text); self.persist_settings(); self.populate(7); self.update_status()
+                    self.session.update_setting(key,text); self.setting_changed()
                 self.push_screen(ValueDialog(entry.cells[0],value,save,persistent=self.settings_store is not None))
         elif entry.kind=='diagnostics_link':
             self.select_page(5)
-            self.notice='Diagnostics uses the selected boot and existing journal/search settings.'; self.update_status()
+            self.notice='Investigate uses the selected question/time and optional boot filter.'; self.update_status()
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services'}:
+        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 
@@ -602,6 +674,8 @@ class FaultlensApp(App):
         detail={'Navigation':['Left/Right changes main sections; Up/Down selects rows; Enter opens a record or source.',
             'Esc closes a dialog or cancels collection; e opens unchanged original evidence; r explicitly refreshes.',
             'Search moves the table cursor without filtering. q quits; Ctrl-C interrupts and restores the terminal.'],
+            'Questions':['Investigate offers Problems now, A selected period, and Before restart. Boot is an optional filter.',
+            'Period queries may cross restarts. Current readings cannot establish past conditions.'],
             'Collection':['Source sections load when opened and reuse their snapshot; r refreshes. Changed options load on the next visit.',
             'Read-only coverage defaults on. System-only journal scope and dated Atop replay remain explicit. Preferences save per user; diagnostic evidence is never saved.',
             'Tables retain the latest bounded snapshot for each source section; timestamps and changed options remain visible.'],

@@ -48,6 +48,15 @@ or service/history qualification. Production support remains unclaimed until tho
 operator gates pass. Docker is a developer/CI prerequisite for this optional matrix,
 not an application or operator-server dependency.
 
+## Problem-centered workflow acceptance
+
+The primary command is `faultlens investigate`: now (current readings + recent
+journal), a bounded period across restarts, or before-restart context. Boot is an
+optional filter. The [workflow design](architecture/problem-centered-investigation.md)
+reopens operator acceptance of this corrected flow; earlier boot-first testing is
+not approval of these new entries. Verify original records and unavailable/empty
+source distinctions for all three entries before making support claims.
+
 ## Deployment acceptance matrix
 
 Before calling a version supported, run and record the following on each selected

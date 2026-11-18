@@ -1,7 +1,8 @@
 # Faultlens delivery plan
 
-Status: active operating plan, 2026-11-16. Milestone 3 automated qualification is
-active by owner request. Earlier operator-usefulness acceptance remains open.
+Status: active operating plan, updated 2026-11-18. The owner prioritizes correcting
+the boot-centered investigation workflow before further milestone 3 acceptance.
+Earlier operator-usefulness acceptance remains open.
 This is the single forward-work sequence. It supersedes the priority list in
 [stabilization.md](stabilization.md); that document remains the current capability/gap inventory.
 The original specification remains the product goal, not a record of delivered features.
@@ -109,8 +110,24 @@ Exit evidence:
 
 ### 2 — Useful incident investigations
 
-Status: implementation delivered, including readable time selection and unavailable-log
-corrections. Operator usefulness acceptance remains open. See [the investigation design](architecture/milestone-2-investigation.md).
+Status: problem-centered workflow implementation delivered by explicit owner request, 2026-11-18; operator acceptance remains active. Earlier
+boot-first implementation does not satisfy the intended general troubleshooting
+entry points. Operator usefulness acceptance remains open. See the
+[problem-centered workflow design](architecture/problem-centered-investigation.md).
+
+Deliver three primary entries: **Problems now**, **A selected period**, and
+**Before restart**. Boot is an optional filter/source identity, never a prerequisite
+for a time-period investigation. The selected period may cross restarts. Current
+measurements remain current observations and cannot establish past conditions.
+Before-restart selection uses retained previous-boot metadata explicitly, without
+claiming that the last record proves a crash or complete shutdown.
+
+Implement and validate the coherent CLI/TUI workflow, original evidence links,
+cross-boot bounds/coverage and saved-preference migration in one staging PR.
+Keep the existing single-boot diagnostic reader as a technical compatibility API;
+it is not the primary user journey. Missing logs must remain an unanswered question,
+and independent source results must remain inspectable. No new external service,
+dependency, automatic report exposure or server configuration change is added.
 
 Deliver Security, History, Diagnostics and their Evidence links as end-to-end workflows:
 select a problem period, see relevant observations, inspect support, understand missing
@@ -137,7 +154,8 @@ Exit evidence:
 
 ### 3 — Cross-server acceptance and stabilization
 
-Status: automated platform qualification active. Initial candidates are Debian 12 /
+Status: automated qualification available; operator acceptance waits for the active
+milestone 2 workflow correction. Initial candidates are Debian 12 /
 Python 3.11 and Ubuntu 24.04 / Python 3.12 on x86-64; see
 [qualification scope and evidence](architecture/platform-qualification.md). Neither
 is claimed production-supported before the actual server/SSH gates pass.
@@ -197,12 +215,13 @@ part of safe development, separate from auditing the operator's server.
   explicitly change priority. Urgent security defects get a documented exception.
 - Keep code/docs/comments/commits/PRs in English and communication with the owner in Norwegian.
 
-Current delivery: milestone 3 makes native process checks and the full regression
+Available qualification: milestone 3 makes native process checks and the full regression
 suite reproducible on the initial Debian/Ubuntu qualification candidates. The strict
 CI profile retains read-only tokens and action/image pins. Missing optional tools,
 missing system journal and frontend-absent/reviewed setups are explicit test cases.
 
-Next acceptance task: exercise a real incident period on the operator server and a
+Current acceptance task: exercise Problems now, a selected period and Before restart
+on the operator server and a
 materially different server over SSH; record OS/Python/tool versions, access scope,
 usefulness, terminal behavior and workload impact. Those gates remain pending.
 Use the [single follow-up session and gate table](acceptance/server-qualification.md#one-concrete-follow-up-session)

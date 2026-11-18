@@ -174,6 +174,27 @@ class CommandRunner:
     def read_boot(self, boot_id: str) -> Result:
         return self._read_boot(boot_id, system=False)
 
+    def read_journal_window(self, since_us, until_us, *, boot_id=None, query=None, system=False):
+        """Read one bounded time window; boot identity is an optional filter."""
+        validate_window(since_us,until_us)
+        if boot_id is None and (since_us is None or until_us is None):
+            raise ValueError('Unfiltered journal queries require both time boundaries')
+        if boot_id is not None and (not isinstance(boot_id,str) or not re.fullmatch(r'[0-9a-f]{32}',boot_id)):
+            raise ValueError('Invalid optional boot filter')
+        if type(system) is not bool or (query is not None and (not isinstance(query,str) or query not in EVENT_FILTERS)):
+            raise ValueError('Invalid journal query')
+        executable=trusted_tool('journalctl')
+        if executable is None: return Result('missing')
+        arguments=['--lines=501','--output=json','--no-pager','--quiet',
+                   '--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM,_UID,PRIORITY,_BOOT_ID']
+        if boot_id is not None: arguments.append('--boot='+boot_id)
+        for label,value in (('since',since_us),('until',until_us)):
+            if value is not None: arguments.append(f'--{label}=@{value//1000000}.{value%1000000:06d}')
+        if query is not None: arguments.extend(EVENT_FILTERS[query])
+        if system: arguments.insert(0,'--system')
+        try: return _capture([executable,*arguments])
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError): return Result('unavailable')
+
     def read_system_boot(self, boot_id: str) -> Result:
         return self._read_boot(boot_id, system=True)
 
