@@ -186,6 +186,15 @@ Exit evidence:
 
 ## Scope exclusions
 
+Owner-requested System context, 2026-11-18: add a bounded local login-session
+snapshot with reported username, terminal, login time and source. Use a fixed
+read-only local logind queries, with `who --users` as a fallback, in C locale/UTC,
+without DNS lookup, arbitrary files or privilege changes. Existing logind is optional
+and is never installed/started. Retain reported fields and originals, distinguish
+empty/unavailable/unsupported output, and do not claim complete session coverage
+or verified authentication. This is administrative fault-investigation context,
+not a new security-audit milestone.
+
 General host-security auditing, installed-package/CVE scanning, patch management,
 compliance auditing and comprehensive intrusion detection are outside this delivery
 plan. No advisory feed, vulnerability inventory or automatic package update is added.

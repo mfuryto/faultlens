@@ -393,6 +393,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 from .preservation import assess
                 items.extend(assess(sources, runner))
             data = report(args.command, items)
+            if args.command=='status':
+                from .sessions import attach as attach_sessions
+                attach_sessions(data,runner)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
         elif not (args.details or args.show_evidence):
@@ -436,6 +439,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                     print(safe_text("  Limitation: " + limitation), file=stdout)
                 for recommendation in item.recommendations:
                     print(safe_text("  Recommendation: " + recommendation), file=stdout)
+            if 'login_sessions' in data:
+                print('Reported login sessions: '+json.dumps(data['login_sessions'],ensure_ascii=True),file=stdout)
             if 'failed_services' in data:
                 print('Failed-service source: '+json.dumps(data['failed_services'],ensure_ascii=True),file=stdout)
             print("Observations are not a root-cause diagnosis. Use --json for confidence and thresholds.", file=stdout)

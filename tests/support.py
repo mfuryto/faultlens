@@ -55,6 +55,9 @@ class SyntheticRunner:
     def __init__(self):
         self.calls = []
         self.results = {
+            Command.LOGIN_SESSION_SERVICE: Result('missing'),
+            Command.LOGIN_SESSION_LIST: Result('missing'),
+            Command.LOGIN_SESSIONS: Result('completed','example-admin pts/0 2026-01-01 12:34 . 42 (192.0.2.8)\n',0),
             Command.FAILED_SERVICES: Result('completed','',0),
             Command.JOURNAL_CONFIG: Result('completed', '# /etc/systemd/journald.conf\n[Journal]\nStorage=persistent\nSystemMaxUse=64M\nMaxRetentionSec=7day\n', 0),
             Command.SYSTEM_STATE: Result('completed', 'running\n', 0),

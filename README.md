@@ -150,6 +150,14 @@ See [feature dependencies](docs/dependencies.md) and the [full CLI reference](do
 Review source scope and originals before acting. Output may contain sensitive
 administrator evidence; review it before manually sharing or redirecting it.
 
+## Logged-in users
+
+System → Logged-in users shows reported usernames, terminals, UTC login times and
+source addresses/hosts. The same rows are included in `faultlens status`. Existing
+local logind is preferred, with `who` as a fallback; no service is started or session
+controlled. Empty or unavailable records never establish that nobody is logged in.
+See [sources, precision and coverage](docs/login-sessions.md).
+
 ## Test your server
 
 After installing the optional workspace requirements, run as the checkout owner:

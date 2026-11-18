@@ -159,6 +159,10 @@ def source_table(entry,data):
         from .tui_model import Settings
         columns,rows=page_table(5,source,Settings())
         return 'Retained journal evidence — source identity in originals',columns,rows
+    if entry.kind=='login_sessions':
+        from .sessions import detail,source_label,login_label
+        return 'Reported terminal-login sessions (coverage unverified)',('Username','Terminal','Login time (UTC)','Source address / reported source'),[
+            Entry((row['username'],row['terminal'],login_label(row),source_label(row)),row,detail(row)) for row in source['rows']]
     if entry.kind=='observations':
         from .current_views import observation
         values=[observation(item) for item in source]

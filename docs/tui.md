@@ -60,7 +60,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 
 | Section | Main table / action |
 | --- | --- |
-| System | Prioritized resource/service review readings, a next step and grouped access to all measurements |
+| System | Prioritized resource/service readings, reported logged-in users, a next step and grouped access to all measurements |
 | Health | Operational readings and observed failed services, separate from journal/recording readiness and tool/default details |
 | Network | Error/gap/activity-prioritized interface examples, protocol review counts and optional sockets; all interfaces remain in a paged table |
 | Signals | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
@@ -279,3 +279,11 @@ Diagnostics and Evidence distinguish unavailable/partly unreadable logs from a
 readable source with no supported matches. A requested search that failed is never
 labeled not requested. Independent findings remain inspectable when the main journal
 is unavailable; the summary explicitly identifies the missing main source.
+
+## Logged-in users
+
+System → Logged-in users opens the reported session table: username, terminal,
+UTC login time and source address/reported source. Enter explains an individual
+record and its native state; e retains all original fields. A fallback or empty
+accounting result never proves that no users are logged in. See
+[session sources and limitations](login-sessions.md).

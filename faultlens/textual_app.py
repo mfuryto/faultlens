@@ -205,7 +205,7 @@ class SourceDialog(ModalScreen):
             state=self.entry.original.get('state','retained') if isinstance(self.entry.original,dict) else 'retained report group'
             yield Static(literal('Source state: '+str(state)+' | Bounded evidence; no complete-health verdict'),classes='hint')
             yield DataTable(id='source-table',cursor_type='row',zebra_stripes=True)
-            yield Static('No rows in this view. Events may still exist; s explains coverage, e opens originals.',id='source-empty',classes='hint',markup=False)
+            yield Static('No session rows reported; this does not establish that nobody is logged in. s explains coverage.' if self.entry.kind=='login_sessions' else 'No rows in this view. Events may still exist; s explains coverage, e opens originals.',id='source-empty',classes='hint',markup=False)
             with Horizontal(classes='buttons'):
                 yield Button('Previous',id='previous'); yield Button('Next',id='next'); yield Button('Back',id='back')
 
@@ -214,13 +214,14 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details'}:
+        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details'}:
-            weights=[0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32]
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions'}:
+            weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
+                    [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
             for column,weight in zip(self.columns,weights): table.add_column(column,width=max(3,int(usable*weight)))
         else: table.add_columns(*self.columns)
@@ -259,7 +260,7 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
@@ -638,7 +639,7 @@ class FaultlensApp(App):
             self.notice='Investigate uses the selected question/time and optional boot filter.'; self.update_status()
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details'}:
+        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 
