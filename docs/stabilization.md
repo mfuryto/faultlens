@@ -123,3 +123,34 @@ less). These are local comparative measurements, not server qualification or pro
 that runner-dependent resource variation is resolved. No benchmark scenario, CPU,
 wall-time, memory limit or dependency was changed. Existing navigation/evidence tests
 and full platform/resource gates remain required.
+
+## Comparable resource-test runtime — 2026-11-18
+
+The resource gate previously mixed application startup/navigation with repeated source
+compilation. The Debian qualification mounts the checkout and interpreter read-only,
+and workers prohibit bytecode writes. Unlike an ordinary installed/precompiled runtime,
+every fresh worker could compile the same modules again. Profiling the pinned Debian
+image observed 397 compiler calls; this avoidable cost reduced margin on slower CI
+processors, including the 25-second aggregate benchmark deadline. Physical runner
+speed and scheduler noise remain variable; this correction does not claim identical
+timings across hosts.
+
+Both resource drivers now prepare private CHECKED_HASH bytecode once for the current
+stdlib, checkout and exact reviewed frontend closure. Every measured worker remains a
+fresh isolated process and imports source-verified code from that cache. The complete
+CLI/TUI scenarios, source data, iteration counts, one-CPU affinity, address-space limits,
+CPU below 1 second, wall below 2 seconds and RSS limits are unchanged. Setup time is
+reported separately from per-worker startup and remains inside the existing 25/30-second
+outer test deadlines. No rerun, skip, calibration or passing-result selection is added.
+This explicitly qualifies a prepared runtime, not cold source-to-bytecode compilation
+or a cold filesystem cache. Direct `--worker` probes remain usable without preparation
+for cold-source investigation; these numbers must not be compared without noting setup.
+
+The cache uses a new owner-only temporary directory, checked source hashes, and
+cleanup on normal/error exit. Neither installed packages nor the checkout are written.
+Missing/mismatched locked dependencies or compilation errors fail preparation. The
+application launch path and server configuration are unchanged. Tests check stale
+same-size/same-mtime source rejection, private cache permissions, cleanup and failure
+restoration. Both resource gates passed under the original deadlines in the exact
+restricted Debian container (10.6 and 9.2 seconds in the initial local run). Real SSH
+and second-server operator acceptance remain pending.

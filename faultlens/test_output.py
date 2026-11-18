@@ -195,10 +195,17 @@ def render_server(data,out,*,details=False):
             print('Note: '+safe(note),file=out)
 
 
+def render_runtime(data,out):
+    if data.get('runtime',{}).get('bytecode_cache')=='private_checked_hash':
+        print('Runtime: private source-checked bytecode prepared before fresh-process measurements. Preparation: '+
+              format(data['runtime']['preparation_wall_seconds'],'.3f')+' s; included in the overall test deadline.',file=out)
+
+
 def render_benchmark(data,out,*,details=False):
     values=data['commands']
     failed=[name for name,v in values.items() if not v['within_regression_budget']]
     print('Faultlens performance tests',file=out)
+    render_runtime(data,out)
     print(str(len(values))+' command scenarios tested; '+str(len(failed))+' outside the resource budgets.',file=out)
     if values:
         print('Largest peak memory: '+format(max(v['peak_rss_max_mib'] for v in values.values()),'.2f')+' MiB.',file=out)
@@ -219,6 +226,7 @@ def render_profiles(data,out,*,details=False):
     profiles=data['profiles']
     failed=[p for p in profiles if not p['passed']]
     print('Faultlens constrained resource tests',file=out)
+    render_runtime(data,out)
     print(str(len(profiles))+' test runs; '+str(len(failed))+' failed the checks.',file=out)
     print('Each child uses one CPU and a virtual address-space limit. This is not a real small-VPS deployment test.',file=out)
     if failed:

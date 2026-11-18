@@ -17,7 +17,7 @@ MODES = ('status','health', 'check', 'phase3-security', 'tui-status', 'tui-diagn
 PROFILES = (128, 256, 512)
 
 
-def main():
+def main(runtime=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--json',action='store_true',help='Emit all measurements as JSON for automation.')
     parser.add_argument('--details',action='store_true',help='Show every constrained test run.')
@@ -37,14 +37,20 @@ def main():
         value.update(address_space_limit_mib=args.memory_mib, cpu_affinity_count=len(os.sched_getaffinity(0)))
         print(json.dumps(value))
         return 0
+    if runtime is None:
+        sys.path.insert(0,str(Path(__file__).resolve().parent))
+        from resource_runtime import prepared
+        with prepared() as runtime:
+            return main(runtime)
     output = {'synthetic': True, 'deployment_test': False,
               'scope': 'One-CPU process affinity and virtual-address-space ceilings; not VM RAM quotas.',
-              'profiles': [], 'passed': True}
+              'profiles': [], 'passed': True,
+              'runtime': {key:value for key,value in runtime.items() if key!='interpreter_options'}}
     for memory in PROFILES:
         for mode in MODES:
             for _ in range(args.iterations):
                 started = time.monotonic()
-                child = subprocess.run([sys.executable, '-I', str(Path(__file__).resolve()),
+                child = subprocess.run([sys.executable, '-I', *runtime['interpreter_options'], str(Path(__file__).resolve()),
                     '--worker', mode, '--memory-mib', str(memory)], capture_output=True, text=True, timeout=10)
                 if child.returncode:
                     output['profiles'].append({'memory_mib':memory, 'mode':mode, 'passed':False,

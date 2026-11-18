@@ -299,3 +299,12 @@ and the `tui` alias. Noninteractive no-argument startup must explain the termina
 requirement without silently collecting a status snapshot. Verify dispatch, missing
 terminal behavior and CLI independence; source checkout still uses the reviewed
 virtual environment until the queued package milestone supplies its runtime.
+
+Active M3 resource-qualification correction, 2026-11-18: remove repeated source
+compilation from prepared-runtime measurements using private source-checked bytecode,
+with preparation charged to the existing aggregate deadlines. Preserve every measured
+scenario, fresh process, iteration, CPU/memory/wall budget and container restriction.
+Report runtime preparation explicitly; verify cold-source invalidation and cache
+cleanup. Require independent first-attempt CI runs and repeated restricted Debian
+resource checks before claiming the avoidable overhead addressed; hardware speed
+variation and real-server acceptance remain distinct. See stabilization.md.
