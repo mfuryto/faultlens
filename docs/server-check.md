@@ -10,7 +10,8 @@ cd /home/codex/faultlens
 The script combines the unit suite (including synthetic PTY/TUI lifecycle tests),
 repository policy, ten-iteration CLI/TUI benchmarks, constrained process profiles,
 native status/health/preservation, network/socket adapters, visible/system multi-boot
-history, selected-boot SSH/firewall diagnosis and free/df reference comparisons.
+history, the three primary investigation flows, login-session source availability,
+selected-boot SSH/firewall diagnosis and free/df reference comparisons.
 No Git update, trust exception, dependency installation, service action, account/group
 change, sysctl/firewall write or recorder configuration is performed. Synthetic tests
 use temporary fixtures and resource limits in their own children; native evidence is
@@ -131,3 +132,21 @@ presentation only: checks, counts, collection, permissions and exit codes are un
 The native health worker also checks the bounded failed-service source. Observed failed
 service rows produce attention (WARN), not a failed software test. Use `faultlens health`
 for unit names and context; the checker does not restart or reset services.
+
+## Primary investigation coverage
+
+The default run also exercises Problems now, a selected period and Before restart
+in both visible and system journal scopes. No boot filter is passed; Before restart
+resolves its own previous boot without falling back to another boot. The period test
+uses the most recent 15 minutes in UTC, chosen automatically, and is a source-coverage
+check rather than acceptance of an operator-selected incident. Current snapshots are
+collected only for Problems now. Existing native command deadlines and worker limits
+apply; no sources are elevated or configuration changed.
+
+Readable queries and retained evidence are reported separately. Empty records cannot
+verify positive incident detection; unavailable queries cannot establish an absence
+of faults. Partial coverage and record caps remain visible. Optional Atop and crash
+readers remain in the separate diagnostic probe and are not repeated per flow.
+The System login-session source is checked without including identities or original
+records in the test report. Use Faultlens itself for the original administrator data.
+Manual SSH usability, a known incident and a second server remain acceptance gates.

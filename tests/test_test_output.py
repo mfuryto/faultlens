@@ -49,6 +49,20 @@ class TestPresentationTests(unittest.TestCase):
         self.assertIn('do not prove a healthy or attack-free server',text)
         self.assertEqual(original,data)
 
+    def test_primary_flow_summary_never_turns_unavailable_or_empty_into_no_faults(self):
+        data=report([row('investigate.system.now','MISSING','Unavailable.'),
+                     row('investigate.visible.period','PASS','Readable.'),
+                     row('investigate.visible.period.tail.evidence','MISSING','No records.'),
+                     row('sessions.source','PASS','Readable.')])
+        out=io.StringIO()
+        render_server(data,out)
+        text=' '.join(out.getvalue().split())
+        self.assertIn('no absence of faults can be established',text)
+        self.assertIn('automatic recent 15-minute test window',text)
+        self.assertIn('Readable empty queries do not verify incident detection',text)
+        self.assertIn('logged-in session source was readable',text)
+        self.assertNotIn('System measurements collected',text)
+
     def test_details_retain_every_original_check_advice_and_failure_excerpt(self):
         data=example()
         data['checks'].append(dict(row('repository.extra','FAIL','Invented failure.','Inspect this check.'),

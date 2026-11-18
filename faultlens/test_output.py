@@ -12,6 +12,7 @@ PROGRESS_NAMES = {'unit':'automated software and TUI tests', 'policy':'repositor
     'benchmark':'performance tests', 'profiles':'constrained resource tests', 'status':'current system measurements',
     'health':'tools, services and recording setup', 'network':'network counters and sockets',
     'history':'accessible boot history', 'diagnose':'journal and optional historical evidence',
+    'investigate':'Problems now, recent period and before-restart investigations',
     'compare':'measurement comparisons'}
 
 
@@ -96,6 +97,20 @@ def server_summary(data):
     diagnostic=take(lambda r:r['key'].startswith('diagnose.') and r['state']=='PASS')
     if diagnostic:
         worked.append('Journal and diagnostic queries completed where evidence was accessible.')
+    for scope in ('visible', 'system'):
+        for mode, name in (('now', 'Problems now'), ('period', 'Selected period (automatic recent 15-minute test window)'),
+                           ('before-restart', 'Before restart')):
+            key = 'investigate.'+scope+'.'+mode
+            if take(lambda r:r['key']==key and r['state']=='PASS'):
+                worked.append(name+': requested '+scope+' journal queries were readable; incident detection still depends on usable evidence.')
+            gaps = take(lambda r:r['key'].startswith(key+'.') and r['state'] in {'MISSING','SKIP'})
+            if select_state(key, 'MISSING'):
+                take(lambda r:r['key']==key and r['state']=='MISSING')
+                unavailable.append(name+' ('+scope+'): journal investigation unavailable; no absence of faults can be established.')
+            elif gaps:
+                unavailable.append(name+' ('+scope+'): some sources or usable incident records were missing. Readable empty queries do not verify incident detection; see --details.')
+    if take(lambda r:r['key']=='sessions.source' and r['state']=='PASS'):
+        worked.append('The logged-in session source was readable; this does not verify completeness or user activity.')
     take(lambda r:r['state']=='PASS')  # Other successful details remain in --details/--json.
 
     defaults=take(lambda r:r['state']=='MISSING' and r['key'].startswith('health.journal.config.')
