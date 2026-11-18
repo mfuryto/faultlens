@@ -63,8 +63,10 @@ async def bounded_read(stream,limit):
 
 async def collect(page,settings):
     args=arguments(page,settings)
-    launcher=Path(__file__).resolve().parents[1]/'bin'/'faultlens'
-    process=await asyncio.create_subprocess_exec(sys.executable,'-I','-B',str(launcher),*args,
+    root=Path(__file__).resolve().parents[1]
+    launcher=root/'bin'/'faultlens'
+    isolation=['-I','-B']+(['-S'] if root==Path('/usr/share/faultlens') else [])
+    process=await asyncio.create_subprocess_exec(sys.executable,*isolation,str(launcher),*args,
         stdin=asyncio.subprocess.DEVNULL,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE,
         cwd='/',start_new_session=True,env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LC_ALL':'C','LANG':'C',
                                          'PYTHONDONTWRITEBYTECODE':'1','NO_COLOR':'1'})

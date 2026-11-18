@@ -1,0 +1,28 @@
+Faultlens pre-release Debian package
+==================================
+
+Run `faultlens` as your ordinary user to open the terminal workspace.
+`tui` remains an alias. Explicit CLI examples:
+
+    faultlens status
+    faultlens health
+    faultlens investigate --mode now
+    faultlens --help
+
+The package requires system Python >= 3.11 and includes the reviewed Textual
+frontend and its private pure-Python dependencies. No virtual environment or pip
+setup is needed on the server. Private libraries are updated by rebuilding and
+upgrading Faultlens, not by installing distribution Textual packages.
+
+No Faultlens daemon, recording service, log policy or extra permission is installed.
+Optional tools such as Atop require a separate administrator decision. Existing
+permissions and retained evidence determine which diagnostics are available.
+
+User preferences and evidence are outside package ownership and survive removal.
+The source/wheel SHA-256 manifest is in build-manifest.json; complete upstream
+licenses remain in /usr/share/faultlens/vendor/*.dist-info/ and LICENSE contains
+Faultlens's GPL text. Source and build instructions:
+https://github.com/mfuryto/faultlens
+
+This is a preview, not an automatically published release. Isolated Debian/Ubuntu
+installation tests do not replace the unavailable second real-server SSH test.

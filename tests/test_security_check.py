@@ -45,6 +45,21 @@ class SecurityPolicyTests(unittest.TestCase):
         install=self.workflow['jobs']['baseline']['steps'][2]['run']
         self.reject(lambda w:w['jobs']['baseline']['steps'][2].update(run=install.replace('--no-index','')))
 
+    def test_package_matrix_and_read_only_hash_locked_inputs_are_required(self):
+        self.reject(lambda w:w['jobs']['package']['strategy']['matrix']['target'].remove('debian-12'))
+        self.reject(lambda w:w['jobs']['package'].update(permissions={'contents':'write'}))
+        command=self.workflow['jobs']['package']['steps'][1]['run']
+        for flag in ('--require-hashes','--only-binary=:all:'):
+            self.reject(lambda w:w['jobs']['package']['steps'][1].update(run=command.replace(flag,'')))
+        self.reject(lambda w:w['jobs']['package']['steps'][0].update(uses='actions/checkout@main'))
+
+    def test_package_allowlist_contains_tracked_application_sources_only(self):
+        tracked={'faultlens/cli.py','faultlens/__init__.py','README.md'}
+        valid=b'faultlens/__init__.py\nfaultlens/cli.py\n'
+        self.assertEqual([],policy.package_source_errors(valid,tracked))
+        for data in (b'faultlens/cli.py\n', valid+b'faultlens/local_private.py\n',valid+b'../credentials.py\n',valid+valid):
+            self.assertTrue(policy.package_source_errors(data,tracked))
+
     def test_unpinned_or_foreign_action(self):
         for action in ('actions/checkout@v7', 'actions/checkout@' + 'a' * 39,
                        'attacker/checkout@' + 'a' * 40):

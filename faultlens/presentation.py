@@ -1,5 +1,6 @@
 """Explain existing observations without collecting, changing confidence or copying evidence."""
 from datetime import datetime, timezone
+from pathlib import Path
 import json
 import re
 import textwrap
@@ -76,8 +77,14 @@ def observation_command(key):
     return OBSERVATION_COMMANDS.get(key)
 
 
+def local_command(command):
+    if Path(__file__).resolve().parents[1] == Path('/usr/share/faultlens'):
+        return command.removeprefix('./bin/')
+    return command
+
+
 def command_step(command):
-    return 'Optional current-state check (not historical proof): '+command
+    return 'Optional current-state check (not historical proof): '+local_command(command)
 
 
 def escaped(value):
@@ -256,7 +263,7 @@ def boot_summary_view(item):
     steps=['Inspect the original summary and its collection limits before drawing conclusions.']
     if isinstance(boot_id,str) and re.fullmatch(r'[a-f0-9]{32}',boot_id) and scope in {'visible','system'}:
         command='./bin/faultlens diagnose --boot-id '+boot_id+(' --system-journal' if scope=='system' else '')
-        steps.append('Optional fresh diagnosis using this boot identity and existing access: '+command)
+        steps.append('Optional fresh diagnosis using this boot identity and existing access: '+local_command(command))
     return {'Observed':boot_summary_label(item),'Boot identity':boot_id,'What it means':meaning,
             'What you can do':steps,'Evidence limits':limits,'Technical details':item}
 

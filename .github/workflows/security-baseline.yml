@@ -51,6 +51,37 @@
           "run": "/tmp/faultlens-ui-env/bin/python scripts/platform_acceptance.py --target ubuntu-24.04 --frontend\ndocker pull python@sha256:726d304906fa5eb468e5531e366548d1903286352f5adb54ef508ac01fbd80c6\n/tmp/faultlens-ui-env/bin/python scripts/platform_acceptance.py --target debian-12 --container"
         }
       ]
+    },
+    "package": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 8,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "target": [
+            "debian-12",
+            "ubuntu-24.04"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Prepare reviewed offline package inputs",
+          "run": "python3 -m venv /tmp/faultlens-package-env\n/tmp/faultlens-package-env/bin/python -m pip download --disable-pip-version-check --require-hashes --only-binary=:all: --dest /tmp/faultlens-package-wheels -r requirements-tui.txt"
+        },
+        {
+          "name": "Qualify reproducible package lifecycle",
+          "run": "/tmp/faultlens-package-env/bin/python scripts/package_acceptance.py --target ${{ matrix.target }} --wheelhouse /tmp/faultlens-package-wheels"
+        }
+      ]
     }
   }
 }

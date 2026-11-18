@@ -121,7 +121,7 @@ def workflow_errors(data: bytes) -> list[str]:
         assert workflow['concurrency'] == {
             'group': 'security-${{ github.workflow }}-${{ github.ref }}',
             'cancel-in-progress': True}
-        assert set(workflow['jobs']) == {'baseline'}
+        assert set(workflow['jobs']) == {'baseline', 'package'}
         job = workflow['jobs']['baseline']
         assert set(job) == {'runs-on', 'timeout-minutes', 'steps'}
         assert job['runs-on'] == 'ubuntu-24.04'
@@ -141,6 +141,19 @@ def workflow_errors(data: bytes) -> list[str]:
             assert set(step) == {'name', 'run'}
             assert step['run'] == command
         assert all(isinstance(step['name'], str) for step in steps)
+        package = workflow['jobs']['package']
+        assert set(package) == {'runs-on', 'timeout-minutes', 'strategy', 'steps'}
+        assert package['runs-on'] == 'ubuntu-24.04' and package['timeout-minutes'] == 8
+        assert package['strategy'] == {'fail-fast': False, 'matrix': {'target': ['debian-12', 'ubuntu-24.04']}}
+        package_steps = package['steps']
+        assert len(package_steps) == 3 and package_steps[0] == checkout
+        expected_package_commands = (
+            'python3 -m venv /tmp/faultlens-package-env\n/tmp/faultlens-package-env/bin/python -m pip download --disable-pip-version-check --require-hashes --only-binary=:all: --dest /tmp/faultlens-package-wheels -r requirements-tui.txt',
+            '/tmp/faultlens-package-env/bin/python scripts/package_acceptance.py --target ${{ matrix.target }} --wheelhouse /tmp/faultlens-package-wheels')
+        for step, command in zip(package_steps[1:], expected_package_commands):
+            assert set(step) == {'name', 'run'} and isinstance(step['name'], str)
+            assert step['run'] == command
+
     except (ValueError, TypeError, KeyError, AssertionError, AttributeError, RecursionError):
         return ['workflow violates the constrained JSON security profile']
     return []
@@ -202,10 +215,28 @@ def codeql_errors(data: bytes) -> list[str]:
     return []
 
 
+def package_source_errors(data,tracked):
+    try:
+        entries=data.decode('utf-8').splitlines()
+    except UnicodeError:
+        return ['invalid package source allowlist']
+    expected={path for path in tracked if path.startswith('faultlens/') and path.endswith('.py')}
+    if len(entries)!=len(set(entries)) or set(entries)!=expected or any(
+            re.fullmatch(r'faultlens/[A-Za-z0-9_]+\.py',path) is None for path in entries):
+        return ['package source allowlist must match tracked application modules only']
+    return []
+
+
 def check_repository() -> list[str]:
     errors = []
     tracked = git('ls-files', '--stage', '-z').split(b'\0')
     workflows = set()
+    tracked_paths={record.split(b'\t',1)[1].decode('utf-8') for record in tracked if record}
+    manifest=Path('packaging/debian/application-files.txt')
+    if not manifest.is_file() or manifest.is_symlink():
+        errors.append('package source allowlist is required')
+    else:
+        errors.extend(package_source_errors(manifest.read_bytes(),tracked_paths))
     for record in filter(None, tracked):
         metadata, raw_path = record.split(b'\t', 1)
         mode, _, stage = metadata.decode().split()
@@ -221,6 +252,8 @@ def check_repository() -> list[str]:
         if mode == '160000':
             errors.append(f'{path}: submodule rejected')
             continue
+        if file.suffix.lower() in {'.deb','.whl'}:
+            errors.append(f'{path}: generated distribution archives must remain outside Git')
         data = file.read_bytes()
         errors.extend(f'{path}: {e}' for e in content_errors(path, data, mode))
         if path=='requirements-tui.txt':

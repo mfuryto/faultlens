@@ -1,0 +1,13 @@
+Package: faultlens
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Faultlens contributors
+Depends: python3 (>= 3.11)
+Homepage: https://github.com/mfuryto/faultlens
+Installed-Size: @SIZE@
+Description: local read-only Linux diagnostics and incident investigation
+ Pre-release CLI and terminal workspace with bounded local evidence collection.
+ Includes the reviewed private Python frontend dependencies. No telemetry,
+ daemon, automatic recording, privilege changes or cloud service is installed.

@@ -81,8 +81,10 @@ available. See [session coverage and bounded collection](login-sessions.md).
 The approved delivery is a downloadable `.deb`, with no project APT repository.
 APT will resolve required distribution runtime dependencies from existing configured
 package sources. CLI and the reviewed TUI must work without a user-managed virtual
-environment. The exact Textual packaging strategy must be qualified on target releases
-before delivery; current source-checkout instructions still apply today.
+environment. The build foundation now bundles the exact reviewed pure-Python wheel closure in a
+private application directory, with APT declaring system Python >= 3.11. No user
+virtual environment or runtime pip is needed. See [package qualification](debian-package.md);
+owner installation/public-release acceptance remains open.
 
 Atop and other optional diagnostic tools will not be automatic installation
 dependencies. Their packages can enable services, so recorder installation and policy
