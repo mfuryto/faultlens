@@ -108,3 +108,18 @@ The contrasting-platform gate exposed delayed focus from an inactive pane overri
 a newer tab selection. A workspace focus guard and deterministic regression now keep
 the explicit section selected; 30 one-CPU Debian repetitions passed without relaxing
 the existing navigation or resource limits.
+
+## Modal rendering stabilization — 2026-11-18
+
+Use opaque modal-screen backgrounds while inspecting details and original evidence.
+This avoids alpha blending with the underlying workspace; closing the dialog restores
+that workspace, with the same evidence links, retained records and navigation.
+
+Local Python 3.14.4 / Textual 8.2.8 measurements used four alternating pairs of the
+existing synthetic `tui-diagnostic` worker with one-CPU affinity and the 128 MiB
+address-space profile. Median process CPU was 0.473895 seconds with the former
+60-percent background and 0.435166 seconds with the opaque background (about 8 percent
+less). These are local comparative measurements, not server qualification or proof
+that runner-dependent resource variation is resolved. No benchmark scenario, CPU,
+wall-time, memory limit or dependency was changed. Existing navigation/evidence tests
+and full platform/resource gates remain required.

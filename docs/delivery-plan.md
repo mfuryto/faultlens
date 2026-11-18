@@ -184,6 +184,40 @@ Exit evidence:
 - Versioned acceptance results list tested environments, limitations and unresolved bugs.
 - The milestone ends in an accepted pre-release, not an automatically published release.
 
+### 4 — Installable Debian package
+
+Status: owner-approved delivery scope, queued after stabilization acceptance. Deliver
+one downloadable `.deb` package, not an APT repository or an implicit public release.
+Installing with `apt install ./faultlens_<version>_all.deb` must resolve required
+runtime dependencies from the target's existing configured package sources. Both
+`faultlens` and `faultlens tui` must work without a manually created virtual environment.
+
+Define and test the Python/Textual dependency strategy before implementation. Preserve
+the reviewed dependency closure: do not assume the supported distributions ship the
+required Textual version. If a private packaged runtime is necessary, document its
+layout, licensing, upgrade/security maintenance and reproducible offline build inputs;
+never run pip or download dependencies from package maintainer scripts or app startup.
+Use Debian dependency metadata for required distribution packages. Do not declare a
+runtime package dependency that the qualification targets cannot actually satisfy.
+
+Keep recording/replay tools such as Atop optional, outside `Depends` and automatic
+`Recommends`, because their distribution packages may enable services. Explain which
+features need them. Installation must not configure recording, alter journal/access
+policy, start a Faultlens daemon or modify the server beyond the package-managed
+application/runtime files and metadata. Diagnostics still use the caller's privileges.
+
+Exit evidence:
+- Build a versioned `.deb` reproducibly with recorded source/dependency provenance.
+- Validate package metadata, GPL notices and third-party license inclusion.
+- Test clean install with dependency resolution, upgrade and removal in isolated
+  supported Debian/Ubuntu targets, including offline failure and unavailable dependency
+  cases. No maintainer-script network bootstrap is allowed.
+- Launch CLI and TUI as an ordinary user over SSH without checkout paths or `.venv`.
+- Confirm optional tools remain optional, no service/access/recorder changes occur,
+  and user preferences/evidence are preserved across upgrades and removal.
+- Rerun source security, resource and application checks against installed files;
+  do not publish a release or claim distribution support from a package build alone.
+
 ## Scope exclusions
 
 Owner-requested System context, 2026-11-18: add a bounded local login-session
@@ -251,3 +285,8 @@ and check the System session source. Keep query availability separate from retai
 evidence, including empty and capped queries. The automatic recent-period probe is
 not owner-selected incident acceptance. Existing manual SSH and second-server gates
 remain open; no new product feature or dependency is introduced.
+
+Bounded M3 stabilization task, 2026-11-18: profile the modal evidence-navigation
+resource path after runner-dependent CPU failures. Retain only measured improvements,
+keep original evidence/navigation and all resource limits intact, and record remaining
+qualification variation separately from operator acceptance.
