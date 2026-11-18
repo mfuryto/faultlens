@@ -91,6 +91,17 @@ def _system(data):
     step=('Inspect highlighted readings before making changes; repeat measurements during the symptom.' if review else
           'Open source gaps to see what could not be assessed.' if gaps or not rows else
           'No immediate change is indicated by these readings; use History/Diagnostics for an earlier problem.')
+    source=data.get('login_sessions')
+    if source is not None:
+        available=source['state'] in {'available','partial'};count=len(source['rows'])
+        value=(str(count)+' reported session'+('' if count==1 else 's')) if count else 'No login records reported' if available else 'Could not be assessed'
+        meaning=('Enter for usernames, terminals, UTC login times and reported sources. Records may be stale or incomplete.' if count else
+            'The source returned no login records. This does not establish that nobody is logged in.' if available else
+            'Login records were unavailable or unsupported; no empty-success result is inferred.')
+        if source.get('fallback_used'):meaning+=' Fallback accounting source used; logind was unavailable or returned no records.'
+        rows.append(Decision('Logged-in users',value,'Partial' if source['state']=='partial' else 'Measured' if count else 'Info' if available else 'Gap',meaning,source,
+            {'Collection source':source['source'],'What it means':meaning,'What you can do':['Open the session rows and compare expected administrative activity; no session is modified.'],
+             'Evidence limits':source['limitations']},'login_sessions'))
     return summary,step,rows+[_all(data)]
 
 

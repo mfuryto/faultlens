@@ -67,3 +67,11 @@ Each integration needs a documented threat model, resource budget and synthetic 
 Firewall journal observations read existing kernel records through journalctl. They
 do not invoke, require installing, enable or reconfigure UFW, nftables or iptables.
 Existing logging/access controls determine whether relevant history is visible.
+
+## Current login-session context
+
+System/status can read existing local logind through `loginctl` and fall back to
+`who --users`. Both are optional OS tools. No login manager/accounting service is
+installed or enabled, no native session is controlled, and no DNS lookup or remote
+query is requested. Missing or unsupported sources leave other System readings
+available. See [session coverage and bounded collection](login-sessions.md).

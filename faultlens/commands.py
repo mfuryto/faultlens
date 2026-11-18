@@ -26,9 +26,15 @@ class Command(Enum):
     JOURNAL_SERVICE = "journal_service"
     ATOP_SERVICE = "atop_service"
     SOCKETS = "sockets"
+    LOGIN_SESSIONS = "login_sessions"
+    LOGIN_SESSION_LIST = "login_session_list"
+    LOGIN_SESSION_SERVICE = "login_session_service"
 
 
 CATALOG = {
+    Command.LOGIN_SESSIONS: ("who", ("--users",)),
+    Command.LOGIN_SESSION_LIST: ("loginctl", ("list-sessions", "--no-legend", "--no-pager", "--no-ask-password")),
+    Command.LOGIN_SESSION_SERVICE: ("systemctl", ("is-active", "systemd-logind.service", "--no-pager")),
     Command.FAILED_SERVICES: ("systemctl", ("list-units", "--state=failed", "--type=service", "--all", "--plain", "--no-legend", "--no-pager", "--full")),
     Command.SOCKETS: ("ss", ("-H", "-n", "-O", "-a", "-t", "-u")),
     Command.REFERENCE_MEMORY: ("free", ("--bytes",)),
@@ -47,8 +53,10 @@ EVENT_FILTERS = {
     'ssh_events': ('_UID=0', '_TRANSPORT=syslog', '_COMM=sshd', '_COMM=sshd-session', '_COMM=sshd-auth'),
     'firewall_events': ('_TRANSPORT=kernel',),
 }
-TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss")
+TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss", "who", "loginctl")
 TOOL_PURPOSES = {
+    "loginctl": "Optional: inspect existing local logind sessions in System/status; never starts or controls sessions/services.",
+    "who": "Optional: reported terminal login sessions in System/status; no DNS lookup or session control.",
     "ss": "Optional: current TCP/UDP endpoints only with network/security --sockets.",
     "free": "Optional: memory comparison in scripts/validate_local.py; status reads procfs directly.",
     "df": "Optional: filesystem comparison in scripts/validate_local.py; status uses statvfs directly.",
@@ -87,10 +95,10 @@ def trusted_tool(name: str) -> str | None:
     return None
 
 
-def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None, graceful=False) -> Result:
+def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None, graceful=False, utc=False) -> Result:
     """Drain both pipes without communicate's unbounded in-memory buffering."""
     process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, shell=False, env=ENVIRONMENT,
+                               stderr=subprocess.PIPE, shell=False, env={**ENVIRONMENT,"TZ":"UTC"} if utc else ENVIRONMENT,
                                cwd="/", start_new_session=True, pass_fds=pass_fds)
     output = bytearray()
     total = 0
@@ -173,6 +181,19 @@ class CommandRunner:
 
     def read_boot(self, boot_id: str) -> Result:
         return self._read_boot(boot_id, system=False)
+
+    def read_login_session_properties(self, identities):
+        if (not isinstance(identities,list) or not 1<=len(identities)<=64
+                or any(not isinstance(value,str) or not re.fullmatch(r'(?:[0-9]{1,10}|c[0-9]{1,10})',value) for value in identities)
+                or len(set(identities))!=len(identities)):
+            raise ValueError('Invalid local session identities')
+        executable=trusted_tool('loginctl')
+        if executable is None:return Result('missing')
+        try:
+            return _capture([executable,'show-session',*identities,'--no-pager','--no-ask-password','--all',
+                '--property=Id','--property=Name','--property=User','--property=TTY','--property=Timestamp',
+                '--property=RemoteHost','--property=State','--property=Type','--property=Class'],utc=True)
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError):return Result('unavailable')
 
     def read_journal_window(self, since_us, until_us, *, boot_id=None, query=None, system=False):
         """Read one bounded time window; boot identity is an optional filter."""
@@ -258,6 +279,8 @@ class CommandRunner:
         if executable is None:
             return Result("missing")
         try:
+            if command==Command.LOGIN_SESSIONS:
+                return _capture([executable,*arguments],utc=True)
             return _capture([executable, *arguments])
         except (OSError, ValueError, UnicodeError, subprocess.SubprocessError):
             return Result("unavailable")

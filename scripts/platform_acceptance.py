@@ -64,6 +64,8 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
             values={item['key']:item for item in data.get('observations',[])}
             if not any(values.get(key,{}).get('value') is not None for key in ('cpu.busy','memory.used')):
                 raise ValueError('Native resource measurements were not available: '+options[0])
+        if options[0]=='status' and (data.get('login_sessions',{}).get('state') not in {'available','partial','unavailable'} or not isinstance(data.get('login_sessions',{}).get('rows'),list)):
+            raise ValueError('Native session-source state was not reported')
         if options[0]=='health' and data.get('failed_services',{}).get('state') not in {'available','unavailable'}:
             raise ValueError('Native failed-service source state was not reported')
         if options[0]=='network' and (data.get('state') not in {'available','partial'} or data.get('sockets',{}).get('state') not in {'available','unavailable'}):

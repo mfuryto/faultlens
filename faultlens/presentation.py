@@ -455,6 +455,12 @@ def render(data,out):
             for unit in data['failed_services']['rows'][:5]:
                 line(out,unit['unit']+': '+unit['description']+' [Observed failed]','  ')
             if len(data['failed_services']['rows'])>5: line(out,'Additional failed units remain in --details/--json.')
+        if 'login_sessions' in data:
+            from .sessions import source_label
+            source=data['login_sessions']
+            for row in source['rows']:
+                line(out,row['username']+' | '+row['terminal']+' | '+(row['login_time_utc'] or 'Login time not reported')+' ('+row['login_time_precision']+') | '+source_label(row),'  ')
+            line(out,'Login records are not a complete session inventory or proof of activity/authorization.','  ')
         if 'sockets' in data: render_sockets(data['sockets'],out)
         line(out,'Suggested follow-up commands are optional and never run automatically.')
         line(out,'Use --details or --json for all retained readings, exact values and original source fields.')
