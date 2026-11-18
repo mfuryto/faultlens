@@ -1,5 +1,5 @@
 """Read-only server acceptance orchestration; missing evidence is not a test failure."""
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import os
 from pathlib import Path
@@ -14,7 +14,7 @@ from .commands import _capture
 
 ROOT = Path(__file__).resolve().parents[1]
 STATES = ('PASS', 'WARN', 'MISSING', 'SKIP', 'FAIL')
-WORKERS = ('unit', 'policy', 'benchmark', 'profiles', 'status', 'health', 'network', 'history', 'diagnose', 'compare')
+WORKERS = ('unit', 'policy', 'benchmark', 'profiles', 'status', 'health', 'network', 'history', 'diagnose', 'investigate', 'compare')
 REPOSITORY = {'unit', 'policy', 'benchmark', 'profiles'}
 
 
@@ -60,7 +60,10 @@ def live_probe(name, *, boot=0, atop_date=None, pstore=False):
     from .overview import incidents
     runner = CommandRunner()
     if name == 'status':
-        return observation_rows('status', status(runner=runner))
+        from .sessions import collect as sessions
+        results = observation_rows('status', status(runner=runner))
+        results.append(source_row('sessions.source', sessions(runner)))
+        return results
     if name == 'health':
         from .preservation import assess
         from .health import failed_services
@@ -129,6 +132,37 @@ def live_probe(name, *, boot=0, atop_date=None, pstore=False):
                                        str(len(source['records']))+' supported records visible; absence does not exclude a crash.'))
         else:
             results.append(row('pstore','SKIP','Crash-evidence readers were not requested.','Use --pstore to test both fixed readers.'))
+        return results
+    if name == 'investigate':
+        from .workflows import collect as investigate
+        end = datetime.now(timezone.utc)
+        until_us = int(end.timestamp() * 1_000_000)
+        since_us = int((end - timedelta(minutes=15)).timestamp() * 1_000_000)
+        results = []
+        for system in (False, True):
+            for mode in ('now', 'period', 'before-restart'):
+                prefix = 'investigate.' + ('system' if system else 'visible') + '.' + mode
+                options = {'since_us': since_us, 'until_us': until_us} if mode == 'period' else {}
+                data = investigate(runner, mode=mode, system_journal=system, **options)
+                results.append(source_row(prefix, data,
+                    mode + ': journal evidence state ' + data['state'] +
+                    '; no fault-free or root-cause conclusion follows.'))
+                if data['selection_state'] == 'unavailable':
+                    results.append(row(prefix+'.selection', 'MISSING',
+                        'Previous boot could not be resolved; no fallback was queried.'))
+                for query, coverage in data['query_coverage'].items():
+                    results.append(source_row(prefix+'.'+query, coverage))
+                    results.append(row(prefix+'.'+query+'.evidence',
+                        'PASS' if coverage['records_retained'] else 'MISSING',
+                        str(coverage['records_retained'])+' journal records retained; empty evidence cannot verify incident detection.'))
+                    if coverage['record_limit_reached']:
+                        results.append(row(prefix+'.'+query+'.limit', 'WARN',
+                            'Record cap reached; earlier evidence may be omitted.'))
+                for source, snapshot in data['current'].items():
+                    if source == 'health':
+                        results.append(source_row(prefix+'.current.failed_services', snapshot['failed_services']))
+                    else:
+                        results.append(source_row(prefix+'.current.'+source, snapshot))
         return results
     if name == 'compare':
         from .validation import validate

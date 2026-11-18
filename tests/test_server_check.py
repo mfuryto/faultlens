@@ -34,7 +34,7 @@ class ServerCheckTests(unittest.TestCase):
             return success(argv,**kwargs)
         data=collect(execute)
         self.assertEqual('PASS',data['overall'])
-        self.assertEqual(10,data['counts']['PASS'])
+        self.assertEqual(len(WORKERS),data['counts']['PASS'])
         self.assertEqual(0,exit_code(data))
         self.assertEqual(set(WORKERS),{argv[argv.index('--worker')+1] for argv,_ in calls})
         self.assertTrue(all(argv[1:3]==['-I','-B'] and options['limit']==4194304 for argv,options in calls))
@@ -49,7 +49,7 @@ class ServerCheckTests(unittest.TestCase):
                 return success(argv,**options)
             data=check_server(execute=execute,terminal=lambda:[],**kwargs)
             self.assertEqual(4,data['counts']['SKIP'])
-            self.assertEqual(6,len(calls))
+            self.assertEqual(len(WORKERS)-4,len(calls))
 
     def test_missing_evidence_and_host_warnings_are_not_program_failures(self):
         observations=[Observation('cpu',10,'percent','proc'),Observation('missing',None,'','source','unavailable'),
@@ -86,11 +86,11 @@ class ServerCheckTests(unittest.TestCase):
         def denied(argv,**options): raise PermissionError('private-error-content')
         data=collect(denied)
         self.assertEqual(4,data['counts']['FAIL'])
-        self.assertEqual(6,data['counts']['WARN'])
+        self.assertEqual(len(WORKERS)-4,data['counts']['WARN'])
         self.assertNotIn('private-error-content',json.dumps(data))
         for text in ('not json','{}','{"checks":[]}',json.dumps({'checks':[{'state':'PASS'}]})):
             data=collect(lambda *a,**k:Result('completed',text,0),live_only=True)
-            self.assertEqual(6,data['counts']['FAIL'])
+            self.assertEqual(len(WORKERS)-4,data['counts']['FAIL'])
 
     def test_missing_development_prerequisites_do_not_masquerade_as_test_bugs(self):
         def without_ui(argv,**options):
@@ -115,11 +115,50 @@ class ServerCheckTests(unittest.TestCase):
         self.assertIn('--pstore',argv)
 
     def test_live_status_uses_existing_adapter_without_emitting_measurements(self):
-        with patch('faultlens.collectors.status',return_value=[Observation('cpu.busy',12.345,'percent','proc')]):
+        with patch('faultlens.collectors.status',return_value=[Observation('cpu.busy',12.345,'percent','proc')]), patch('faultlens.sessions.collect',return_value={'state':'available','rows':[{'username':'private-user'}]}):
             data=live_probe('status')
         self.assertEqual('PASS',data[0]['state'])
         self.assertNotIn('12.345',json.dumps(data))
+        self.assertNotIn('private-user',json.dumps(data))
+        self.assertEqual('sessions.source',data[-1]['key'])
         self.assertIn('status.cpu.busy',json.dumps(data))
+
+    def test_primary_flows_separate_empty_unavailable_and_partial_evidence(self):
+        calls=[]
+        def investigate(runner, **options):
+            calls.append(options)
+            return {'state':'partial', 'selection_state':'not_required', 'current':{},
+                'query_coverage':{'tail':{'state':'available','records_retained':0,'record_limit_reached':False},
+                                  'kernel':{'state':'unavailable','records_retained':0,'record_limit_reached':False}}}
+        with patch('faultlens.workflows.collect',side_effect=investigate):
+            values=live_probe('investigate',boot=-7,atop_date='20260101',pstore=True)
+        self.assertEqual(6,len(calls))
+        self.assertEqual({'now','period','before-restart'},{call['mode'] for call in calls})
+        for call in calls:
+            self.assertNotIn('boot_index',call)
+            self.assertNotIn('pstore',call)
+            self.assertNotIn('atop_date',call)
+            if call['mode']=='period':
+                self.assertEqual(900_000_000,call['until_us']-call['since_us'])
+            else:
+                self.assertNotIn('since_us',call)
+        self.assertEqual({'MISSING'},{v['state'] for v in values if v['key'].endswith('.evidence')})
+        self.assertEqual({'WARN'},{v['state'] for v in values if v['key'].count('.')==2})
+        self.assertTrue(all(v['state']=='MISSING' for v in values if v['key'].endswith('.kernel')))
+
+    def test_previous_boot_resolution_caps_and_current_sources_remain_visible(self):
+        def investigate(runner, **options):
+            return {'state':'unavailable', 'selection_state':'unavailable',
+                'current':{'health':{'failed_services':{'state':'unavailable'}},
+                           'network':{'state':'available'}},
+                'query_coverage':{'tail':{'state':'available','records_retained':500,'record_limit_reached':True}}}
+        with patch('faultlens.workflows.collect',side_effect=investigate):
+            values=live_probe('investigate')
+        by_key={v['key']:v for v in values}
+        self.assertEqual('MISSING',by_key['investigate.visible.before-restart.selection']['state'])
+        self.assertEqual('WARN',by_key['investigate.visible.now.tail.limit']['state'])
+        self.assertEqual('MISSING',by_key['investigate.system.now.current.failed_services']['state'])
+        self.assertEqual('PASS',by_key['investigate.system.now.current.network']['state'])
 
     def test_live_health_reports_failed_units_as_attention_not_a_software_failure(self):
         source={'state':'available','rows':[{'unit':'example.service'}]}

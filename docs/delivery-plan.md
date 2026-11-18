@@ -244,3 +244,10 @@ Use the actual interpretation and Textual navigation with injected in-memory sou
 never query native sources, load/save preferences or create host faults. Keep the
 demo outside normal application commands. It assists explanation/navigation review,
 but does not close real incident, SSH or second-server acceptance gates.
+
+Bounded M3 acceptance aid, 2026-11-18: extend the server checker to exercise all three
+primary investigation modes in visible/system scopes with no optional boot filter,
+and check the System session source. Keep query availability separate from retained
+evidence, including empty and capped queries. The automatic recent-period probe is
+not owner-selected incident acceptance. Existing manual SSH and second-server gates
+remain open; no new product feature or dependency is introduced.
