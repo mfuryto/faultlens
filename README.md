@@ -55,11 +55,15 @@ git clone https://github.com/mfuryto/faultlens.git
 cd faultlens
 python3 -m venv .venv
 .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-tui.txt
-.venv/bin/python bin/faultlens tui
+.venv/bin/python bin/faultlens
 ```
 
 If Python's `venv` module is unavailable, use your distribution's virtual-environment
 package. Faultlens never installs packages or enables services at launch.
+
+With no arguments, Faultlens opens its terminal workspace. `faultlens tui` remains
+an alias; scripts should use explicit commands. The planned `.deb` will provide the
+`faultlens` launcher and reviewed frontend without manual virtual-environment setup.
 
 For CLI-only use, no external Python packages are required:
 

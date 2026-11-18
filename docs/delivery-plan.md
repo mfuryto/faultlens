@@ -189,8 +189,10 @@ Exit evidence:
 Status: owner-approved delivery scope, queued after stabilization acceptance. Deliver
 one downloadable `.deb` package, not an APT repository or an implicit public release.
 Installing with `apt install ./faultlens_<version>_all.deb` must resolve required
-runtime dependencies from the target's existing configured package sources. Both
-`faultlens` and `faultlens tui` must work without a manually created virtual environment.
+runtime dependencies from the target's existing configured package sources. Running
+`faultlens` must open the primary terminal workspace without a manually created
+virtual environment; `faultlens tui` remains a compatible alias. Explicit CLI
+commands remain available.
 
 Define and test the Python/Textual dependency strategy before implementation. Preserve
 the reviewed dependency closure: do not assume the supported distributions ship the
@@ -290,3 +292,10 @@ Bounded M3 stabilization task, 2026-11-18: profile the modal evidence-navigation
 resource path after runner-dependent CPU failures. Retain only measured improvements,
 keep original evidence/navigation and all resource limits intact, and record remaining
 qualification variation separately from operator acceptance.
+
+Owner-requested M3 startup stabilization, 2026-11-18: make no-argument invocation
+select the primary terminal workspace consistently, retaining explicit CLI commands
+and the `tui` alias. Noninteractive no-argument startup must explain the terminal
+requirement without silently collecting a status snapshot. Verify dispatch, missing
+terminal behavior and CLI independence; source checkout still uses the reviewed
+virtual environment until the queued package milestone supplies its runtime.

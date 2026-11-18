@@ -13,12 +13,16 @@ Use a trusted checkout as its owner:
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-tui.txt
-.venv/bin/python bin/faultlens tui
+.venv/bin/python bin/faultlens
 ```
 
-After activating `.venv`, `./bin/faultlens` also opens the workspace when attached
-to an interactive terminal. Explicit CLI commands work with system Python without
-these optional packages. No dependency downloads or installation occur at launch.
+Running `faultlens` without arguments selects the workspace; `faultlens tui` remains
+a compatible explicit alias. In the source checkout, use the virtual-environment
+Python shown above, or activate `.venv` before running `./bin/faultlens`. A noninteractive
+invocation without arguments reports that a terminal is required; it never silently
+switches to a CLI snapshot. Use `faultlens status --json` for scripts. Explicit CLI
+commands (including the existing `faultlens --json` status shorthand) work with system
+Python without these optional packages. No dependency downloads or installation occur at launch.
 The reviewed Textual version and complete pure-Python wheel closure are pinned in
 requirements-tui.txt; do not mix UserDock's environment with this project's.
 
