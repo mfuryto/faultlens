@@ -105,6 +105,10 @@ Do not replace a dirty checkout or add Git ownership exceptions to gather metada
 
 Report results as `passed`, `failed` with the observed symptom, or `not tested` for
 each open gate. Do not upload raw host logs or secrets to complete the checklist.
+If a usable real incident is unavailable, use the separately labeled
+[synthetic investigation walkthrough](investigation-walkthrough.md) to review the
+positive OOM case and the unmatched/unavailable distinction. Record that feedback as
+synthetic only; the real-incident and native-source gates remain open.
 Existing [server-check options](../server-check.md) provide optional native-only,
 Atop and pstore checks; rerunning the full software suite is not needed merely to
 try another source scope. No release publication is authorized by this record.
