@@ -1,0 +1,11 @@
+#!/usr/bin/python3 -IS
+"""Launch the installed private Faultlens runtime without environment injection."""
+import sys
+
+sys.dont_write_bytecode = True
+from pathlib import Path
+root = Path('/usr/share/faultlens')
+sys.path[:0] = [str(root), str(root / 'vendor')]
+from faultlens.cli import main
+
+raise SystemExit(main())

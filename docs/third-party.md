@@ -19,9 +19,12 @@ repository token permissions; it does not execute source builds or unpinned acti
 | linkify-it-py | 2.2.0 | MIT |
 
 Versions, hashes and license declarations were reviewed from the official PyPI wheels
-and their dist-info license files. No upstream implementation is vendored. Installing
-wheels retains their license files; any future bundled distribution must preserve
-required notices. Faultlens original material is licensed under GPL-3.0-or-later;
+and their dist-info license files. No upstream implementation is checked into the source tree. Generated preview
+`.deb` packages bundle these exact wheels privately, retaining their complete license
+files and metadata. The builder checks the hashes before extraction; required notices
+and the project GPL text are included. Distribution packages cannot independently
+patch this private closure: Faultlens updates require a reviewed lock, advisory check,
+rebuild and new package. See [package maintenance and qualification](debian-package.md). Faultlens original material is licensed under GPL-3.0-or-later;
 see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). This project grant does not
 replace upstream licenses or remove their notice obligations.
 

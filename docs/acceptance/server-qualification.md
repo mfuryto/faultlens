@@ -88,7 +88,7 @@ current checker result alone must not be relabeled as confirmed permission denia
 | Existing administrator access | Not reported for this version | Native-only results with existing authorized access when relevant; no account/group or logging changes required |
 | Optional historical/crash evidence | Not requested in received run | Explicit existing recording date/crash readers when applicable; absent evidence remains a gap |
 | Workload impact | Not measured | Responsiveness and resource impact observed during normal real workload; synthetic budgets do not substitute for this |
-| Materially different second server | No result received | Same workflow and metadata on another target, including source limitations and operator observations |
+| Materially different second server | Unavailable: owner has only this server; known limitation | Retain the gap; owner explicitly authorized package engineering to proceed without a second field target |
 
 Unavailable optional evidence does not require installing tools, generating faults,
 rebooting or changing server configuration. A workflow may correctly explain why an
@@ -166,3 +166,14 @@ report and general SSH feedback above concern the corrected entry points. The
 synthetic walkthrough remains explicitly synthetic. Real incident reconstruction,
 measured workload impact and materially different second-server acceptance remain
 open; general owner-server SSH approval does not close these separate gates.
+
+## Owner decision: package engineering proceeds
+
+The owner confirmed that no other real server is available and explicitly authorized
+starting the `.deb` package with required dependencies. Second-server SSH acceptance
+is therefore an unavailable field-qualification limitation, not a request to provision
+a server or a blocker for package work. Isolated Debian/Ubuntu installation/process
+tests do not close it. The existing source-checkout SSH approval remains accepted;
+the next owner test should exercise the installed package once available. Real
+incident/workload evidence remains limited. This decision does not publish a release
+or extend production-support claims.

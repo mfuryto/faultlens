@@ -62,8 +62,13 @@ If Python's `venv` module is unavailable, use your distribution's virtual-enviro
 package. Faultlens never installs packages or enables services at launch.
 
 With no arguments, Faultlens opens its terminal workspace. `faultlens tui` remains
-an alias; scripts should use explicit commands. The planned `.deb` will provide the
+an alias; scripts should use explicit commands. The preview `.deb` provides the
 `faultlens` launcher and reviewed frontend without manual virtual-environment setup.
+
+A preview `.deb` builder and isolated Debian/Ubuntu install/upgrade/removal checks are
+now available. The package opens the workspace with `faultlens`, bundles the reviewed
+frontend and lets APT resolve system Python. See [build, install and qualification
+instructions](docs/debian-package.md). No APT repository or release is published.
 
 For CLI-only use, no external Python packages are required:
 

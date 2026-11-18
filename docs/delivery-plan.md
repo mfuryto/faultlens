@@ -2,7 +2,8 @@
 
 Status: active operating plan, updated 2026-11-18. The problem-centered workflow
 is delivered and the owner reports a general SSH smoke-test pass. Milestone 3
-continues with real-incident/workload and contrasting-server evidence.
+retains real-incident/workload evidence gaps. The owner has no second server; that
+field-test gap is a known limitation while milestone 4 package engineering is active.
 This is the single forward-work sequence. It supersedes the priority list in
 [stabilization.md](stabilization.md); that document remains the current capability/gap inventory.
 The original specification remains the product goal, not a record of delivered features.
@@ -156,7 +157,9 @@ Exit evidence:
 
 Status: automated qualification and the corrected milestone 2 workflow are delivered;
 owner-server context and a general SSH smoke-test pass are recorded. Remaining
-real-incident, workload and contrasting-server acceptance are active.
+real-incident/workload evidence remains limited and a second real server is
+unavailable. By explicit owner decision, package engineering proceeds while these
+field-qualification limits remain recorded.
 Initial candidates are Debian 12 /
 Python 3.11 and Ubuntu 24.04 / Python 3.12 on x86-64; see
 [qualification scope and evidence](architecture/platform-qualification.md). Neither
@@ -192,7 +195,10 @@ Exit evidence:
 
 ### 4 — Installable Debian package
 
-Status: owner-approved delivery scope, queued after stabilization acceptance. Deliver
+Status: active by explicit owner request after the successful owner-server SSH smoke
+test. A second real server is unavailable and remains a known limitation, not a
+package-engineering blocker. Build/install foundation implemented; owner installation
+and final release qualification remain open. See [package design and validation](debian-package.md). Deliver
 one downloadable `.deb` package, not an APT repository or an implicit public release.
 Installing with `apt install ./faultlens_<version>_all.deb` must resolve required
 runtime dependencies from the target's existing configured package sources. Running
@@ -271,11 +277,11 @@ suite reproducible on the initial Debian/Ubuntu qualification candidates. The st
 CI profile retains read-only tokens and action/image pins. Missing optional tools,
 missing system journal and frontend-absent/reviewed setups are explicit test cases.
 
-Current acceptance task: retain the owner-server general SSH approval and context
-already received. Obtain contrasting-server results and, where actual incident data
-exists, verify useful Problems now/selected-period/Before restart explanations and
-workload impact. Do not repeat the same generic owner smoke-test request. Record
-missing evidence/access honestly; these remaining gates are pending.
+Current work: qualify the pre-release `.deb` and its dependencies in isolated targets,
+then obtain an owner-server installed-package SSH result. Retain the general source-
+checkout SSH approval already received. Real incident/workload evidence remains
+limited; a second actual server is unavailable. These limits stay explicit and do
+not block the owner-authorized package work or imply broader production support.
 Use the [single follow-up session and gate table](acceptance/server-qualification.md#one-concrete-follow-up-session)
 to update the received results instead of starting unrelated implementation work.
 No milestone or production-support claim is closed by container/CI checks alone.
@@ -330,3 +336,13 @@ Continue with contrasting-server and real-incident/workload evidence, not anothe
 unrelated feature or repeated generic owner-server smoke test. Missing target access
 leaves those gates pending; neither container qualification nor this documentation
 update closes M3 or starts the queued package implementation.
+
+Owner scope decision, 2026-11-18: only one real server is available. Keep the second-
+server SSH test as a known limitation and activate milestone 4 rather than repeating
+owner-server source tests or blocking package engineering. Implement an offline
+allowlisted builder, private reviewed pure-Python frontend closure and APT Python
+dependency metadata. Qualify reproducibility, clean install, non-root installed
+CLI/TUI/resource behavior, offline upgrade and removal in digest-pinned Debian/Ubuntu
+containers. Preserve user files, read-only defaults and every existing resource and
+security gate. No project APT repository, release/tag publication or host installation
+is authorized by this engineering step.

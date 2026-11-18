@@ -1,5 +1,6 @@
 """Optional UserDock-style terminal entrypoint; the CLI never imports Textual."""
 import os
+from pathlib import Path
 import re
 import sys
 
@@ -23,7 +24,10 @@ def run(*,sources=None,runner=None,sample_seconds=0.1,stderr=None,
         if version('textual')!='8.2.8': raise ImportError('Unreviewed frontend version')
         from .textual_app import FaultlensApp
     except (ImportError,OSError):
-        print('The optional frontend requires reviewed Textual 8.2.8. Install requirements-tui.txt in an isolated environment using --require-hashes --only-binary=:all:. The CLI still works.',file=stderr)
+        message = ('The bundled frontend is unavailable or unreviewed. Reinstall a verified Faultlens .deb package. Explicit CLI commands remain available.'
+                   if Path(__file__).resolve().parents[1] == Path('/usr/share/faultlens') else
+                   'The optional frontend requires reviewed Textual 8.2.8. Install requirements-tui.txt in an isolated environment using --require-hashes --only-binary=:all:. The CLI still works.')
+        print(message,file=stderr)
         return 1
     from .tui_model import Session,Settings
     session=Session(sources=sources,runner=runner,sample_seconds=sample_seconds,
