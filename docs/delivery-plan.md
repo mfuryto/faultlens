@@ -208,3 +208,11 @@ usefulness, terminal behavior and workload impact. Those gates remain pending.
 Use the [single follow-up session and gate table](acceptance/server-qualification.md#one-concrete-follow-up-session)
 to update the received results instead of starting unrelated implementation work.
 No milestone or production-support claim is closed by container/CI checks alone.
+
+Bounded acceptance aid, 2026-11-18: provide an explicitly synthetic investigation
+walkthrough for a reported OOM kill, readable unmatched records and unavailable logs.
+This addresses the lack of usable incident messages in the owner's reported run.
+Use the actual interpretation and Textual navigation with injected in-memory sources;
+never query native sources, load/save preferences or create host faults. Keep the
+demo outside normal application commands. It assists explanation/navigation review,
+but does not close real incident, SSH or second-server acceptance gates.

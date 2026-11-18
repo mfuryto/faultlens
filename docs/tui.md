@@ -217,6 +217,11 @@ See [milestone 1 design and acceptance](architecture/milestone-1-current-overvie
 
 ## Find what went wrong
 
+For an explicitly invented OOM/no-match/unavailable example in the actual workspace,
+use the optional [synthetic investigation walkthrough](acceptance/investigation-walkthrough.md).
+It cannot read host evidence or load/save normal preferences, and does not replace
+real server/SSH acceptance.
+
 Start in **History**. Choose the boot covering the symptom using its retained UTC
 range and reported-problem example. Enter opens that boot's actual bounded message
 examples; **Investigate this boot** pins the immutable boot identity and loads
