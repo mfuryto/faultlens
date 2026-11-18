@@ -37,7 +37,7 @@ installer yet. Target: Debian/Ubuntu Server with Python 3.11+.
 | Operational health and diagnostic readiness | Current resource/service review flags, bounded failed-service context, and separate journal/Atop readiness, defaults and tool details |
 | Boot and incident history | Accessible boot IDs, multi-boot summaries, bounded journal tails, targeted kernel/systemd searches and chronology |
 | Historical performance | Existing Atop CPU, memory, swap and optional disk/network/process recordings, with explicit replay and coverage limits |
-| Network and security | Current TCP/UDP pressure counters and local sockets; selected-boot SSH/firewall reports and Possible historical indicators |
+| Network and security | Current TCP/UDP pressure counters and local sockets; time-scoped SSH/firewall reports with optional boot filtering and Possible historical indicators |
 | Crash evidence | Supported live pstore and systemd-pstore archive fragments, original content and panic-signature observations |
 | CLI and TUI | Readable explanations, technical details, JSON output, keyboard navigation and saved collection preferences |
 
@@ -84,6 +84,22 @@ Preferences save on valid changes to `~/.config/faultlens/settings.json`, or und
 reports and logs are not saved automatically. See [workspace setup and controls](docs/tui.md).
 
 ## CLI examples
+
+Start with the problem or time, not a boot selection:
+
+```bash
+./bin/faultlens investigate
+./bin/faultlens investigate --since '2026-11-14T23:20:00+01:00' --until '2026-11-14T23:40:00+01:00'
+./bin/faultlens investigate --mode before-restart
+```
+
+The first command combines current readings with the last fifteen minutes of logs.
+A selected period can cross restarts. `--boot`/`--boot-id` are optional filters;
+`--system-journal` selects existing system access without granting it. Current readings
+never establish past conditions. The existing `diagnose` command is a technical
+single-boot reader retained for compatibility. See the
+[problem-centered workflow](docs/architecture/problem-centered-investigation.md).
+
 
 ```bash
 # Current resources, optional tools and recording readiness

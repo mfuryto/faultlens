@@ -9,7 +9,7 @@ from .socket_presentation import row_view as socket_view,row_label as socket_lab
 from .recording_presentation import recording_view,sample_view,sample_label
 from .crash_presentation import source_view,record_view,record_label
 
-TABS=('System','Health','Network','Signals','History','Diagnostics','Evidence','Settings')
+TABS=('System','Health','Network','Signals','History','Investigate','Evidence','Settings')
 
 
 @dataclass(frozen=True)
@@ -18,6 +18,7 @@ class Entry:
     original: object
     detail: dict | None = None
     kind: str = 'detail'
+    context: dict | None = None
 
 
 def finding_entry(item,source):
@@ -63,7 +64,7 @@ def security_entries(data,settings):
     detail={'Observed':str(readable)+' of '+str(len(observations))+' counter observations are readable.',
         'What it means':'This section checks a short current-network-namespace sample. It does not inspect SSH history, effective firewall policy or external reachability.',
         'What you can do':['Open counter readings to inspect unavailable values and the actual sampling interval.',
-                           'Review SSH and firewall history separately for the selected boot.'],
+                           'Review SSH and firewall reports for the chosen inquiry or time period.'],
         'Evidence limits':['No matched indicator is not an all-clear. Missing or reset counters are not evaluated as zero.']}
     rows.append(Entry(('Counter evidence',str(readable)+'/'+str(len(observations))+' readable','Current namespace',
                        'Enter explains coverage; e opens original readings'),observations,detail))
@@ -81,9 +82,9 @@ def security_entries(data,settings):
             {'Observed':'Socket evidence was not requested.','What it means':'No socket or reachability conclusion is available.',
              'What you can do':['Enable socket endpoints in Settings and refresh this section.']}))
     requested={'boot_selector':settings.boot_selector,'journal_scope':'system' if settings.system_journal else 'visible',
-               'search_ssh':settings.search_ssh,'search_firewall':settings.search_firewall}
-    rows.append(Entry(('SSH and firewall history','Separate query','Selected boot '+settings.boot_selector,
-                       'SSH '+('On' if settings.search_ssh else 'Off')+' / firewall '+('On' if settings.search_firewall else 'Off')+'; Enter opens Diagnostics'),requested,None,'diagnostics_link'))
+               'search_ssh':settings.search_ssh,'search_firewall':settings.search_firewall,'investigation_mode':settings.investigation_mode}
+    rows.append(Entry(('SSH and firewall history','Separate query','Inquiry '+(settings.investigation_mode or 'technical')+'; filter '+(settings.boot_selector or 'none'),
+                       'SSH '+('On' if settings.search_ssh else 'Off')+' / firewall '+('On' if settings.search_firewall else 'Off')+'; Enter opens Investigate'),requested,None,'diagnostics_link'))
     return rows
 
 
@@ -93,12 +94,15 @@ def page_table(page,data,settings):
         return ('Collection option','Value','Scope'),[
             Entry((SETTING_NAMES[key],('On' if getattr(settings,key) else 'Off') if type(getattr(settings,key)) is bool
                    else setting_value(settings,key),'Session only'),key,None,'setting') for key in SETTING_KEYS]
+    if page==5 and (data is not None and data.get('command')=='investigate' or data is None and settings.investigation_mode):
+        return ('Question / evidence','Time / state','Observed evidence / scope','Next step'),workflow_entries(data,settings)
     if data is None: return ('Item','Value','Status'),[collection_entry(page)]
     if page in {0,1,2}:
         from .current_views import build
         view=build(data,('status','health','network')[page])
-        return ('Check','Result','Assessment','Meaning / next step'),[
-            Entry((row.label,row.value,row.assessment,row.meaning),row.original,row.detail,row.kind) for row in view['rows']]
+        rows=[Entry((row.label,row.value,row.assessment,row.meaning),row.original,row.detail,row.kind) for row in view['rows']]
+        if settings.investigation_mode: rows.append(Entry(('Investigate a problem now','Current + recent evidence','Open inquiry','Enter opens Problems now'),'now',None,'investigation_start'))
+        return ('Check','Result','Assessment','Meaning / next step'),rows
     if page==4:
         from .investigation import history_detail,utc
         summaries={row['boot']['boot_id']:row for row in data.get('summaries',[])}
@@ -132,7 +136,7 @@ def page_table(page,data,settings):
         entries.extend(source_entries(data))
         return (('Finding / evidence','Time / confidence','Recorded message / source','Next step') if page==5 else ('Finding / evidence','Confidence / state','Source','Meaning')),entries
     # Evidence is an explicit, secondary entry to complete source originals.
-    entries=investigation_entries(data) if data['command']=='diagnose' else []
+    entries=workflow_entries(data,settings,actions=False) if data['command']=='investigate' else investigation_entries(data) if data['command']=='diagnose' else []
     entries.append(Entry(('Full original report',data['command'],'All retained fields','Open original'),data,None,'raw'))
     for entry in source_entries(data):
         entries.append(Entry((entry.cells[0],entry.cells[1],'Complete retained source','Open original'),entry.original,None,'raw'))
@@ -151,6 +155,10 @@ def _group_members(data,representative,source):
 
 def source_table(entry,data):
     source=entry.original
+    if entry.kind=='scope_details':
+        from .tui_model import Settings
+        columns,rows=page_table(5,source,Settings())
+        return 'Retained journal evidence — source identity in originals',columns,rows
     if entry.kind=='observations':
         from .current_views import observation
         values=[observation(item) for item in source]
@@ -242,7 +250,49 @@ def investigation_entries(data):
 
 
 def setting_value(settings,key):
+    if key=='boot_selector' and not settings.boot_selector: return 'None (all accessible boots)'
+    if key=='investigation_mode' and not settings.investigation_mode: return 'Technical single-boot reader'
     if key in {'since_us','until_us'}:
         from .time_window import display
         return display(getattr(settings,key))
     return str(getattr(settings,key) or 'Not selected')
+
+
+def workflow_entries(data,settings,*,actions=True):
+    from dataclasses import replace
+    from .tui_model import Settings
+    from .workflows import story
+    rows=[]
+    if actions:
+        for mode,label,scope in (('now','Problems now','Current measurements + last 15 minutes'),
+                                 ('period','A selected period','Choose start/end; can span restarts'),
+                                 ('before-restart','Before restart','Latest visible previous boot')):
+            rows.append(Entry((label,'Start inquiry',scope,'Enter; starts without a boot filter'),mode,None,'investigation_start'))
+        rows.append(Entry(('Boot filter (optional)',settings.boot_selector or 'None','Clear for all accessible boots','Enter edits filter; no extra access'),'boot_selector',None,'setting'))
+    if data is None:return rows+[replace(collection_entry(5),cells=('Collection','Not collected','Choose a question','No conclusion yet'))]
+    view=story(data)
+    rows.append(Entry(('Investigation answer',data['state'],view['answer'],view['next']),data,
+        {'What it means':view['answer'],'Scope':view['scope'],'What you can do':[view['next']],
+         'Evidence limits':data['limitations']+view['gaps']}))
+    measured=[]
+    for name,source in data['current'].items():
+        page=1 if name=='health' else 2
+        for row in page_table(page,source,Settings())[1]:
+            current=replace(row,cells=(row.cells[0],row.cells[1],'Current snapshot: '+row.cells[2],row.cells[3]),context=source)
+            (rows if row.cells[2] in {'Critical','Review'} else measured).append(current)
+    for child in data['investigations']:
+        for row in investigation_entries(child):rows.append(replace(row,context=child))
+        rows.append(Entry(('More evidence for this source',child['state'],str(child['records_examined'])+' retained tail records',
+                          'Enter for all groups, source coverage and boot-local chronology'),child,None,'scope_details',child))
+    rows.extend(measured)
+    if data.get('uninterpreted_records'):
+        rows.append(Entry(('Uninterpreted retained records',str(data['omitted_boot_scopes'])+' additional boot identities',
+            'Interpretation cap reached','Open raw originals; no fault assessment for these partitions'),
+            data['uninterpreted_records'],None,'raw'))
+    for name,source in data['query_coverage'].items():
+        rows.append(Entry(('Query coverage: '+name,source['state'],str(source['records_retained'])+' retained records',
+            'Limit reached; evidence incomplete' if source['record_limit_reached'] else source['parse_state']),source,
+            {'What it means':'Per-query global cap across boots; readable empty, invalid and unavailable results remain distinct.','Observed':source}))
+    for key in ('pstore','pstore_archive','atop'):
+        if key in data:rows.append(Entry((key,data[key]['state'],'Independent optional evidence','Enter inspects retained source'),data[key],None,key))
+    return rows

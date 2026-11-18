@@ -14,10 +14,12 @@ from scripts import platform_acceptance as check
 def reply(argv,**limits):
     command=argv[4]
     if '--json' not in argv:return Result('completed','Journal could not be assessed.',0)
-    data={'schema_version':1,'command':command,'state':'unavailable' if command in {'history','diagnose'} else 'available'}
+    data={'schema_version':1,'command':command,'state':'unavailable' if command in {'history','diagnose','investigate'} else 'available'}
     if command in {'status','health'}:data['observations']=[{'key':'memory.used','value':40}]
     if command=='health':data['failed_services']={'state':'unavailable','rows':[]}
     if command=='network':data['sockets']={'state':'unavailable','rows':[]}
+    if command=='investigate':data.update(mode='period',current={},boot_filter={'requested':None},
+        requested_window={'since_realtime_us':0,'until_realtime_us':1},query_coverage={'tail':{'state':'unavailable'}})
     return Result('completed',json.dumps(data),0)
 
 
@@ -29,7 +31,7 @@ def native(**options):
 class PlatformAcceptanceTests(unittest.TestCase):
     def test_absent_optional_sources_are_successful_contracts_not_host_health(self):
         data=native()
-        self.assertEqual(5,len(data['checks']))
+        self.assertEqual(6,len(data['checks']))
         self.assertTrue(all(row['contract']=='PASS' for row in data['checks']))
         self.assertEqual('unavailable',data['checks'][-1]['source_state'])
         self.assertEqual('pending',data['operator_acceptance'])
@@ -51,7 +53,7 @@ class PlatformAcceptanceTests(unittest.TestCase):
             with self.subTest(result=result),self.assertRaises(ValueError):native(execute=lambda *a,**k:result)
 
     def test_missing_source_contracts_do_not_pass_as_generic_success(self):
-        for command,field in (('health','failed_services'),('network','sockets'),('diagnose','state')):
+        for command,field in (('health','failed_services'),('network','sockets'),('diagnose','state'),('investigate','state')):
             def execute(argv,**limits):
                 result=reply(argv,**limits)
                 if argv[4]==command and '--json' in argv:

@@ -43,17 +43,17 @@ class SettingsStoreTests(unittest.TestCase):
         self.assertEqual(['settings.json'],[p.name for p in self.store.path.parent.iterdir()])
 
     def test_invalid_schema_types_ranges_and_combined_options_are_rejected_atomically(self):
-        baseline={'schema_version':1,'settings':asdict(self.defaults)}
+        baseline={'schema_version':2,'settings':asdict(self.defaults)}
         texts=['not json','{}','{"schema_version":1,"schema_version":1,"settings":{}}',
-               json.dumps({**baseline,'schema_version':True}),json.dumps({**baseline,'schema_version':2})]
-        for key,value in (('sockets',1),('boot_count',True),('sample_seconds','0.2'),
+               json.dumps({**baseline,'schema_version':True}),json.dumps({**baseline,'schema_version':3})]
+        for key,value in (('investigation_mode','bad'),('investigation_mode','period'),('sockets',1),('boot_count',True),('sample_seconds','0.2'),
                           ('sample_seconds',float('nan')),('sample_seconds',99),('boot_count',99),
                           ('boot_selector',';id'),('atop_date','20260230'),('atop_extended',True),
                           ('until_us','-1'),('since_us','9'*65),('boot_selector','\x1b')):
             values={**baseline['settings'],key:value}
-            texts.append(json.dumps({'schema_version':1,'settings':values}))
-        texts.append(json.dumps({'schema_version':1,'settings':{**baseline['settings'],'evidence':'invented'}}))
-        texts.append(json.dumps({'schema_version':1,'settings':{**baseline['settings'],'since_us':'200','until_us':'100'}}))
+            texts.append(json.dumps({'schema_version':2,'settings':values}))
+        texts.append(json.dumps({'schema_version':2,'settings':{**baseline['settings'],'evidence':'invented'}}))
+        texts.append(json.dumps({'schema_version':2,'settings':{**baseline['settings'],'since_us':'200','until_us':'100'}}))
         for text in texts:
             with self.subTest(text=text):
                 self.write(text); actual,message=self.store.load(self.defaults)
@@ -114,6 +114,26 @@ class SettingsStoreTests(unittest.TestCase):
             self.assertEqual(self.store.path,SettingsStore().path)
         with patch.dict(os.environ,{'XDG_CONFIG_HOME':'relative'}),patch('pathlib.Path.home',return_value=Path(self.temp.name)):
             self.assertEqual(Path(self.temp.name)/'.config/faultlens/settings.json',SettingsStore().path)
+
+
+    def test_version_one_migration_retains_scope_and_version_two_roundtrip(self):
+        previous=asdict(Settings(boot_selector='a'*32,search_events=True,atop_date='20260101',since_us='100',until_us='200'))
+        previous.pop('investigation_mode')
+        original=dict(previous)
+        self.write(json.dumps({'schema_version':1,'settings':previous}))
+        loaded,message=self.store.load(self.defaults)
+        self.assertIn('Migrated',message);self.assertEqual('period',loaded.investigation_mode)
+        self.assertEqual(original,{key:value for key,value in asdict(loaded).items() if key!='investigation_mode'})
+        self.store.save(loaded)
+        self.assertEqual(2,json.loads(self.store.path.read_text())['schema_version'])
+        self.assertEqual(loaded,self.store.load(self.defaults)[0])
+        previous['until_us']=''
+        self.write(json.dumps({'schema_version':1,'settings':previous}))
+        legacy,message=self.store.load(self.defaults)
+        self.assertEqual('',legacy.investigation_mode);self.assertEqual('100',legacy.since_us)
+        previous['since_us']=''
+        self.write(json.dumps({'schema_version':1,'settings':previous}))
+        self.assertEqual('before-restart',self.store.load(self.defaults)[0].investigation_mode)
 
 
 if __name__=='__main__': unittest.main()

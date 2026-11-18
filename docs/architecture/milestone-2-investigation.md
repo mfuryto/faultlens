@@ -1,5 +1,10 @@
 # Milestone 2 — evidence-led fault investigation
 
+The earlier boot-first entry described below is superseded by the owner-approved
+[problem-centered workflow](problem-centered-investigation.md), 2026-11-18. History
+is optional; Problems now, A selected period and Before restart are primary entries.
+This document retains the earlier interpretation/evidence design as background.
+
 Design before implementation, 2026-11-16. The owner requests a coherent workflow
 that explains actual fault evidence, rather than reporting only source availability.
 Milestone 1 was exercised by the owner; further usefulness acceptance remains open.

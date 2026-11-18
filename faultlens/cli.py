@@ -274,67 +274,78 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv and getattr(sys.stdin, 'isatty', lambda: False)() and getattr(stdout, 'isatty', lambda: False)() and (platform or sys.platform) == 'linux':
         argv = ['tui']
-    parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux system observations.")
+    parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux observations; investigate problems now, a period or before restart.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health"), default="status")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate"), default="status")
     parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
-    parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes.")
+    parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes (investigate: now mode only).")
     parser.add_argument("--sample-seconds", type=interval, default=0.1, help="Sample duration (0.05–1; status/health/network/security or initial TUI setting).")
     scope = parser.add_mutually_exclusive_group()
-    scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (diagnose only).")
-    scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (diagnose only).")
-    scope.add_argument("--boot-id", type=boot_identity, help="Exact boot ID visible in the selected scope listing (diagnose only).")
-    parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (diagnose only).")
-    parser.add_argument("--atop-extended", action="store_true", help="Opt in to disk, network and process resource rows; requires --atop-date with diagnose.")
+    scope.add_argument("--previous-boot", action="store_true", help="Analyze the previous visible boot (investigate/diagnose).")
+    scope.add_argument("--boot", type=boot_index, help="Visible boot index from -128 to 0 (investigate/diagnose).")
+    scope.add_argument("--boot-id", type=boot_identity, help="Optional boot-ID filter with investigate; selected visible ID with diagnose.")
+    parser.add_argument('--mode',choices=('now','period','before-restart'),help='Primary investigate entry; defaults to now, or period when time boundaries are supplied.')
+    parser.add_argument("--atop-date", type=atop_date, help="Opt-in local atop_YYYYMMDD recording (investigate/diagnose).")
+    parser.add_argument("--atop-extended", action="store_true", help="Opt in to disk, network and process resource rows; requires --atop-date with investigate/diagnose.")
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
-    parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (diagnose only; no boot attribution).")
-    parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (diagnose only; no boot attribution).")
-    parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/diagnose only; no elevation).")
-    parser.add_argument("--search-events", action="store_true", help="Run two bounded candidate searches across the selected boot (diagnose only).")
-    parser.add_argument("--search-ssh", action="store_true", help="Inspect supported SSH authentication reports and failure-burst indicators in the selected boot/time scope (diagnose only).")
+    parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (investigate/diagnose; no boot attribution).")
+    parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (investigate/diagnose; no boot attribution).")
+    parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/incidents/investigate/diagnose; no elevation).")
+    event_options=parser.add_mutually_exclusive_group()
+    event_options.add_argument('--search-events',action='store_true',help='Run bounded kernel/service searches; on by default for investigate.')
+    event_options.add_argument('--no-search-events',action='store_true',help='Disable broader kernel/service searches with investigate.')
+    parser.add_argument("--search-ssh", action="store_true", help="Inspect supported SSH authentication reports and failure-burst indicators in the selected inquiry/time scope (investigate/diagnose).")
     start=parser.add_mutually_exclusive_group()
-    start.add_argument('--since',dest='since_us',type=incident_time,help='Inclusive journal start with explicit timezone, e.g. 2026-11-14T22:20:00Z (diagnose only).')
-    start.add_argument('--since-us',type=receipt_boundary,help='Inclusive start in Unix receipt-time microseconds for all requested journal searches (diagnose only).')
+    start.add_argument('--since',dest='since_us',type=incident_time,help='Inclusive journal start with explicit timezone, e.g. 2026-11-14T22:20:00Z (investigate/diagnose).')
+    start.add_argument('--since-us',type=receipt_boundary,help='Inclusive start in Unix receipt-time microseconds for all requested journal searches (investigate/diagnose).')
     end=parser.add_mutually_exclusive_group()
-    end.add_argument('--until',dest='until_us',type=incident_time,help='Inclusive journal end with explicit timezone (diagnose only).')
-    end.add_argument('--until-us',type=receipt_boundary,help='Inclusive end in Unix receipt-time microseconds for all requested journal searches (diagnose only).')
+    end.add_argument('--until',dest='until_us',type=incident_time,help='Inclusive journal end with explicit timezone (investigate/diagnose).')
+    end.add_argument('--until-us',type=receipt_boundary,help='Inclusive end in Unix receipt-time microseconds for all requested journal searches (investigate/diagnose).')
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
-    parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (diagnose only).")
-    parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (diagnose only).")
+    parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (investigate/diagnose).")
+    parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (investigate/diagnose).")
     args = parser.parse_args(argv)
+    if args.no_search_events and args.command!='investigate': parser.error('--no-search-events is supported only with investigate.')
+    if args.mode is not None and args.command!='investigate': parser.error('--mode is supported only with investigate.')
+    if args.command=='investigate':
+        args.mode=args.mode or ('before-restart' if args.previous_boot else 'period' if args.since_us is not None or args.until_us is not None else 'now')
+        if args.sockets and args.mode!='now': parser.error('Current socket snapshots require now mode.')
+        if args.previous_boot and args.mode!='before-restart': parser.error('--previous-boot requires before-restart mode.')
+        if args.mode=='period' and (args.since_us is None or args.until_us is None): parser.error('Period mode requires both --since and --until.')
+        if args.mode!='period' and (args.since_us is not None or args.until_us is not None): parser.error('Time boundaries require period mode.')
     if args.command == "tui" and (args.json or args.details):
         parser.error("TUI has its own explanation and evidence views; use explicit CLI commands for JSON/details.")
-    if args.search_firewall and args.command != 'diagnose':
+    if args.search_firewall and args.command not in {'diagnose','investigate'}:
         parser.error("Firewall journal analysis is supported only with diagnose.")
-    if args.show_evidence and args.command != 'diagnose':
+    if args.show_evidence and args.command not in {'diagnose','investigate'}:
         parser.error("Original journal evidence is supported only with diagnose.")
-    if args.search_ssh and args.command != 'diagnose':
+    if args.search_ssh and args.command not in {'diagnose','investigate'}:
         parser.error("SSH journal analysis is supported only with diagnose.")
-    if args.atop_extended and (args.command != 'diagnose' or args.atop_date is None):
+    if args.atop_extended and (args.command not in {'diagnose','investigate'} or args.atop_date is None):
         parser.error("Extended resource context requires diagnose with --atop-date.")
     if (args.boot_count is not None or args.include_current) and args.command != "incidents":
         parser.error("Overview selection is supported only with incidents.")
     if args.since_us is not None and args.until_us is not None and args.since_us > args.until_us:
         parser.error("Journal start boundary must not exceed the end boundary.")
-    if args.since_us is not None and args.command != "diagnose":
+    if args.since_us is not None and args.command not in {"diagnose","investigate"}:
         parser.error("Journal time boundaries are supported only with diagnose.")
-    if args.until_us is not None and args.command != "diagnose":
+    if args.until_us is not None and args.command not in {"diagnose","investigate"}:
         parser.error("Journal time boundaries are supported only with diagnose.")
-    if args.search_events and args.command != "diagnose":
+    if args.search_events and args.command not in {"diagnose","investigate"}:
         parser.error("Targeted event search is supported only with diagnose.")
-    if args.system_journal and args.command not in {"history", "diagnose", "incidents"}:
+    if args.system_journal and args.command not in {"history", "diagnose", "incidents", "investigate"}:
         parser.error("System journal scope is supported only with history, diagnose or incidents.")
-    if args.pstore_archive and args.command != "diagnose":
+    if args.pstore_archive and args.command not in {"diagnose","investigate"}:
         parser.error("Pstore archive analysis is supported only with diagnose.")
-    if args.pstore and args.command != "diagnose":
+    if args.pstore and args.command not in {"diagnose","investigate"}:
         parser.error("Pstore analysis is supported only with diagnose.")
     if args.history and args.command not in {"check", "health"}:
         parser.error("Preservation assessment is supported only with check or health.")
-    if args.command != "diagnose" and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
+    if args.command not in {"diagnose","investigate"} and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
-    if args.sockets and args.command not in {"network", "security"}:
+    if args.sockets and args.command not in {"network", "security", "investigate"}:
         parser.error("Socket collection is supported only with network or security.")
     if (platform or sys.platform) != "linux":
         print("Faultlens supports Linux only.", file=stderr)
@@ -344,7 +355,15 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             from .tui import run
             return run(sources=sources, runner=runner, sample_seconds=args.sample_seconds, stderr=stderr,
                        pstore_collector=pstore_collector, pstore_archive_collector=pstore_archive_collector)
-        if args.command in {'network', 'security'}:
+        if args.command=='investigate':
+            from .workflows import collect
+            data=collect(runner,sources=sources,mode=args.mode,boot_index=args.boot,boot_id=args.boot_id,
+                since_us=args.since_us,until_us=args.until_us,system_journal=args.system_journal,
+                search_events=not args.no_search_events,search_ssh=args.search_ssh,search_firewall=args.search_firewall,
+                sample_seconds=args.sample_seconds,sockets=args.sockets,atop_date=args.atop_date,
+                atop_extended=args.atop_extended,pstore=args.pstore,pstore_archive=args.pstore_archive,
+                pstore_collector=pstore_collector,pstore_archive_collector=pstore_archive_collector)
+        elif args.command in {'network', 'security'}:
             from .network import collect
             data = collect(sources, command=args.command, sample_seconds=args.sample_seconds)
             if args.sockets:
@@ -400,6 +419,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 print("Limitation: " + text, file=stdout)
         elif args.command == "incidents":
             render_incidents(data, stdout)
+        elif args.command=="investigate":
+            print(json.dumps(data,ensure_ascii=True,allow_nan=False,indent=2),file=stdout)
         elif args.command in {"history", "diagnose"}:
             render_history(data, stdout)
         else:

@@ -51,7 +51,7 @@ current checker result alone must not be relabeled as confirmed permission denia
 | Exact target identity | Not recorded | Tested commit, OS release, Python and frontend version; no host identity or diagnostic logs required |
 | SSH interaction | Usage confirmed; detailed acceptance open | All tabs, quick switching during collection, resize, details, refresh/cancel, normal quit and Ctrl-C work in the actual client |
 | Saved preferences | Not confirmed by owner | One valid setting survives restart as the same Unix user; save/load status is understandable |
-| Real incident investigation | Not confirmed by owner | Selected boot/time, actual messages, their meaning, source gaps and a sensible next step can be explained through History → Diagnostics → Records |
+| Real incident investigation | Not confirmed by owner | A problem now, chosen period across restarts or pre-restart inquiry shows actual messages, source gaps and a sensible next step through Investigate → Records |
 | Existing administrator access | Not reported for this version | Native-only results with existing authorized access when relevant; no account/group or logging changes required |
 | Optional historical/crash evidence | Not requested in received run | Explicit existing recording date/crash readers when applicable; absent evidence remains a gap |
 | Workload impact | Not measured | Responsiveness and resource impact observed during normal real workload; synthetic budgets do not substitute for this |
@@ -88,8 +88,8 @@ Do not replace a dirty checkout or add Git ownership exceptions to gather metada
 2. Resize to a normal and a compact terminal. Open rows with Enter, original fields
    with `e`, and return with Esc. Distinguish a layout/navigation failure from an
    unavailable source. All retained evidence must remain reachable.
-3. In History choose a relevant boot and Investigate this boot. For a known period,
-   set start/end with explicit timezone in Settings and reopen Diagnostics. Read
+3. Open Investigate and choose Problems now, A selected period, or Before restart.
+   For a known period, enter both boundaries with explicit timezone; boot is optional. Read
    the answer, actual excerpts and Records. Explain what was reported, what remains
    unknown and the next investigation. Readable zero-match and unavailable-log
    cases must have different explanations. Do not create an incident for this test.
@@ -112,3 +112,7 @@ synthetic only; the real-incident and native-source gates remain open.
 Existing [server-check options](../server-check.md) provide optional native-only,
 Atop and pstore checks; rerunning the full software suite is not needed merely to
 try another source scope. No release publication is authorized by this record.
+
+The earlier owner report predates the problem-centered workflow correction. It is
+not acceptance of the new entry points. The existing synthetic walkthrough remains
+explicitly synthetic; native time-window and actual SSH usefulness gates stay open.

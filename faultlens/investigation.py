@@ -55,6 +55,9 @@ def examples(data):
 
 
 def story(data):
+    if data.get('command')=='investigate':
+        from .workflows import story as workflow_story
+        return workflow_story(data)
     groups=examples(data)
     faults=[row for row in groups if row[0]['severity'] in {'critical','warning'}]
     available=data.get('state')=='available' and data.get('records_examined',0)>0
@@ -84,11 +87,13 @@ def story(data):
     if available and not faults and not log_gap and (target or {}).get('state')=='available':
         step='No supported fault was identified even with broader search. Match the incident time, inspect unclassified candidates and optional Atop/crash evidence; logging may not retain the cause.'
     selected=data.get('selected_boot')
-    scope='Selected boot '+str(selected['index']) if selected else 'Boot not resolved'
+    scope=('Boot identity '+selected['boot_id'] if selected.get('index') is None else 'Selected boot '+str(selected['index'])) if selected else 'Boot not resolved'
     window=data.get('journal_window',{})
     scope+='; requested UTC '+(utc(window['since_realtime_us']) if window.get('since_realtime_us') is not None else 'open start')+' to '+(utc(window['until_realtime_us']) if window.get('until_realtime_us') is not None else 'open end') if window.get('since_realtime_us') is not None or window.get('until_realtime_us') is not None else ''
     scope+='; journal '+data.get('journal_scope',{}).get('requested','not verified')+'; '+str(data.get('records_examined',0))+' retained tail records.'
     gaps=[]
+    if any(row.get('record_limit_reached') for row in data.get('global_query_coverage',{}).values()):
+        gaps.append('A global cross-boot query cap was reached; this or another boot may have omitted records. Per-boot retained counts do not establish complete coverage.')
     if data.get('record_limit_reached'): gaps.append('Tail limit reached: earlier records were omitted; enable broader event search.')
     if data.get('journal_scope',{}).get('requested')=='visible': gaps.append('Visible scope may contain personal logs only. Select system journal for server evidence; existing access is required.')
     if target is None or target.get('state')=='not_requested':

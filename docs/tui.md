@@ -65,7 +65,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | Network | Error/gap/activity-prioritized interface examples, protocol review counts and optional sockets; all interfaces remain in a paged table |
 | Signals | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
 | History | Retained UTC ranges and named report examples; Investigate this boot pins its ID and opens Diagnostics |
-| Diagnostics | Investigation answer, actual message excerpts, timestamps and follow-up; all grouped reports and sources remain accessible |
+| Investigate | Problems now, a selected period or before-restart context; investigation answer, actual message excerpts, timestamps and follow-up; all grouped reports and sources remain accessible |
 | Evidence | Explicit access to complete original report/source trees |
 | Settings | Typed per-user preferences, saved on valid changes; no server configuration editor |
 
@@ -111,7 +111,7 @@ finding and its timeline reference can both be inspected without guessing identi
 ## Defaults and lifetime
 
 Saved preferences are loaded at launch. Without a valid saved file, Faultlens
-uses the administrator defaults: current boot in the overview, recording/retention
+uses the administrator defaults: Problems now with no boot filter, current boot in the overview, recording/retention
 checks, socket endpoints, broader kernel/service searches, SSH/firewall searches, and
 live/archived crash-evidence reads are On. These read existing accessible sources;
 they do not enable logging, configure recorders, grant access or create reports.
@@ -154,7 +154,7 @@ Settings shows the path and load/save status. If a file is invalid, defaults are
 with a notice. If saving fails, the current session remains usable and explicitly
 reports that persistence was not confirmed. Concurrent instances use the last
 successful save. To reset defaults, remove the preference file while Faultlens is
-closed. No preference migration or diagnostic export is performed.
+closed. Schema 1 preferences migrate explicitly to schema 2, retaining the old boot filter and time values with a notice. A legacy one-sided time range retains its technical single-boot behavior until a new entry is chosen. No diagnostic export is performed.
 
 A supplied initial TUI sample duration seeds first-launch defaults; a saved preference
 takes precedence. Use Settings to update that duration for later launches.
@@ -217,65 +217,61 @@ See [milestone 1 design and acceptance](architecture/milestone-1-current-overvie
 
 ## Find what went wrong
 
-For an explicitly invented OOM/no-match/unavailable example in the actual workspace,
-use the optional [synthetic investigation walkthrough](acceptance/investigation-walkthrough.md).
-It cannot read host evidence or load/save normal preferences, and does not replace
-real server/SSH acceptance.
+Open **Investigate** directly, or use **Investigate a problem now** from System,
+Health or Network. Three actions are always available:
 
-Start in **History**. Choose the boot covering the symptom using its retained UTC
-range and reported-problem example. Enter opens that boot's actual bounded message
-examples; **Investigate this boot** pins the immutable boot identity and loads
-Diagnostics. No host configuration is changed. Times are retained journal receipt
-times, not guaranteed incident or power-on boundaries.
+- **Problems now** combines current operational/resource and network readings with
+  the last fifteen minutes of accessible journal evidence. Current readings are
+  explicitly separate from historical messages; coincidence does not prove cause.
+- **A selected period** opens one dialog for start/end with explicit timezone.
+  Both values apply atomically. The query can cross restarts and needs no boot
+  selection or successful boot-listing command.
+- **Before restart** selects retained evidence for the most recent visible previous
+  boot. This helps investigate a restart but does not prove a crash or shutdown
+  completion from a missing last message.
 
-**Diagnostics** starts with an investigation answer, named reports and actual source
-message excerpts. Open a report to read its timestamp, meaning, uncertainty and next
-investigation. **Records** opens readable original messages; **Original fields**
-retains the complete references/metadata. Original messages are escaped as literal
-text. Six representative source/rule groups are highlighted; all groups/reports stay
-available below. The same record can appear in several query views; counts are not
-independent incidents.
+These explicit actions start without a boot filter. **Boot filter (optional)** can
+narrow the inquiry to an index/identity; clear its value for all accessible boots.
+The result shows the question, requested UTC window, filter and source gaps. Settings
+also retains the selected entry. Saved period boundaries apply only to period mode.
 
-**Evidence** presents the same finding/record links for the last retained source
-report. It never starts a collection. Readable linked records are paged sixteen at a
-time so repeated authentication/firewall reports cannot create an unbounded widget
-list. Full retained originals remain available. Unclassified candidate warnings can
-be read without calling them benign or inventing a fault classification.
+Findings show actual retained message excerpts and timestamps. Enter opens meaning,
+uncertainty and next steps; **Records** opens original messages and **Original fields**
+retains complete metadata. Each cross-restart finding keeps its own boot/source
+context. Boot-local monotonic timelines are never combined across restarts. Each
+query retains at most 500 records globally, with at most seven interpreted boot
+partitions; caps and invalid/unavailable sources remain visible coverage gaps.
 
-If no supported fault matched, inspect the last retained message and the explicit
-source gaps. Use Settings for the incident boot/time bounds and broader event search;
-add an existing Atop date or crash sources when relevant. Broader event candidates use the same inclusive receipt-time bounds as the ordinary
-tail and SSH/firewall searches. Without bounds they cover the selected boot; compare
-exact receipt timestamps and source limits. Missing logs or silence do not prove a freeze or a crash.
-A shutdown request means initiation, not verified completion. A recorded OOM kill can
-explain a process stopping without establishing the underlying shortage or host outage.
+History remains an optional boot/evidence browser. **Investigate this boot** adds an
+explicit filter to the appropriate current/pre-restart inquiry. Evidence retains
+complete originals from the last source report; it never starts collection. Repeated
+reports can occur in multiple queries and are not distinct incidents or independent
+corroboration. No supported match is not an all-clear; unavailable logs are a question
+that could not be answered, not a zero-fault result.
 
-Atop now examines up to two hours centered on the last retained journal receipt,
-within existing sample/byte/native execution limits. It uses one explicit recording
-file only; midnight/missing neighboring files can leave coverage partial. It does not
-change recorder configuration, automatically switch files or verify host/boot identity.
+Atop needs an explicit existing date. Multi-boot results need a narrower retained
+scope for optional recording correlation; host/boot identity is still unverified.
+Live/archived crash fragments remain independent, without verified boot or event-time
+attribution. These options never configure recording or expose reports externally.
 
-The former Security tab is labeled **Signals** to reflect supporting incident evidence,
-not comprehensive host-security assessment. The CLI `security` command is unchanged.
-
-History/Diagnostics/Evidence also show a selected-row reader below the table in
-terminals at least twenty rows high. It shows retained message text, its meaning and
-first follow-up without opening JSON. Smaller terminals keep Enter/Records navigation
-and hide that extra panel to preserve table space. See the
-[rendered synthetic workflow](architecture/milestone-2-investigation.md#rendered-workflow-examples).
+For explicitly invented OOM/no-match/unavailable examples, use the separately labeled
+[synthetic walkthrough](acceptance/investigation-walkthrough.md). Its technical
+single-boot scenario does not replace the primary question/time workflow or real
+server acceptance. Supporting authentication/firewall evidence remains in Signals;
+comprehensive security/CVE auditing is outside this plan.
 
 ## Select the incident period
 
 In Settings, edit **Incident start (date/time)** and **Incident end (date/time)**.
 Enter a UTC time such as `2026-11-14T22:20:00Z`, or include the known local offset
-such as `2026-11-14T23:20:00+01:00`. The table displays the equivalent UTC time.
+such as `2026-11-14T23:20:00+01:00`. The dialog accepts explicit offsets and results display the equivalent UTC time.
 A timezone is required; relative expressions and ambiguous local clock times are
 not inferred. Empty input clears a boundary. Existing Unix-microsecond input and
 saved preferences still work; the saved schema remains unchanged. Invalid or
 reversed edits retain the previous preference values.
 
-Open Diagnostics to collect the selected boot/period, or refresh if already there.
-The summary shows the requested UTC range. Journal tail, broader kernel/systemd
+Use A selected period in Investigate to apply both boundaries and collect, or refresh the selected inquiry.
+The summary shows the requested UTC range and optional boot filter. Journal tail, broader kernel/systemd
 search, SSH and firewall queries use the same bounds. Source limits still apply;
 Atop and pstore have their separately explained temporal/identity limitations.
 

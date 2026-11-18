@@ -145,3 +145,9 @@ thirty repetitions (ninety regression executions), followed by thirty fresh GUI
 workers in the same constrained Debian run. UI tests wait for completed activation
 within the existing three-second helper deadline rather than assuming pane mounting
 finishes after a fixed 50 ms sleep. The complete local suite passed 549 tests.
+
+The problem-centered workflow also has a native `investigate --mode period` contract
+on both candidates, before/after reviewed frontend installation. A fixed tiny UTC
+range verifies the unfiltered time-query interface, explicit source state and absent
+current snapshots without exporting host evidence. The native contract count is now
+six. Real incident usefulness and cross-server acceptance remain open.

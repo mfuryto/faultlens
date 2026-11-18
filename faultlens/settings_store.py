@@ -28,7 +28,8 @@ def validated(values):
             raise ValueError('Invalid setting text')
     result=dict(values)
     selector=result['boot_selector']
-    result['boot_selector']=boot_identity(selector) if len(selector)==32 else str(boot_index(selector))
+    result['boot_selector']=(boot_identity(selector) if len(selector)==32 else str(boot_index(selector))) if selector else ''
+    if result['investigation_mode'] not in {'','now','period','before-restart'}: raise ValueError('Invalid investigation entry')
     result['sample_seconds']=interval(str(result['sample_seconds']))
     result['boot_count']=overview_count(str(result['boot_count']))
     if result['atop_date']: result['atop_date']=atop_date(result['atop_date'])
@@ -36,6 +37,8 @@ def validated(values):
         if result[key]: result[key]=str(receipt_boundary(result[key]))
     validate_window(int(result['since_us']) if result['since_us'] else None,
                     int(result['until_us']) if result['until_us'] else None)
+    if not result['investigation_mode'] and not result['boot_selector']: raise ValueError('Technical reader requires an explicit boot selector')
+    if result['investigation_mode']=='period' and (not result['since_us'] or not result['until_us']): raise ValueError('Period requires both boundaries')
     if result['atop_extended'] and not result['atop_date']: raise ValueError('Missing recording date')
     return Settings(**result)
 
@@ -103,15 +106,23 @@ class SettingsStore:
             value=json.loads(data.decode('utf-8'),object_pairs_hook=unique_object,
                 parse_constant=lambda _: (_ for _ in ()).throw(ValueError('Nonfinite preference')))
             if (not isinstance(value,dict) or set(value)!={'schema_version','settings'}
-                    or type(value['schema_version']) is not int or value['schema_version']!=1):
+                    or type(value['schema_version']) is not int or value['schema_version'] not in {1,2}):
                 raise ValueError('Unsupported preference format')
+            if value['schema_version']==1:
+                previous=value['settings']
+                expected=set(asdict(Settings()))-{'investigation_mode'}
+                if not isinstance(previous,dict) or set(previous)!=expected: raise ValueError('Invalid legacy preference fields')
+                migrated=dict(previous)
+                migrated['investigation_mode']=('period' if previous.get('since_us') and previous.get('until_us') else
+                    '' if previous.get('since_us') or previous.get('until_us') else 'before-restart')
+                return validated(migrated),'Migrated boot-scoped preferences; previous filter retained. Choose Problems now or A selected period for an unfiltered inquiry.'
             return validated(value['settings']),'Preferences loaded for this user.'
         except FileNotFoundError: return defaults,'Preferences: defaults; changes will be saved.'
         except (OSError,ValueError,RecursionError,argparse.ArgumentTypeError):
             return defaults,'Saved preferences unavailable or invalid; defaults in use.'
 
     def save(self,settings):
-        payload=json.dumps({'schema_version':1,'settings':asdict(validated(asdict(settings)))},
+        payload=json.dumps({'schema_version':2,'settings':asdict(validated(asdict(settings)))},
                            ensure_ascii=True,allow_nan=False,indent=2).encode()+b'\n'
         if len(payload)>MAX_BYTES: raise ValueError('Preference size limit')
         directory=self.directory(create=True); temporary='.settings-'+secrets.token_hex(16)
