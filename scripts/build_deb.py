@@ -1,4 +1,4 @@
-"""Build an offline, reproducible pre-release .deb from reviewed pure-Python wheels."""
+"""Build an offline, reproducible .deb from reviewed pure-Python wheels."""
 import argparse
 import io
 import hashlib
@@ -94,23 +94,30 @@ def application_files():
 
 
 def source_version():
-    match = re.search(r'__version__ = "([0-9]+\.[0-9]+\.[0-9]+)\.dev([0-9]+)"', (ROOT/'faultlens/__init__.py').read_text())
+    match = re.search(r'__version__ = "([0-9]+\.[0-9]+\.[0-9]+)(?:\.dev([0-9]+))?"', (ROOT/'faultlens/__init__.py').read_text())
     if match is None:
-        raise ValueError('Review package version mapping before a release build')
-    return match[1]+'~dev'+match[2]
+        raise ValueError('Unsupported application version')
+    return match[1]+('~dev'+match[2] if match[2] is not None else '')
 
 
-def build(wheelhouse, output, *, version=None, epoch=None):
+def build(wheelhouse, output, *, version=None, epoch=None, revision=None):
     base = source_version()
-    snapshot=None
-    if epoch is None or version is None:
+    development='~dev' in base
+    snapshot=revision
+    if revision is not None and re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64})',revision) is None:
+        raise ValueError('Invalid source revision')
+    if epoch is None or (version is None and development):
         value=subprocess.check_output(['git','--no-optional-locks','-C',str(ROOT),'log','-1','--format=%ct:%H'],text=True,timeout=5).strip()
         if not re.fullmatch(r'[0-9]+:(?:[0-9a-f]{40}|[0-9a-f]{64})',value):
             raise ValueError('Unable to determine snapshot identity')
-        timestamp,snapshot=value.split(':')
-    version = version or (base+'+git'+timestamp+'.'+snapshot[:12])
-    if not re.fullmatch(re.escape(base)+r'(?:\+[a-z0-9][a-z0-9.+~]*)?', version):
-        raise ValueError('Package version must retain the current pre-release identity')
+        timestamp,observed=value.split(':')
+        if revision is not None and revision!=observed:
+            raise ValueError('Source revision differs from checkout')
+        snapshot=observed
+    version = version or (base+'+git'+timestamp+'.'+snapshot[:12] if development else base)
+    suffix=r'(?:\+[a-z0-9][a-z0-9.+~]*)?' if development else r'(?:~rc[1-9][0-9]*|\+test[0-9]+)?'
+    if not re.fullmatch(re.escape(base)+suffix,version):
+        raise ValueError('Package version must match the current application version')
     if epoch is None:
         epoch = int(timestamp)
     if type(epoch) is not int or not 0 <= epoch <= 2147483647:
@@ -147,7 +154,8 @@ def build(wheelhouse, output, *, version=None, epoch=None):
         for name, source in (('copyright',ROOT/'NOTICE'),('LICENSE',ROOT/'LICENSE'),
                              ('README.md',ROOT/'README.md'),('third-party.md',ROOT/'docs/third-party.md'),
                              ('requirements-tui.txt',ROOT/'requirements-tui.txt'),
-                             ('README.Debian',ROOT/'packaging/debian/README.Debian')):
+                             ('README.Debian',ROOT/'packaging/debian/README.Debian'),
+                             ('changelog',ROOT/'packaging/debian/changelog')):
             raw=source.read_bytes();(docs/name).write_bytes(raw)
             inputs[str(source.relative_to(ROOT))] = hashlib.sha256(raw).hexdigest()
         inputs['packaging/debian/application-files.txt'] = digest(ROOT/'packaging/debian/application-files.txt')
@@ -182,9 +190,10 @@ def main():
     parser.add_argument('--output-dir',type=Path,default=ROOT/'dist')
     parser.add_argument('--version')
     parser.add_argument('--epoch',type=int)
+    parser.add_argument('--source-revision')
     args=parser.parse_args()
     try:
-        result=build(args.wheelhouse,args.output_dir,version=args.version,epoch=args.epoch)
+        result=build(args.wheelhouse,args.output_dir,version=args.version,epoch=args.epoch,revision=args.source_revision)
     except (OSError,ValueError,subprocess.SubprocessError,zipfile.BadZipFile) as error:
         parser.exit(1,'Package build failed: '+type(error).__name__+'; inspect build inputs.\n')
     print(str(result)+'\nSHA256 '+digest(result))

@@ -72,7 +72,7 @@ class DebPackageTests(unittest.TestCase):
             (source/'packaging/debian/application-files.txt').write_text('faultlens/__init__.py\n')
             (source/'faultlens/local_private.py').write_text('value = \"synthetic unreviewed module\"\n')
             (source/'faultlens/__init__.py').write_text('__version__ = "0.1.0.dev0"\n')
-            for name in ('control','faultlens','README.Debian'):
+            for name in ('control','faultlens','README.Debian','changelog'):
                 shutil.copyfile(build_deb.ROOT/'packaging/debian'/name,source/'packaging/debian'/name)
             for name in ('LICENSE','NOTICE','README.md','docs/third-party.md'):
                 (source/name).write_text('Synthetic package document fixture.\n')

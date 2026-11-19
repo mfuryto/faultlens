@@ -1,13 +1,20 @@
 # Faultlens delivery plan
 
-Status: active operating plan, updated 2026-11-18. The problem-centered workflow
-is delivered and the owner reports a general SSH smoke-test pass. Milestone 3
-retains real-incident/workload evidence gaps. The owner has no second server; that
-field-test gap is a known limitation while milestone 4 package engineering is active.
-This is the single forward-work sequence. It supersedes the priority list in
-[stabilization.md](stabilization.md); that document remains the current capability/gap inventory.
-The original specification remains the product goal, not a record of delivered features.
-Earlier technical phase completion and green CI do not establish operator acceptance.
+Status: active operating plan, updated 2026-11-19. The owner has authorized
+completion and publication of version 1.0.0. The problem-centered workflow and
+source-checkout SSH smoke test are accepted. Package installation, upgrade/removal,
+installed CLI/TUI and reproducibility have automated Debian/Ubuntu qualification.
+The remaining release work is artifact qualification, green required checks, an exact
+main-commit tag, verified assets and publication. See [release scope](release-readiness.md).
+
+The owner will test the package on another Ubuntu server once it is available.
+That is a planned follow-up, not a functional limitation or a release blocker.
+This decision supersedes earlier second-server gates and publication restrictions
+below; dated entries remain development history. Real incident calibration and
+native workload measurements are separate from software correctness checks.
+The original specification is the product goal, not a claim that every future idea
+is part of version 1.0. This plan supersedes the old priority list in
+[stabilization.md](stabilization.md).
 
 ## Product outcome
 
@@ -157,9 +164,8 @@ Exit evidence:
 
 Status: automated qualification and the corrected milestone 2 workflow are delivered;
 owner-server context and a general SSH smoke-test pass are recorded. Remaining
-real-incident/workload evidence remains limited and a second real server is
-unavailable. By explicit owner decision, package engineering proceeds while these
-field-qualification limits remain recorded.
+real-incident/workload evidence remains limited. A further Ubuntu-server test is
+planned after delivery of the package; it does not block version 1.0.
 Initial candidates are Debian 12 /
 Python 3.11 and Ubuntu 24.04 / Python 3.12 on x86-64; see
 [qualification scope and evidence](architecture/platform-qualification.md). Neither
@@ -196,10 +202,10 @@ Exit evidence:
 ### 4 — Installable Debian package
 
 Status: active by explicit owner request after the successful owner-server SSH smoke
-test. A second real server is unavailable and remains a known limitation, not a
-package-engineering blocker. Build/install foundation implemented; owner installation
-and final release qualification remain open. See [package design and validation](debian-package.md). Deliver
-one downloadable `.deb` package, not an APT repository or an implicit public release.
+test. Build/install qualification is implemented; final artifacts are being qualified
+for the explicitly authorized version 1.0 release. Owner installation on another
+Ubuntu server follows delivery of the package. See [package design and validation](debian-package.md). Deliver
+one downloadable `.deb` package and its complete rebuildable source; no APT repository.
 Installing with `apt install ./faultlens_<version>_all.deb` must resolve required
 runtime dependencies from the target's existing configured package sources. Running
 `faultlens` must open the primary terminal workspace without a manually created
@@ -277,14 +283,19 @@ suite reproducible on the initial Debian/Ubuntu qualification candidates. The st
 CI profile retains read-only tokens and action/image pins. Missing optional tools,
 missing system journal and frontend-absent/reviewed setups are explicit test cases.
 
-Current work: qualify the pre-release `.deb` and its dependencies in isolated targets,
-then obtain an owner-server installed-package SSH result. Retain the general source-
-checkout SSH approval already received. Real incident/workload evidence remains
-limited; a second actual server is unavailable. These limits stay explicit and do
-not block the owner-authorized package work or imply broader production support.
-Use the [single follow-up session and gate table](acceptance/server-qualification.md#one-concrete-follow-up-session)
-to update the received results instead of starting unrelated implementation work.
-No milestone or production-support claim is closed by container/CI checks alone.
+Current work, 2026-11-19: finish version 1.0 without adding unrelated features.
+
+1. Finish stable version metadata, source/checksum generation and concise documentation.
+2. Run source, security, dependency, Debian/Ubuntu package and installed resource checks.
+3. Review the diff and merge staging only when every required check passes.
+4. Build from main, qualify the final bytes, verify source reconstruction, tag v1.0.0,
+   download/check draft assets and publish the explicitly authorized release.
+5. Preserve main/staging and record the owner's later package/SSH feedback from another
+   Ubuntu server. Address reported defects as maintenance work; security/CVE expansion
+   remains a possible future roadmap, not current scope.
+
+The dated notes below explain prior sequencing decisions. Their second-server gates
+and restrictions on release publication are superseded by the current owner decision.
 
 Bounded acceptance aid, 2026-11-18: provide an explicitly synthetic investigation
 walkthrough for a reported OOM kill, readable unmatched records and unavailable logs.

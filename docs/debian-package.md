@@ -1,10 +1,10 @@
-# Pre-release Debian package
+# Debian package and release verification
 
-The active delivery is a downloadable `.deb`, not a project APT repository. The
-builder and isolated package tests are implemented; no release or tag is published.
-The owner has one server. A second real-server/SSH test is a known qualification
-limitation and does not block package engineering. Debian/Ubuntu containers are
-installation/process tests, not a substitute for that missing field test.
+Version 1.0 is distributed as a downloadable `.deb`, with corresponding source and
+checksums, through [GitHub Releases](https://github.com/mfuryto/faultlens/releases).
+There is no project APT repository. Additional Ubuntu-server testing is planned by
+the owner after receiving the package; it is follow-up verification, not a functional
+limitation or release blocker. Container results describe installation/process tests.
 
 ## Runtime and dependencies
 
@@ -60,16 +60,18 @@ explicit packaging/docs inputs are exported: ignored environments, credentials,
 local modules, collected evidence and the Git directory are not package inputs.
 The security policy requires this allowlist to match tracked application modules.
 
-Default snapshot versions use `0.1.0~dev0+git<TIMESTAMP>.<COMMIT>` and the commit's
-reproducible build epoch. `--version`/`--epoch` support explicit test/source-archive
-inputs; versions must retain the current pre-release identity. Existing artifacts
+Stable versions match the application version (`1.0.0`). Development snapshots use
+the source version and commit timestamp/hash. `--version`, `--epoch` and
+`--source-revision` support explicit source-archive rebuild inputs; versions must
+retain the application identity. Release qualification upgrades an internal RC
+package to the stable package. Existing artifacts
 are never overwritten. Normalized timestamps/modes, root archive ownership, sorted
 inputs and single-thread xz compression produce identical bytes for repeated builds
 with the same inputs, version, epoch and toolchain. The artifact is published locally
 only after successful archive construction, with its SHA-256 printed. This is not a
 claim of reproducibility across every Python/dpkg/xz version or filesystem.
 
-## Install and use a preview
+## Install and use
 
 After inspecting the printed artifact path/hash, install the single archive from the
 fresh output directory (select the exact printed filename if there are several):
@@ -86,7 +88,7 @@ permissions/retention still control available evidence. No recording or wider ac
 is configured by installing the application. Installing optional distribution tools
 separately can have their own service side effects; they are not installed by this
 package. Keep the previous `.deb` if a manual rollback is needed; do not assume an
-APT repository exists. Future previews must use a newer version for normal upgrades.
+APT repository exists. Future updates must use a newer version for normal upgrades.
 
 `sudo apt remove faultlens` or `sudo apt purge faultlens` removes package-managed files.
 User preferences and locally collected evidence are outside the package manifest and
@@ -128,14 +130,26 @@ checkout and no artifact publication. Native package tests use current signed AP
 indexes, so runtime dependency patch versions may change; report the actual Python
 version separately from reproducible application-archive inputs.
 
-## Remaining delivery work
+## Release source and checksum verification
 
-This is a tested build/install foundation, not production or public-release acceptance.
-The owner-server package installation/SSH check remains to be performed. Real incident
-and workload evidence, and the unavailable second real server, remain documented
-qualification limits. Before a public release, review final package/contact/changelog
-metadata, rerun dependency advisory checks and installed qualification, and provide
-matching GPL corresponding source (including build/install scripts and dependency
-provenance) with the artifact and checksum. No release publication is implied here.
+The release assets are `faultlens_1.0.0_all.deb`, `faultlens-1.0.0-source.tar.gz`,
+`release.json` and `SHA256SUMS`. Download them from the same release. Run
+`sha256sum --check SHA256SUMS` in that directory before installation. Checksums detect
+corruption; obtain both assets and checksums through the trusted release page.
+
+The source archive contains the exact committed tree, build scripts and reviewed
+wheels. `REBUILD.txt` supplies an offline build command with the exact version, epoch
+and revision. Release preparation rebuilds that source archive and requires the
+resulting `.deb` to match byte for byte. See [development/release procedures](development.md).
+
+For final-asset qualification, `scripts/package_acceptance.py` accepts `--artifact`
+with the `.deb` path. The gate tests installing the RC and upgrading to that exact
+stable artifact, runs installed resource checks, then removes it while preserving
+user files. No server installation is performed by the release scripts.
+
+Field follow-up on the owner's additional Ubuntu server is planned. The version 1.0
+scope, source bounds and current qualification evidence are recorded in
+[release readiness](release-readiness.md); container tests do not claim whole-server
+health or detector accuracy.
 
 Policy reference: [Debian Python Policy](https://www.debian.org/doc/packaging-manuals/python-policy/).

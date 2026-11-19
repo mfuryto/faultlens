@@ -19,7 +19,7 @@ repository token permissions; it does not execute source builds or unpinned acti
 | linkify-it-py | 2.2.0 | MIT |
 
 Versions, hashes and license declarations were reviewed from the official PyPI wheels
-and their dist-info license files. No upstream implementation is checked into the source tree. Generated preview
+and their dist-info license files. No upstream implementation is checked into the source tree. Release
 `.deb` packages bundle these exact wheels privately, retaining their complete license
 files and metadata. The builder checks the hashes before extraction; required notices
 and the project GPL text are included. Distribution packages cannot independently
@@ -28,8 +28,9 @@ rebuild and new package. See [package maintenance and qualification](debian-pack
 see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). This project grant does not
 replace upstream licenses or remove their notice obligations.
 
-On 2026-11-15, pip-audit checked all nine exact requirements and reported no known
-vulnerabilities. This is a dated advisory check, not proof against unknown issues.
+On 2026-11-19, pip-audit 2.10.1 checked all nine exact requirements and reported no
+known vulnerabilities or skipped packages. The [version 1.0 audit record](security/dependency-audit-1.0.0.json)
+is bound to the requirements file SHA-256. This is a dated advisory check, not proof against unknown issues.
 Dependency graph/Dependabot alerts remain relevant; automatic update PRs stay paused
 under the main/staging-only branch policy. Updates must be reviewed, re-hashed,
 audited and tested on staging rather than silently accepted by a version range.

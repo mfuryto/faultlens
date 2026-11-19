@@ -1,118 +1,61 @@
-# Pre-release readiness and operator acceptance
+# Faultlens 1.0 release scope and qualification
 
-Faultlens has a bounded CLI/TUI implementation for review. There is no published
-application release or claim of production support. The owner has approved
-GPL-3.0-or-later for original project material; see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). This
-checklist prepares the initial source-first release; it does not authorize publishing.
+Version 1.0.0 is the first local Linux fault-investigation release. The owner explicitly
+authorized its preparation and publication on 2026-11-19. The version number describes
+this feature set; it does not certify a server as healthy, secure or attack-free.
 
-The corrected UserDock-style workspace and stabilization scope are reviewed in
-[frontend acceptance](architecture/phase-4-acceptance.md) and [product fit](stabilization.md).
-Earlier completion statements for the generic curses browser are superseded. Actual
-target-host/SSH acceptance remains distinct from synthetic and container verification.
+## Included
 
-## Run from a trusted source checkout
+A keyboard-driven terminal workspace (the default command), explicit CLI/JSON paths,
+current System/Health/Network views, three problem-centered investigation entries,
+reported login sessions, retained journal analysis, original evidence navigation,
+existing Atop replay and supported live/archived pstore readers. Collection is local,
+bounded, read-only and uses existing access. Preferences are saved per user.
 
-Use Linux with Python 3.11+. The CLI has no external Python requirement. Install the
-optional workspace's wheel-hashed requirements in an isolated environment using the
-[TUI guide](tui.md). There are no automatic dependency downloads. Inspect [feature dependencies](dependencies.md)
-before adding journalctl/ss/Atop integrations. Missing optional tools affect only their
-features. Run Git and tests as the checkout owner, never as root to bypass Git ownership
-checks. Diagnostics use current access rights and never elevate themselves.
+The `.deb` includes the reviewed Textual closure privately and uses APT for system
+Python. No runtime pip, virtual environment, daemon, automatic recording, permission
+grant, log-policy change, cloud service or automatic report upload is installed.
 
-```sh
-python3 --version
-./bin/faultlens --help
-./bin/faultlens status --json
-./bin/faultlens health --json
-./bin/faultlens tui
-```
+## Qualification
 
-In the TUI, status loads initially; Left/Right switches sections, Up/Down selects rows, Enter opens and Esc returns. r refreshes explicitly.
-If a source is unavailable, inspect existing permissions and retention locally;
-blanket root execution or changing account groups is not an automatic setup step.
-No host configuration, recorder or firewall service is installed or enabled.
-
-The combined server test entrypoint is `.venv/bin/python scripts/server_check.py`; see
-[summary states, optional sources and root/native-only scope](server-check.md).
-The [operator-server acceptance record](acceptance/server-qualification.md) separates
-the received passing server-test result and confirmed SSH usage from unverified
-interaction, incident usefulness, exact versions and second-server gates.
-
-## Initial platform qualification candidates
-
-The automated candidates are Debian 12 with Python 3.11 and Ubuntu 24.04 with Python
-3.12 on x86-64. These exact targets have reproducible native-process/regression gates
-in the existing baseline workflow; see [platform qualification](architecture/platform-qualification.md).
-A container shares the host kernel, and hosted CI does not replace real SSH, workload
-or service/history qualification. Production support remains unclaimed until those
-operator gates pass. Docker is a developer/CI prerequisite for this optional matrix,
-not an application or operator-server dependency.
-
-## Problem-centered workflow acceptance
-
-The primary command is `faultlens investigate`: now (current readings + recent
-journal), a bounded period across restarts, or before-restart context. Boot is an
-optional filter. The [workflow design](architecture/problem-centered-investigation.md)
-reopens operator acceptance of this corrected flow; earlier boot-first testing is
-not approval of these new entries. Verify original records and unavailable/empty
-source distinctions for all three entries before making support claims.
-
-## Deployment acceptance matrix
-
-Before calling a version supported, run and record the following on each selected
-Debian/Ubuntu Server release, including at least one actual small one-CPU VPS. Keep
-host evidence outside the repository and never upload logs as a default test artifact.
-
-| Scenario | Required observation |
+| Evidence | Scope |
 | --- | --- |
-| Ordinary user, missing optional tools | Status/check remain useful; unavailable features are explicit; no elevation or install prompt |
-| Existing journal access vs denied access | Selected visible/system scope remains accurate; absence/denial never becomes an all-clear |
-| SSH terminal, 100x24 and 40x10 | All pages, details, long evidence and help remain navigable; resize and quit restore terminal attributes |
-| Ctrl-C during a read-only operation | Application exits cleanly, terminal restores, native child cleanup follows existing runner contracts |
-| Current network/socket snapshot | Numeric endpoints stay visible; no remote traffic or external-reachability assertion |
-| Historical sources absent or short | No invented baseline, crash identity, attack or root cause |
-| Synthetic complete history | Existing automated acceptance matches, with reference-backed Possible indicators |
-| Resource-constrained workload | Measure RSS/CPU/wall and whole-machine impact; compare documented targets and record deviations |
-| Saved preferences | Valid changes reload for the same user; only private typed preferences are saved, never reports or host configuration |
+| Owner-server software/resource report and general SSH approval | Ubuntu 26.04/x86_64, Python 3.14.4, Textual 8.2.8; exact source receipt in the acceptance record |
+| Source CI/platform qualification | Ubuntu 24.04/Python 3.12 and pinned Debian 12/Python 3.11; full regression and native CLI contracts |
+| Package CI | Clean Debian 12 and Ubuntu 24.04; APT dependency resolution, non-root installed CLI/TUI/PTY, native child collection and resource gates |
+| Upgrade/removal | RC-to-stable and final-artifact upgrade; user preferences and synthetic evidence survive removal |
+| Source/reproducibility | Two builds agree; shipped source plus wheels reproduce the release package offline |
+| Security | Source/history secret checks, strict read-only SHA-pinned workflows, CodeQL, and an advisory audit of the exact dependency lock |
 
-Automated process profiles are reproducible with:
+The owner plans another Ubuntu-server test after receiving the `.deb`. This is an
+ordinary follow-up test, not a functional limitation or release blocker. Prior source
+SSH feedback is preserved rather than requested again. Automated containers share a
+host kernel and do not establish native workload impact or statistical detection rates.
+See [acceptance evidence](acceptance/server-qualification.md).
 
-```sh
-.venv/bin/python scripts/vps_acceptance.py --iterations 3
-```
+## Interpretation boundaries
 
-Those results constrain CPU affinity and virtual address space on the current Linux
-host. They do not certify real VM RAM, cgroups, supported distro releases, remote SSH
-clients, native journal/Atop disk I/O or detector accuracy. Release acceptance for
-actual target machines remains open until results are recorded and reviewed.
+Missing/unreadable logs are unassessed, never an all-clear. A confirmed recorded fault
+is not its underlying cause. Journal searches/tails are capped, source receipt time can
+differ from event time and clock movement affects chronology. Original references
+remain available. Readable zero-match evidence cannot rule out an unrecorded incident.
+Atop covers a bounded two-hour window in one existing file; host/boot identity remains
+unverified. Pstore fragments are not boot-attributed and missing fragments do not
+exclude a crash. Counts are reports, not automatically independent incidents.
 
-## Publication gates
+Whole-host security/CVE auditing, comprehensive intrusion detection, automatic repair,
+remote management, databases and Faultlens daemons are outside version 1.0. Possible
+future security/CVE work remains a separate roadmap decision.
 
-- [x] Owner approves GPL-3.0-or-later; full license text and project notice are present.
-- [ ] Review notices and corresponding-source obligations for the exact distribution,
-  including any bundled third-party dependencies.
-- [ ] Choose release/version/support policy and complete actual target deployment tests.
-- [ ] Review all known limitations and false-positive/false-negative behavior; avoid
-  presenting heuristic thresholds as calibrated attack probabilities.
-- [ ] Required baseline, analysis and CodeQL checks pass for the exact release commit;
-  review changes to collectors, terminal safety and source/evidence bounds.
-- [ ] Re-run repository/history secret checks and the [publication checklist](security/pre-publication.md).
-- [ ] Review the exact source manifest: tracked application, launcher and documentation
-  only; exclude local environments, captures, reports, credentials, caches and development output.
-- [ ] Owner authorizes the exact release/tag and any distributable artifacts. Do not
-  publish a wheel, archive, container, binary or GitHub release merely because main is green.
+## Publication procedure
 
-The optional frontend has a reviewed wheel-hash lock and an isolated CI installation
-step. There is no build backend or packaged release. Reproducible distribution
-packaging and third-party notices still require review before release automation.
+Merge the reviewed staging PR only after all source/platform/package/security checks
+pass. Build from the verified main commit. Qualify the final `.deb` on both targets,
+verify the source rebuild and checksums, and wait for main's required checks. Tag that
+exact commit as `v1.0.0`. Upload to a draft release, download and verify every asset,
+then publish using the owner's explicit authorization. Preserve only main/staging
+branches and synchronize staging after the squash merge. No APT repository is created.
 
-## Updating and rollback
-
-Exit the TUI before updating. Use reviewed main commits from a trusted remote; a clean
-checkout and successful tests are required. Preserve any local work separately and
-never reset it as part of an update. Do not delete diagnostics or rewrite history.
-For rollback, use a separate trusted checkout at the previously reviewed commit and
-its documented Python/tool requirements. Faultlens creates no database, daemon,
-diagnostic evidence store or automatic settings migration requiring rollback. Per-user
-preferences persist across exits; preserve the private preference file and review schema
-compatibility before switching versions. Historical evidence remains managed by Linux.
+The supported fix target is the latest published version; see [SECURITY.md](../SECURITY.md).
+Dependency audit results are dated, not a guarantee against unknown vulnerabilities.
+Owner account recovery/2FA and broad incident calibration are not independently audited.

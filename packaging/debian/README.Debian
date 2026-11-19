@@ -1,4 +1,4 @@
-Faultlens pre-release Debian package
+Faultlens 1.0 Debian package
 ==================================
 
 Run `faultlens` as your ordinary user to open the terminal workspace.
@@ -24,5 +24,6 @@ licenses remain in /usr/share/faultlens/vendor/*.dist-info/ and LICENSE contains
 Faultlens's GPL text. Source and build instructions:
 https://github.com/mfuryto/faultlens
 
-This is a preview, not an automatically published release. Isolated Debian/Ubuntu
-installation tests do not replace the unavailable second real-server SSH test.
+Release assets include matching source, dependency wheels and checksums. Isolated
+Debian/Ubuntu installation tests do not replace the unavailable second real-server
+SSH test. Security reports use the private GitHub advisory route in SECURITY.md.

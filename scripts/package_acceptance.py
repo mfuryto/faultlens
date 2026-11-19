@@ -11,7 +11,7 @@ import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'scripts'))
 from faultlens.commands import _capture
-from build_deb import build, digest
+from build_deb import build, digest, source_version
 
 IMAGES={
     'debian-12':'debian@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc',
@@ -26,13 +26,22 @@ def run(argv,timeout=120,*,success=True):
     return result.stdout.strip()
 
 
-def qualify(target,wheelhouse):
+def qualify(target,wheelhouse,artifact=None):
     with tempfile.TemporaryDirectory(prefix='faultlens-package-qualification-') as directory:
         root=Path(directory);root.chmod(0o755)
-        first=build(wheelhouse,root/'packages',version='0.1.0~dev0+test0',epoch=1795000000)
-        second=build(wheelhouse,root/'repeat',version='0.1.0~dev0+test0',epoch=1795000000)
+        base=source_version()
+        candidate=base+'~rc1' if '~dev' not in base else base+'+test0'
+        upgrade_version=base if '~dev' not in base else base+'+test1'
+        first=build(wheelhouse,root/'packages',version=candidate,epoch=1795000000)
+        second=build(wheelhouse,root/'repeat',version=candidate,epoch=1795000000)
         if digest(first)!=digest(second): raise ValueError('Package build is not reproducible')
-        upgrade=build(wheelhouse,root/'packages',version='0.1.0~dev0+test1',epoch=1795000000)
+        if artifact is None:
+            upgrade=build(wheelhouse,root/'packages',version=upgrade_version,epoch=1795000000)
+        else:
+            actual=run(['dpkg-deb','--field',str(artifact),'Version'])
+            if actual!=upgrade_version or artifact.is_symlink(): raise ValueError('Release artifact version mismatch')
+            upgrade=root/'packages'/('faultlens_'+upgrade_version+'_all.deb')
+            shutil.copyfile(artifact,upgrade);upgrade.chmod(0o644)
         run(['docker','pull',IMAGES[target]],timeout=180)
         fixtures=root/'source'
         for folder in ('scripts','tests'):
@@ -82,7 +91,7 @@ def qualify(target,wheelhouse):
             print(json.dumps({'target':target,'reproducible_sha256':digest(first),
                 'checks':['missing_dependency_offline_failure','apt_dependency_resolution','non_root_installed_cli_tui',
                           'offline_upgrade','purge_preserves_user_files'],
-                'installed_checks':installed.splitlines(),'application_network':'disconnected','operator_second_server':'not_available_known_limitation'}))
+                'installed_checks':installed.splitlines(),'application_network':'disconnected','field_follow_up':'owner_plans_additional_ubuntu_test'}))
         finally:
             if cid is None and cidfile.exists():
                 candidate=cidfile.read_text().strip()
@@ -97,8 +106,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target',choices=IMAGES,required=True)
     parser.add_argument('--wheelhouse',type=Path,required=True)
+    parser.add_argument('--artifact',type=Path)
     args=parser.parse_args()
-    qualify(args.target,args.wheelhouse)
+    qualify(args.target,args.wheelhouse,args.artifact)
 
 
 if __name__=='__main__':
