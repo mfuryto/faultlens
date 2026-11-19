@@ -1,6 +1,6 @@
 # Contributing
 
-This public, pre-release repository uses English for code, documentation, comments,
+This public repository uses English for code, documentation, comments,
 commits, branches, workflows, and pull requests. Faultlens is licensed under
 GPL-3.0-or-later; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Contributions to
 original project material are submitted under those same terms unless explicitly
@@ -11,7 +11,7 @@ agreed otherwise. Preserve notices and review third-party licensing before impor
 Use only `staging` and `main`. Develop on `staging` and open a pull request to `main`.
 Dependabot version PRs are paused to avoid creating extra branches; review alerts
 and apply dependency updates manually on staging. Main requires a pull request and
-passing baseline, analysis and CodeQL findings checks, and resolved conversations. Staging accepts
+passing baseline, Debian/Ubuntu package, analysis and CodeQL findings checks, and resolved conversations. Staging accepts
 direct development pushes; force pushes and branch deletion are blocked on both
 branches. Main keeps linear history; staging permits synchronization merges from main
 so reviewed squash merges do not reappear in later PR diffs. This is a solo-maintainer project: independent approval and code-owner approval
@@ -67,3 +67,11 @@ A broader workflow requires a reviewed policy change and negative tests.
 
 The baseline scanner is heuristic, not a complete secret detector or malware audit.
 Review scanner changes carefully: code in a PR can weaken its own checks, if administrative protections are bypassed. See the security checklist for administrative controls.
+
+## Release maintenance
+
+Keep the README concise and user-focused. Put commands in docs/cli-reference.md and
+source/test/release procedures in docs/development.md. Do not discard acceptance
+evidence or rewrite Git history as repository cleanup. Publish only a verified main
+commit with the corresponding source/wheels and checksums; explicit owner release
+authorization is required. See docs/release-readiness.md and CHANGELOG.md.

@@ -4,34 +4,67 @@ Detailed commands, collection bounds, exit codes and evidence interpretation. Fo
 installation and a short introduction, start with the [README](../README.md).
 TUI navigation and saved preferences are covered in the [workspace guide](tui.md).
 
-## Run from source
+## Commands
 
-From a trusted checkout, as an ordinary user:
+Run as the current user with existing source permissions. With no command,
+`faultlens` opens the terminal workspace.
+
+| Command | Purpose |
+| --- | --- |
+| `faultlens` / `faultlens tui` | Primary terminal workspace |
+| `faultlens investigate` | Problems now, a chosen period or before restart |
+| `faultlens status` | Current system measurements and login sessions |
+| `faultlens health` | Operational symptoms and diagnostic readiness |
+| `faultlens check` | Tools, services and recording setup |
+| `faultlens network` | Current network counters; optional socket snapshot |
+| `faultlens security` | Supporting network/authentication/firewall evidence |
+| `faultlens history` | Accessible boot listing |
+| `faultlens incidents` | Bounded summaries from retained boots |
+| `faultlens diagnose` | Technical single-boot compatibility reader |
+| `faultlens --help` / `--version` | Options / application version |
+
+For a source checkout, substitute `.venv/bin/python bin/faultlens` for the installed
+launcher. Source setup and software tests are in [Development](development.md).
+
+### Start with a problem
 
 ```sh
-./bin/faultlens
-./bin/faultlens status
-./bin/faultlens status --json
-./bin/faultlens status --sample-seconds 0.2
-./bin/faultlens check
-./bin/faultlens check --json
-./bin/faultlens check --history
-./bin/faultlens check --history --json
-./bin/faultlens incidents --system-journal --boot-count 3
-./bin/faultlens network --json
-./bin/faultlens security --json
-./bin/faultlens history
-./bin/faultlens history --system-journal
-./bin/faultlens diagnose --boot 0 --system-journal --search-firewall --json
-./bin/faultlens diagnose --boot 0 --system-journal --search-ssh --json
-./bin/faultlens diagnose --boot 0 --system-journal --show-evidence --json
-./bin/faultlens diagnose --previous-boot
-./bin/faultlens diagnose --previous-boot --pstore
-./bin/faultlens diagnose --previous-boot --pstore-archive --json
-./bin/faultlens diagnose --boot -2 --json
-./bin/faultlens diagnose --boot 0 --system-journal --json
-./bin/faultlens diagnose --boot 0 --system-journal --search-events --json
-./bin/faultlens diagnose --previous-boot --atop-date 20261114 --json
+faultlens investigate
+faultlens investigate --since '2026-11-19T10:00:00+01:00' --until '2026-11-19T11:00:00+01:00'
+faultlens investigate --mode before-restart
+```
+
+Current measurements describe now; a historical period does not require a boot filter.
+`--system-journal` selects accessible system logs without granting permission. Use
+`--details` for technical context, `--json` for structured results and `--show-evidence`
+when original diagnostic records are needed. Missing/unreadable logs remain unassessed.
+
+### Additional examples
+
+```sh
+faultlens
+faultlens status
+faultlens status --json
+faultlens status --sample-seconds 0.2
+faultlens check
+faultlens check --json
+faultlens check --history
+faultlens check --history --json
+faultlens incidents --system-journal --boot-count 3
+faultlens network --json
+faultlens security --json
+faultlens history
+faultlens history --system-journal
+faultlens diagnose --boot 0 --system-journal --search-firewall --json
+faultlens diagnose --boot 0 --system-journal --search-ssh --json
+faultlens diagnose --boot 0 --system-journal --show-evidence --json
+faultlens diagnose --previous-boot
+faultlens diagnose --previous-boot --pstore
+faultlens diagnose --previous-boot --pstore-archive --json
+faultlens diagnose --boot -2 --json
+faultlens diagnose --boot 0 --system-journal --json
+faultlens diagnose --boot 0 --system-journal --search-events --json
+faultlens diagnose --previous-boot --atop-date 20261114 --json
 ```
 
 `python3 -m faultlens` is an equivalent entry point from the repository root. The
@@ -172,8 +205,8 @@ policy inspection, broader authentication methods and verified attack attributio
 Optional current TCP/UDP endpoints (numeric addresses and ports remain visible):
 
 ```sh
-./bin/faultlens network --sockets
-./bin/faultlens security --sockets --json
+faultlens network --sockets
+faultlens security --sockets --json
 ```
 
 This uses the locally installed `ss` without remote probes or elevation. A binding
@@ -187,8 +220,8 @@ confirmed attack or root cause. Historical rules analyze only evidence explicitl
 requested with the existing options:
 
 ```sh
-./bin/faultlens diagnose --previous-boot --system-journal --search-ssh --search-firewall --json
-./bin/faultlens diagnose --previous-boot --atop-date 20260101 --atop-extended --json
+faultlens diagnose --previous-boot --system-journal --search-ssh --search-firewall --json
+faultlens diagnose --previous-boot --atop-date 20260101 --atop-extended --json
 ```
 
 Replace the example recording date with an existing local recording. Historical
@@ -203,9 +236,9 @@ reports are distinct from confirmed causes. Original identities and measurements
 remain inspectable without privacy masking.
 
 ```sh
-./bin/faultlens status
-./bin/faultlens status --details
-./bin/faultlens diagnose --previous-boot --show-evidence --json
+faultlens status
+faultlens status --details
+faultlens diagnose --previous-boot --show-evidence --json
 ```
 
 Use --details for the existing technical text view, --json for the unchanged
@@ -229,7 +262,7 @@ in one explicitly dated recording; other capture limits and clock protections re
 Use explicit timezone offsets or UTC; Faultlens does not guess the host timezone:
 
 ```sh
-./bin/faultlens diagnose --previous-boot --system-journal --search-events \
+faultlens diagnose --previous-boot --system-journal --search-events \
   --since '2026-11-14T23:20:00+01:00' \
   --until '2026-11-14T23:40:00+01:00'
 ```

@@ -88,7 +88,7 @@ current checker result alone must not be relabeled as confirmed permission denia
 | Existing administrator access | Not reported for this version | Native-only results with existing authorized access when relevant; no account/group or logging changes required |
 | Optional historical/crash evidence | Not requested in received run | Explicit existing recording date/crash readers when applicable; absent evidence remains a gap |
 | Workload impact | Not measured | Responsiveness and resource impact observed during normal real workload; synthetic budgets do not substitute for this |
-| Materially different second server | Unavailable: owner has only this server; known limitation | Retain the gap; owner explicitly authorized package engineering to proceed without a second field target |
+| Additional Ubuntu server | Owner plans installed-package testing after delivery | Planned follow-up; not a functional limitation or release blocker |
 
 Unavailable optional evidence does not require installing tools, generating faults,
 rebooting or changing server configuration. A workflow may correctly explain why an
@@ -159,7 +159,7 @@ positive OOM case and the unmatched/unavailable distinction. Record that feedbac
 synthetic only; the real-incident and native-source gates remain open.
 Existing [server-check options](../server-check.md) provide optional native-only,
 Atop and pstore checks; rerunning the full software suite is not needed merely to
-try another source scope. No release publication is authorized by this record.
+try another source scope. Release publication was subsequently authorized by the owner on 2026-11-19.
 
 The earlier report predates the problem-centered workflow correction; the latest
 report and general SSH feedback above concern the corrected entry points. The
@@ -167,13 +167,13 @@ synthetic walkthrough remains explicitly synthetic. Real incident reconstruction
 measured workload impact and materially different second-server acceptance remain
 open; general owner-server SSH approval does not close these separate gates.
 
-## Owner decision: package engineering proceeds
+## Owner decision: package delivery and follow-up
 
-The owner confirmed that no other real server is available and explicitly authorized
-starting the `.deb` package with required dependencies. Second-server SSH acceptance
-is therefore an unavailable field-qualification limitation, not a request to provision
-a server or a blocker for package work. Isolated Debian/Ubuntu installation/process
-tests do not close it. The existing source-checkout SSH approval remains accepted;
-the next owner test should exercise the installed package once available. Real
-incident/workload evidence remains limited. This decision does not publish a release
-or extend production-support claims.
+On 2026-11-19 the owner authorized completion and publication of version 1.0 and
+clarified that another Ubuntu-server test follows delivery of the `.deb`. Treat it
+as a planned follow-up, not a functional limitation or release blocker. This
+supersedes the earlier decision to retain second-server acceptance as a gate.
+The existing source-checkout SSH approval remains accepted; do not request it again.
+Isolated Debian/Ubuntu package tests provide reproducible installation/process
+coverage. Real incident calibration and native workload impact are distinct evidence
+categories and are not inferred from the software or container checks.

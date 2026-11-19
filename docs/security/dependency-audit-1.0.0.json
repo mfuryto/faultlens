@@ -1,0 +1,56 @@
+{
+  "checked_at": "2026-11-19",
+  "requirements_sha256": "242a66d2c54365f188e4b2fc5e6d2417326d5f7d7fe819a844131db53a62fe03",
+  "results": {
+    "dependencies": [
+      {
+        "name": "linkify-it-py",
+        "version": "2.2.0",
+        "vulns": []
+      },
+      {
+        "name": "markdown-it-py",
+        "version": "4.3.0",
+        "vulns": []
+      },
+      {
+        "name": "mdit-py-plugins",
+        "version": "0.7.0",
+        "vulns": []
+      },
+      {
+        "name": "mdurl",
+        "version": "0.1.2",
+        "vulns": []
+      },
+      {
+        "name": "platformdirs",
+        "version": "4.14.5",
+        "vulns": []
+      },
+      {
+        "name": "pygments",
+        "version": "2.21.0",
+        "vulns": []
+      },
+      {
+        "name": "rich",
+        "version": "15.0.0",
+        "vulns": []
+      },
+      {
+        "name": "textual",
+        "version": "8.2.8",
+        "vulns": []
+      },
+      {
+        "name": "typing-extensions",
+        "version": "4.16.0",
+        "vulns": []
+      }
+    ],
+    "fixes": []
+  },
+  "schema_version": 1,
+  "tool": "pip-audit 2.10.1"
+}

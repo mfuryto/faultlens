@@ -1,0 +1,7 @@
+faultlens (1.0.0) stable; urgency=medium
+
+  * Initial release of the local terminal workspace and CLI.
+  * Package the reviewed private frontend with offline build provenance.
+  * Preserve read-only diagnostics, user preferences and original evidence.
+
+ -- mfuryto <34251082+mfuryto@users.noreply.github.com>  Thu, 19 Nov 2026 00:00:00 +0000

@@ -145,7 +145,7 @@ def main():
     from faultlens import ui_collection
     if Path(ui_collection.__file__).resolve().parents[1]!=Path('/usr/share/faultlens'):
         raise ValueError('Installed UI backend used source modules')
-    if phase=='installed': resource_checks(_capture)
+    resource_checks(_capture)
     asyncio.run(workspace_check())
     terminal_check();terminal_check(True)
     print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': six CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')

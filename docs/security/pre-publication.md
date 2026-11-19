@@ -4,7 +4,15 @@ The repository is public for pre-release review under the owner's earlier explic
 authorization. This is separate from publishing an application release. The owner
 has approved GPL-3.0-or-later; see [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
 Reviewed staging PRs may merge only after all required checks pass;
-release/tag/package publication still needs explicit owner approval.
+the owner explicitly authorized version 1.0 release/tag/package publication on 2026-11-19.
+
+## Version 1.0 evidence
+
+The dated dependency audit, target/package/source qualification and publication
+procedure are linked in [release readiness](../release-readiness.md). Live controls
+are recorded in [hardening status](hardening-status.md). The checklist below remains
+a reusable procedure, not a claim that owner account 2FA/recovery was inspected.
+Release artifacts are verified from the reviewed main commit before publication.
 
 ## Release audit
 
@@ -19,18 +27,18 @@ release/tag/package publication still needs explicit owner approval.
   local environments, native recordings or unsafe fixtures are in the source manifest.
 - [ ] Audit the exact dependency lock, source/byte/output bounds, native command
   validation, terminal safety and known diagnostic limitations against the threat model.
-- [ ] Complete actual target-host/SSH acceptance and record detector scope/calibration
-  limitations before support or accuracy claims.
+- [ ] Preserve the owner-server SSH acceptance and record detector scope/calibration
+  boundaries; another Ubuntu-server package test follows delivery rather than blocking it.
 - [x] Owner approves GPL-3.0-or-later for original project material; preserve the
   full license text and the project notice.
-- [ ] Review required third-party distribution notices and obtain owner approval of
-  support/version policy and exact release artifacts. Passing CI does not authorize publication.
+- [ ] Review required third-party distribution notices and verify the latest-version support policy and exact
+  release artifacts. Publication also requires the explicit owner authorization above.
 
 ## GitHub verification
 
 - [ ] Visibility still matches the owner's decision; unused deployment surfaces stay
   disabled unless separately approved. Do not change visibility to obtain plan features.
-- [ ] Main protection applies to administrators, requires baseline/analyze/CodeQL and
+- [ ] Main protection applies to administrators, requires baseline/analyze/CodeQL plus both package jobs and
   blocks force pushes/deletion. Staging remains protected against force/deletion while
   allowing the authorized direct development and synchronization workflow.
 - [ ] Actions retain the reviewed allowlist, complete SHA pins and least-privilege

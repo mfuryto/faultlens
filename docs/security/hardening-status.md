@@ -1,15 +1,15 @@
 # Repository hardening status
 
-Live repository controls were rechecked on 2026-11-15 during the corrected frontend
-stabilization. This is a dated audit, not continuous monitoring. The owner previously
+Live repository controls were rechecked on 2026-11-19 during version 1.0
+preparation. This is a dated audit, not continuous monitoring. The owner previously
 authorized public pre-release visibility and merging reviewed staging PRs after all
 required checks pass. The owner has now approved GPL-3.0-or-later; [LICENSE](../../LICENSE)
-and [NOTICE](../../NOTICE) establish that grant (approved 2026-11-16). No application release is authorized.
+and [NOTICE](../../NOTICE) establish that grant (approved 2026-11-16). The owner explicitly authorized completion and publication of version 1.0 on 2026-11-19.
 
 ## Verified controls
 
 - Default branch main; only main and staging are used by this task.
-- Main requires baseline, analyze and CodeQL. Protection applies to administrators;
+- Main requires baseline, analyze, CodeQL and both Debian/Ubuntu package checks. Protection applies to administrators;
   force pushes and deletion are blocked. Staging also blocks force pushes/deletion
   while permitting the authorized two-branch development/synchronization workflow.
 - Actions are restricted to actions/checkout and github/codeql-action init/analyze
@@ -43,9 +43,15 @@ absence of unknown flaws.
 Solo maintenance has no independent review requirement. Account 2FA/recovery and
 any additional maintainer remain owner decisions, not controls changed by this task.
 Existing public copies cannot be recalled. The project license is GPL-3.0-or-later.
-Support policy, actual server acceptance, third-party distribution notices and exact
-publication artifacts remain open release gates.
-No new administrative GitHub setting is required for the corrected frontend.
+The latest-version security policy, owner-server SSH feedback, dependency audit,
+third-party notices and release qualification are documented in
+[release readiness](../release-readiness.md). Another Ubuntu-server package test is
+planned by the owner after delivery, not a release blocker.
+
+Administrative counts rechecked for this release: one collaborator; no deploy keys,
+webhooks, environments or Actions secrets. This does not inspect the owner's account
+2FA or recovery state. Dependabot alerts and private vulnerability reporting are
+enabled; automated update PRs remain paused under the two-branch policy.
 
 Live views: [branch protection](https://github.com/mfuryto/faultlens/settings/branches),
 [Actions](https://github.com/mfuryto/faultlens/settings/actions),

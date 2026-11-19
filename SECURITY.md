@@ -2,10 +2,14 @@
 
 ## Status and scope
 
-Faultlens is pre-release and has no supported production versions. Phase 1 implements
-a read-only CLI foundation, extended with bounded journal event analysis. Security requirements cover both implemented boundaries
-and planned functionality; see the architecture documents for the distinction.
-No independent security audit or complete implementation is claimed.
+Security fixes target the latest published Faultlens version, starting with 1.0.0.
+Update to the latest patch before reporting a defect; older development previews are
+unsupported. Support is best-effort without a guaranteed response time. No independent
+security audit or comprehensive host-security assessment is claimed.
+
+Faultlens is a read-only local fault-investigation tool. Existing account permissions
+control source access; missing evidence and unknown causes must remain explicit.
+Private bundled frontend dependencies are updated through a new Faultlens package.
 
 ## Report privately
 
