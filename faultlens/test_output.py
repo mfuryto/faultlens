@@ -109,6 +109,12 @@ def server_summary(data):
                 unavailable.append(name+' ('+scope+'): journal investigation unavailable; no absence of faults can be established.')
             elif gaps:
                 unavailable.append(name+' ('+scope+'): some sources or usable incident records were missing. Readable empty queries do not verify incident detection; see --details.')
+    for kind,name in (('processes','Current process CPU/memory samples'),('filesystems','Filesystem space/inode samples')):
+        key='resources.'+kind
+        if take(lambda r:r['key']==key and r['state']=='PASS'):
+            worked.append(name+' were read within the declared source bounds.')
+        if take(lambda r:r['key']==key and r['state']=='MISSING'):
+            unavailable.append(name+' could not be assessed; no zero or healthy result was inferred.')
     if take(lambda r:r['key']=='sessions.source' and r['state']=='PASS'):
         worked.append('The logged-in session source was readable; this does not verify completeness or user activity.')
     take(lambda r:r['state']=='PASS')  # Other successful details remain in --details/--json.

@@ -64,7 +64,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 
 | Section | Main table / action |
 | --- | --- |
-| System | Prioritized resource/service readings, reported logged-in users, a next step and grouped access to all measurements |
+| System | Prioritized resource/service readings, current process CPU/RSS, mount space/inodes, reported logged-in users and grouped access to all retained rows |
 | Health | Operational readings and observed failed services, separate from journal/recording readiness and tool/default details |
 | Network | Error/gap/activity-prioritized interface examples, protocol review counts and optional sockets; all interfaces remain in a paged table |
 | Signals | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
@@ -72,6 +72,15 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | Investigate | Problems now, a selected period or before-restart context; investigation answer, actual message excerpts, timestamps and follow-up; all grouped reports and sources remain accessible |
 | Evidence | Explicit access to complete original report/source trees |
 | Settings | Typed per-user preferences, saved on valid changes; no server configuration editor |
+
+Open **Processes** for ranked PID/name/CPU/RSS rows, then a process for its sampling
+interval, memory explanation and original cgroup data. **Reported service** opens
+the shared service investigation when a validated system-service association exists.
+Open **Filesystems** for every retained mount, including unprobed or unavailable
+rows. Separate writable mount space or inode pressure appears directly in System;
+a full read-only image is informational. These current measurements cannot explain
+past pressure. [Source bounds and semantics](architecture/system-process-storage.md)
+remain explicit in each source's details.
 
 Repeated reports are grouped in the overview rather than called separate incidents.
 Source dialogs render at most 64 rows per batch, show the retained total and retain

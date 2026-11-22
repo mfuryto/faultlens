@@ -83,8 +83,12 @@ def _all(data):
 
 def _system(data):
     rows=_operational(data)
+    from .system_resource_views import decisions
+    rows.extend(decisions(data))
+    rank={'Critical':0,'Review':1,'Gap':2,'Partial':3,'Measured':4,'Info':5}
+    rows.sort(key=lambda row:rank[row.assessment])
     review=sum(item.assessment in {'Critical','Review'} for item in rows)
-    gaps=sum(item.assessment=='Gap' for item in rows)
+    gaps=sum(item.assessment in {'Gap','Partial'} for item in rows)
     summary=('Review the highlighted capacity or service readings.' if review else
              'Current operational readings are incomplete.' if gaps or not rows else
              'No configured capacity or service warning was observed in this snapshot.')
@@ -122,6 +126,10 @@ def _health(data):
         rows.append(Decision('Operational snapshot','Not collected','Info',
             'check inspects diagnostic readiness. Use health or System for current resource/service readings.',None,
             {'What it means':'No operational snapshot is included in this readiness-only report.','What you can do':['Run health for operational readings and diagnostic readiness together.']}))
+    from .system_resource_views import decisions
+    resource_rows=decisions(data);rows.extend(resource_rows)
+    resource_review=any(row.assessment in {'Critical','Review'} for row in resource_rows)
+    resource_gap=any(row.assessment in {'Gap','Partial'} for row in resource_rows)
     source=data.get('failed_services')
     service_review=False
     if source is not None:
@@ -177,15 +185,15 @@ def _health(data):
             'Missing tools affect specific features; availability alone does not establish usability. No blanket installation is needed.',
             value=str(sum(item['value'] is True for item in tools))+'/'+str(len(tools))+' tools found'))
     gaps=sum(row.assessment=='Gap' for row in rows[readiness_start:])
-    operational_gap=bool(missing) or (source is not None and source['state']!='available')
-    summary=('Operational readings or failed service units need review.' if reviews or service_review else
+    operational_gap=bool(missing) or resource_gap or (source is not None and source['state']!='available')
+    summary=('Operational readings or failed service units need review.' if reviews or service_review or resource_review else
              'Operational evidence is incomplete; inspect available readings and source gaps.' if operational_gap else
              'No operational review flag was raised in the sampled checks.' if operational else
              'This report checks diagnostic readiness, not current operational health.')
     if gaps: summary+=' Some incident-data sources are unavailable.'
     if any(row.assessment in {'Review','Critical'} for row in rows[readiness_start:]):
         summary+=' Recording/readiness settings also need review.'
-    step=('Inspect operational review rows first, then readiness gaps relevant to the incident.' if reviews or service_review else
+    step=('Inspect operational review rows first, then readiness gaps relevant to the incident.' if reviews or service_review or resource_review else
           'Inspect unverified operational sources before judging service/resource health; other readings may still be useful.' if operational_gap else
           'Review missing history/recording sources if you need incident reconstruction; unverified defaults alone call for no change.')
     return summary,step,rows+[_all(data)]
@@ -260,7 +268,9 @@ def build(data,kind=None):
     if kind=='network': summary,step,rows,scope=_network(data)
     else:
         summary,step,rows=_health(data) if kind in {'health','check'} else _system(data)
-        scope='Current visible sources; root filesystem only. Recorder readiness is separate from operational health.'
+        scope=('Current PID/mount namespaces and caller access; bounded process and local-filesystem samples.'
+               if 'processes' in data or 'filesystems' in data else 'Current visible sources; root filesystem only.')
+        scope+=' Recorder readiness is separate from operational health.'
     detail={'Summary':summary,'What you can do':[step],'Scope':scope,
             'Important limits':['A short current snapshot does not establish an earlier cause or sustained conditions. No host configuration is changed.']}
     return {'summary':summary,'next_step':step,'scope':scope,'rows':rows,'detail':detail}

@@ -231,3 +231,15 @@ report context and raw objects. Context opens bounded retained neighbors; period
 navigation validates and clamps receipt timestamps. Current-view navigation requests
 fresh readings without treating them as historical conditions. No log text is run
 and no remediation is performed.
+
+## Current process and filesystem workers
+
+System and Health read bounded procfs samples and a current-namespace mount
+inventory through independent isolated stdlib workers. PID/start identity, mount
+ID/device checks, descriptor-relative no-follow opening, counter validation,
+per-worker CPU/address-space/file/descriptor limits and parent capture bounds
+constrain collection. Remote/FUSE/autofs sources are listed without capacity
+probes. No command lines, environment, repair, process control or arbitrary user
+path is added. Partial/unavailable sources cannot imply a healthy host. Kernel
+uninterruptible I/O and compromised local evidence remain trust limits. See the
+[full source boundary](../architecture/system-process-storage.md).

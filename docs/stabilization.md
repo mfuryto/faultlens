@@ -5,7 +5,9 @@
 The [delivery plan](delivery-plan.md), updated 2026-11-22, governs new work in four
 steps: general service troubleshooting; processes/storage; practical Network with
 possible attack/attempt investigation (DDoS is one example); coherent incident/evidence flow and Signals role.
-The original milestones below retain their dated evidence. The service workflow
+Step 1 is merged in PR #68. Step 2 adds bounded live process and mount-capacity
+investigation; the [source design](architecture/system-process-storage.md) describes
+coverage and acceptance. The original milestones below retain their dated evidence. The service workflow
 now has a [shared interpretation/navigation design](architecture/general-service-troubleshooting.md).
 
 ## What the application solves
@@ -17,7 +19,7 @@ an arbitrary server froze or guarantee that an attack did not occur.
 
 | Operator question | Current answer | Remaining gap |
 | --- | --- | --- |
-| What is happening now? | Prioritized CPU/load/RAM/swap/root-filesystem/network readings and bounded system-service failure context | No complete live process attribution, all-filesystem/hardware health or all-unit/user-service inventory |
+| What is happening now? | Prioritized CPU/load/RAM/swap/network readings, bounded process CPU/RSS, mount space/inodes and system-service failure context | Bounded PID/mount coverage; no complete inventory, hardware health or all-unit/user-service inventory |
 | What happened around an earlier boot/problem? | Immutable journal boot selection, bounded tail/filtered searches, chronology, Atop replay and optional pstore fragments | Logging may be lost; full shutdown completion and arbitrary root cause remain unverified |
 | Was memory/storage/kernel failure reported? | Supported OOM/panic/I/O/filesystem/stall signatures with original references | A signature is not the underlying cause; hardware/vendor evidence and labeled incident validation remain necessary |
 | Is network activity suspicious? | Short counter samples, numeric TCP/UDP sockets, narrow SSH/UFW log signatures and Possible historical indicators | No external-reachability probe, effective firewall-policy audit, socket-owner attribution or comprehensive intrusion detection |

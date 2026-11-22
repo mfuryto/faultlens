@@ -9,13 +9,14 @@ This is useful operator feedback, not an invented pass for every acceptance case
 
 | Order | Work | Status | Operator outcome |
 | --- | --- | --- | --- |
-| 1 | General service troubleshooting | Implemented in this change; merge requires green checks | Open any listed failed system service, understand the reported failure, read a concrete message and continue to the next evidence |
-| 2 | Processes and storage in System | Queued | Find the process or filesystem related to observed resource pressure |
+| 1 | General service troubleshooting | Completed — PR #68 | Open any listed failed system service, understand the reported failure, read a concrete message and continue to the next evidence |
+| 2 | Processes and storage in System | Implemented; final merge requires green checks | Find the process or filesystem related to observed resource pressure |
 | 3 | Practical Network and possible attack investigation | Queued, explicitly prioritized by owner | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
 | 4 | Coherent History / Investigate / Evidence flow and Signals role | Queued | Follow one incident across retained sources with clear context and provenance |
 
-The implementation in this change completes step 1 once its required checks and
-reviewed merge pass. Step 2 is next; Network/attack investigation remains explicitly queued as step 3.
+Step 1 is merged in PR #68. This change implements step 2; its source, interface,
+resource and installed-package checks gate the merge. Network/attack investigation
+remains explicitly queued as step 3.
 Finish and validate one coherent step before starting another. Subtasks belong to
 these four steps; do not turn each patch into a new phase or expand scope silently.
 The [earlier plan](delivery-plan-history.md) preserves the decisions and evidence
@@ -64,10 +65,12 @@ separate owner decision. Preserve existing release tags/assets.
 
 ## Step 2 — processes and storage
 
-Add bounded live process CPU/memory attribution and useful filesystem/inode coverage
-beyond the root mount. Relate pressure to observed services where evidence permits.
-Explain filesystem scope, sampling and process lifetime races. Read-only hardware
-health may be considered only with a concrete source and demonstrated need.
+Implemented bounded live PID/name/CPU/RSS tables and reported system-service
+associations, with all retained originals. Mount-specific capacity and inode
+measurements extend beyond root; missing, excluded, read-only and capped sources
+are distinct. Independent workers preserve source failures, identity checks and
+existing resource limits. See the [design and acceptance cases](architecture/system-process-storage.md).
+Hardware health and complete process/storage inventory remain outside this step.
 
 Exit evidence: a busy process, independent full filesystem/inodes, healthy host,
 container scope and inaccessible source produce useful, distinct answers. Do not

@@ -158,6 +158,8 @@ def observation_view(item):
         steps=['If memory problems are reported, compare process usage, limits, swap activity and recorded OOM events.'] if state in {'warning','critical'} else []
     elif key.startswith('filesystem.'):
         meaning='Space on the root filesystem, not a disk-integrity check. Ordinary users may have less usable space because some blocks are reserved.'
+        if item.get('explanation','').startswith('Read-only root flag'):
+            meaning='The same source sample reported a read-only root filesystem. The capacity ratio is informational; read-only state can be intentional. Inspect filesystem/kernel errors if it is unexpected.'
         steps=['Review space consumers and retention safely before deleting anything or changing storage limits.'] if state in {'warning','critical'} else []
     elif key.startswith('dependency.'):
         meaning='The tool was found in a trusted executable location. This does not verify its version, service state or access to data.'
@@ -469,6 +471,16 @@ def render(data,out):
                 line(out,row['username']+' | '+row['terminal']+' | '+(row['login_time_utc'] or 'Login time not reported')+' ('+row['login_time_precision']+') | '+source_label(row),'  ')
             line(out,'Login records are not a complete session inventory or proof of activity/authorization.','  ')
         if 'sockets' in data: render_sockets(data['sockets'],out)
+        if data.get('processes',{}).get('rows'):
+            from .system_resource_views import process_order
+            print('\nRetained process examples (open System for all rows)',file=out)
+            for row in process_order(data['processes'])[:5]:
+                line(out,'PID '+str(row['pid'])+' | '+row['name']+' | CPU '+(str(row['cpu_percent'])+'% of one CPU' if row['cpu_percent'] is not None else 'uncomparable')+' | RSS '+size(row['rss_bytes']),'  ')
+        if data.get('filesystems',{}).get('rows'):
+            from .system_resource_views import filesystem_order,filesystem_detail
+            print('\nRetained mount examples (all rows in System/details)',file=out)
+            for row in filesystem_order(data['filesystems'])[:5]:
+                line(out,filesystem_detail(row,data['filesystems'])['Observed'],'  ')
         line(out,'Suggested follow-up commands are optional and never run automatically.')
         line(out,'Use --details or --json for all retained readings, exact values and original source fields.')
         return

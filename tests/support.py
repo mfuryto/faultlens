@@ -66,6 +66,12 @@ class SyntheticRunner:
             Command.ATOP_SERVICE: Result('missing'),
         }
 
+    def read_system_resources(self,kind,sample_seconds):
+        import json
+        from tests.system_resource_fixtures import process_report,storage_report
+        self.calls.append(('resource',kind))
+        return Result('completed',json.dumps(process_report(getattr(self,'maximum_system_resources',False)) if kind=='processes' else storage_report(getattr(self,'maximum_system_resources',False))),0)
+
     def available(self, name):
         return name in {'systemctl', 'journalctl'}
 

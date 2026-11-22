@@ -55,6 +55,13 @@ async def workspace_check():
             while app.job is not None or app.collection_states.get(0) not in {'completed','failed'}:
                 await pilot.pause(0.02)
         if app.collection_states[0]!='completed': raise ValueError('Installed System collector failed')
+        from textual.widgets import DataTable
+        from faultlens.textual_app import SourceDialog
+        for kind in ('processes','filesystems'):
+            app.query_one('#grid-0',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[0]) if row.kind==kind))
+            app.action_open();await pilot.pause(0.01)
+            if not isinstance(app.screen,SourceDialog):raise ValueError('Installed resource source did not open: '+kind)
+            await pilot.press('escape')
         app.select_page(5)
         async with asyncio.timeout(20):
             while app.page!=5 or app.job is not None or app.collection_states.get(5) not in {'completed','failed'}:
@@ -152,6 +159,10 @@ def main():
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed CLI check failed: '+options[0])
         data=json.loads(result.stdout)
         if data.get('schema_version')!=1 or data.get('command')!=options[0]: raise ValueError('Installed CLI schema failed')
+        if options[0] in {'status','health'} and any(
+                data.get(key,{}).get('state') not in {'available','partial','unavailable'}
+                or not isinstance(data.get(key,{}).get('rows'),list) for key in ('processes','filesystems')):
+            raise ValueError('Installed process/filesystem source contract failed')
         if options[0]=='service' and (data.get('unit')!='systemd-journald.service' or not isinstance(data.get('journal_records'),list)
                 or not isinstance(data.get('assessment'),dict) or not isinstance(data['assessment'].get('code'),str)
                 or not isinstance(data.get('invocation_summary'),dict)):

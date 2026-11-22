@@ -407,6 +407,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             if args.command=='status':
                 from .sessions import attach as attach_sessions
                 attach_sessions(data,runner)
+                from .system_resources import attach as attach_resources
+                attach_resources(data,runner,args.sample_seconds)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
         elif args.command=='service':
@@ -457,6 +459,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 print('Reported login sessions: '+json.dumps(data['login_sessions'],ensure_ascii=True),file=stdout)
             if 'failed_services' in data:
                 print('Failed-service source: '+json.dumps(data['failed_services'],ensure_ascii=True),file=stdout)
+            for key in ('processes','filesystems'):
+                if key in data:print(key.capitalize()+' source: '+json.dumps(data[key],ensure_ascii=True,allow_nan=False),file=stdout)
             print("Observations are not a root-cause diagnosis. Use --json for confidence and thresholds.", file=stdout)
         return 0
     except BrokenPipeError:

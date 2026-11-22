@@ -63,6 +63,9 @@ def live_probe(name, *, boot=0, atop_date=None, pstore=False):
     if name == 'status':
         from .sessions import collect as sessions
         results = observation_rows('status', status(runner=runner))
+        from .system_resources import attach
+        resources={};attach(resources,runner)
+        results.extend(source_row('resources.'+kind,resources[kind]) for kind in ('processes','filesystems'))
         results.append(source_row('sessions.source', sessions(runner)))
         return results
     if name == 'health':

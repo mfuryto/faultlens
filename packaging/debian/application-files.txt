@@ -1,6 +1,7 @@
 faultlens/__init__.py
 faultlens/__main__.py
 faultlens/_atop_exec.py
+faultlens/_system_exec.py
 faultlens/acceptance_context.py
 faultlens/atop.py
 faultlens/candidate_review.py
@@ -12,6 +13,7 @@ faultlens/crash_presentation.py
 faultlens/current_views.py
 faultlens/event_search.py
 faultlens/evidence_links.py
+faultlens/filesystems.py
 faultlens/firewall.py
 faultlens/health.py
 faultlens/incidents.py
@@ -25,6 +27,7 @@ faultlens/overview.py
 faultlens/parsers.py
 faultlens/presentation.py
 faultlens/preservation.py
+faultlens/processes.py
 faultlens/pstore.py
 faultlens/pstore_archive.py
 faultlens/reconstruction.py
@@ -40,6 +43,8 @@ faultlens/settings_store.py
 faultlens/socket_presentation.py
 faultlens/sockets.py
 faultlens/ssh.py
+faultlens/system_resource_views.py
+faultlens/system_resources.py
 faultlens/test_output.py
 faultlens/textual_app.py
 faultlens/time_window.py
