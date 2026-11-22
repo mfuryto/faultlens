@@ -52,7 +52,7 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
     checks=[]
     commands=(('status',),('health',),('network','--sockets','--network-context'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
               ('diagnose','--boot','0','--system-journal','--search-events'),
-              ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'))
+              ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal'))
     for options in commands:
         result=execute([sys.executable,'-I','-B',str(ROOT/'bin/faultlens'),*options,'--json'],timeout=30,limit=4194304)
         if result.state!='completed' or result.returncode!=0: raise ValueError('Native CLI contract did not complete: '+options[0])
@@ -60,6 +60,9 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
         except (ValueError,RecursionError) as exc: raise ValueError('Native CLI returned invalid JSON: '+options[0]) from exc
         if not isinstance(data,dict) or data.get('schema_version')!=1 or data.get('command')!=options[0]:
             raise ValueError('Native CLI returned an unexpected report: '+options[0])
+        if options[0]=='ssh' and (data.get('state') not in {'available','partial','unavailable'}
+                or not isinstance(data.get('totals'),dict) or not isinstance(data.get('records'),list)):
+            raise ValueError('Native SSH statistics contract was not reported')
         if options[0] in {'status','health'}:
             values={item['key']:item for item in data.get('observations',[])}
             if not any(values.get(key,{}).get('value') is not None for key in ('cpu.busy','memory.used')):

@@ -47,6 +47,8 @@ faultlens/settings_store.py
 faultlens/socket_presentation.py
 faultlens/sockets.py
 faultlens/ssh.py
+faultlens/ssh_presentation.py
+faultlens/ssh_statistics.py
 faultlens/system_resource_views.py
 faultlens/system_resources.py
 faultlens/test_output.py

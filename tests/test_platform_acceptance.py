@@ -21,6 +21,7 @@ def reply(argv,**limits):
     if command=='status':data['login_sessions']={'state':'unavailable','rows':[]}
     if command=='health':data['failed_services']={'state':'unavailable','rows':[]}
     if command=='service':data.update(unit='systemd-journald.service',status={'state':'unavailable'},journal={'state':'unavailable'},journal_records=[],assessment={'code':'unavailable'},invocation_summary={})
+    if command=='ssh':data.update(state='unavailable',totals={'failed':None},records=[])
     if command=='network':
         data.update(sockets={'state':'unavailable','rows':[]},network_samples=[{}, {}, {}],network_review={'cards':[]},
                     network_context={'sources':{key:{'state':'unavailable','rows':[]} for key in ('addresses','routes4','routes6','owners')}})
@@ -37,7 +38,7 @@ def native(**options):
 class PlatformAcceptanceTests(unittest.TestCase):
     def test_absent_optional_sources_are_successful_contracts_not_host_health(self):
         data=native()
-        self.assertEqual(7,len(data['checks']))
+        self.assertEqual(8,len(data['checks']))
         self.assertTrue(all(row['contract']=='PASS' for row in data['checks']))
         self.assertEqual('unavailable',data['checks'][-1]['source_state'])
         self.assertEqual('pending',data['operator_acceptance'])

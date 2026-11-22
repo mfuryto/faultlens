@@ -270,6 +270,91 @@ class ServiceDialog(ModalScreen):
         else: self.dismiss()
 
 
+class SshStatisticsDialog(ModalScreen):
+    """One cancellable SSH query with retained source/time context."""
+    BINDINGS=[Binding('escape','dismiss','Back'),Binding('r','refresh','Refresh'),Binding('e','original','Original')]
+
+    def __init__(self):
+        super().__init__();self.report=None;self.collection_task=None;self.active_read=None;self.pending=None;self.generation=0
+        self.options={'window':'boot','since_us':None,'until_us':None}
+
+    def compose(self):
+        with Vertical(classes='dialog'):
+            yield Static('SSH authentication history — read-only',classes='dialog-title',markup=False)
+            for options in ((('Since boot','boot'),('Last hour','hour')),(('Last day','day'),('Period','period'))):
+                with Horizontal(classes='buttons'):
+                    for label,key in options:yield Button(label,id='ssh-'+key)
+            with VerticalScroll():yield Static('Reading SSH history in bounded pages; Esc cancels and returns.',id='ssh-explanation',markup=False)
+            for options in ((('Usernames','users'),('Peers','peers'),('Times','timeline')),(('Records','records'),('Original','original'),('Evidence','evidence'))):
+                with Horizontal(classes='buttons'):
+                    for label,key in options:yield Button(label,id='ssh-'+key,disabled=True)
+            with Horizontal(classes='buttons'):
+                yield Button('Refresh',id='ssh-refresh');yield Button('Back',id='ssh-back')
+
+    def on_mount(self):
+        if self.app.ssh_snapshot is not None:
+            self.report=self.app.ssh_snapshot
+            self.options={key:self.report[key] if key=='window' else self.report['requested_window'][key.replace('_us','_realtime_us')] for key in self.options}
+            if self.options['window']!='period':self.options.update(since_us=None,until_us=None)
+            self.present()
+        else:self.action_refresh()
+
+    def present(self):
+        from .ssh_presentation import view
+        self.query_one('#ssh-explanation',Static).update(Text(detail_text(view(self.report))))
+        for key in ('users','peers','timeline','records','original','evidence'):self.query_one('#ssh-'+key,Button).disabled=False
+
+    def action_refresh(self):
+        self.generation+=1;self.report=None;self.app.ssh_snapshot=None
+        for key in ('users','peers','timeline','records','original','evidence'):self.query_one('#ssh-'+key,Button).disabled=True
+        self.query_one('#ssh-explanation',Static).update('Reading SSH history in bounded pages; Esc cancels and returns. No previous result is substituted on failure.')
+        self.pending=(dict(self.options,system_journal=self.app.session.settings.system_journal),self.generation)
+        if self.active_read is not None and not self.active_read.done() and not self.active_read.cancelling():self.active_read.cancel()
+        if self.collection_task is None or self.collection_task.done():self.collection_task=asyncio.create_task(self.load())
+
+    async def load(self):
+        while self.pending is not None:
+            options,generation=self.pending;self.pending=None
+            self.active_read=asyncio.create_task(self.app.ssh_collector(**options))
+            try:
+                value=await asyncio.shield(self.active_read)
+                if generation!=self.generation:continue
+                self.report=value;self.app.ssh_snapshot=value;self.present()
+            except asyncio.CancelledError:
+                if not self.active_read.done() and not self.active_read.cancelling():self.active_read.cancel()
+                await asyncio.gather(self.active_read,return_exceptions=True)
+                if self.pending is None:raise
+            except Exception:
+                if generation==self.generation and self.is_mounted:
+                    self.query_one('#ssh-explanation',Static).update('SSH statistics unavailable. No failure total could be established. r retries; Esc returns. The explicit ssh CLI command can explain source availability.')
+            finally:self.active_read=None
+
+    async def on_unmount(self):
+        self.pending=None
+        if self.collection_task is not None:
+            self.collection_task.cancel();await asyncio.gather(self.collection_task,return_exceptions=True)
+
+    def action_original(self):
+        if self.report is not None:self.app.push_screen(RawDialog(self.report,'Original SSH report'))
+
+    def on_button_pressed(self,event):
+        event.stop();key=event.button.id.removeprefix('ssh-')
+        if key in {'boot','hour','day'}:
+            self.options={'window':key,'since_us':None,'until_us':None};self.action_refresh()
+        elif key=='period':
+            def select(start,end):
+                self.options={'window':'period','since_us':start,'until_us':end};self.action_refresh()
+            self.app.push_screen(PeriodDialog(self.options['since_us'],self.options['until_us'],select))
+        elif key=='refresh':self.action_refresh()
+        elif key=='back':self.dismiss()
+        elif key=='original':self.action_original()
+        elif self.report is not None:
+            from .ssh_presentation import view
+            if key=='records':self.app.push_screen(RecordsDialog(self.report,records=self.report['records']))
+            elif key=='evidence':self.app.show_evidence(Entry(('SSH authentication history',),self.report,view(self.report),'ssh_report'),self.report)
+            else:self.app.push_screen(SourceDialog(Entry(('SSH '+key,),self.report,view(self.report),'ssh_'+key),self.report))
+
+
 class RecordsDialog(ModalScreen):
     """Readable, scrollable source messages; exact retained objects remain available."""
     BINDINGS=[Binding('escape','dismiss','Back'),Binding('e','original','Original fields'),Binding('v','evidence','Evidence'),
@@ -363,12 +448,12 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
+        if self.is_mounted and self.entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
+        if self.entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
                     [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
@@ -412,7 +497,7 @@ class SourceDialog(ModalScreen):
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
         if (self.entry.navigation or {}).get('network_context_source'):detail=self.entry.detail
-        elif self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        elif self.entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
@@ -528,7 +613,7 @@ class FaultlensApp(App):
               Binding('right','next_tab','Next section',priority=True),
               Binding('escape','cancel','Cancel collection'),Binding('ctrl+c','interrupt','Interrupt',priority=True)]
 
-    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status='',service_collector=None):
+    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status='',service_collector=None,ssh_collector=None):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
@@ -538,6 +623,7 @@ class FaultlensApp(App):
         self.collection_attempts={}; self.collection_states={}; self.closing=False; self.workspace_ready=False
         self.settings_store=settings_store; self.settings_status=settings_status
         self.service_collector=service_collector or ui_collection.collect_service
+        self.ssh_collector=ssh_collector or ui_collection.collect_ssh;self.ssh_snapshot=None
 
     def _handle_exception(self,error):
         # Pinned Textual hook: never render exception locals containing admin evidence.
@@ -842,6 +928,8 @@ class FaultlensApp(App):
 
     def open_entry(self,entry,data):
         if entry.context is not None: data=entry.context
+        if entry.kind=='ssh_statistics':self.push_screen(SshStatisticsDialog());return
+        if entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline'}:self.push_screen(SourceDialog(entry,data));return
         if entry.kind=='return_source':
             selection=self.evidence_selection
             if selection:self.select_page(selection.page)
@@ -884,7 +972,7 @@ class FaultlensApp(App):
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='service': self.push_screen(ServiceDialog(entry,data))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','retained_report','service_messages','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
+        elif entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','retained_report','service_messages','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 

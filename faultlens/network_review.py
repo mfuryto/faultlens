@@ -183,6 +183,10 @@ def decisions(data):
         result.append(Decision('Measured intervals',str(len(samples))+' independent short samples','Measured' if all(row['state']=='available' for row in samples) else 'Partial',
             'Compare actual per-interface byte/packet rates and protocol deltas across the retained intervals. Three short intervals are not a baseline or continuous coverage.',
             {'state':'retained','rows':samples}, {'What it means':'No host throughput is computed by summing interface layers. Burst peaks between samples remain unknown.'},'network_samples'))
+    if data.get('network_context'):
+        result.append(Decision('SSH authentication history','Choose a time window','Info',
+            'Inspect failed/accepted authentication reports, reported usernames, peers and time buckets. Uses accessible logs, not current socket counts.',
+            None,{},'ssh_statistics'))
     return result
 
 

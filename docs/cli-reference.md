@@ -403,3 +403,27 @@ CLI `security` command remains a current-counter reader. These roles introduce n
 new collection, server setting, export or persisted evidence. Development version
 1.1.0.dev0 combines the unreleased feature work since stable 1.0.1; release publication
 is separate. See [terminal flow](architecture/coherent-investigation-flow.md).
+
+## SSH authentication statistics
+
+```sh
+faultlens ssh --system-journal
+faultlens ssh --window hour --system-journal
+faultlens ssh --window day --system-journal
+faultlens ssh --since '2026-01-01T00:00:00Z' --until '2026-01-02T00:00:00Z' --system-journal
+faultlens ssh --window day --json
+faultlens ssh --window day --details --show-evidence
+```
+
+The default is since the current kernel boot, ending at collection start. Hour/day
+and explicit periods otherwise span accessible boots. `--boot-id` adds an optional
+immutable filter; it grants no access. System journal selection is explicit and does
+not elevate. Network → SSH authentication history offers the same window choices,
+username/peer/time groups, original records and Evidence pinning.
+
+Counts are explicit authentication reports. Invalid-user/PAM context does not add
+another failed authentication. Accepted and partial methods remain separate; no
+attack or complete-session verdict follows. Pagination examines accessible history
+beyond the old 500-candidate tail while retaining every counted original. Limited
+scans show lower bounds; unavailable totals are null, not zero. Exhausted queries
+still cannot establish complete logging since boot. See [scope and bounds](architecture/ssh-statistics.md).

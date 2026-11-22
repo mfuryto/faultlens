@@ -287,6 +287,25 @@ class CommandRunner:
     def read_ssh_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
         return self._read_boot(boot_id, system=system, query='ssh_events', since_us=since_us, until_us=until_us)
 
+    def read_ssh_page(self, since_us, until_us, *, boot_id=None, system=False, cursor=None):
+        """Oldest-first bounded SSH page; never write a cursor file or follow logs."""
+        from .journal import CURSOR,BOOT_ID
+        validate_window(since_us,until_us)
+        if until_us is None or (since_us is None and boot_id is None):raise ValueError('SSH query requires a bounded scope')
+        if boot_id is not None and (not isinstance(boot_id,str) or not BOOT_ID.fullmatch(boot_id)):raise ValueError('Invalid SSH boot filter')
+        if type(system) is not bool or cursor is not None and (not isinstance(cursor,str) or not CURSOR.fullmatch(cursor)):raise ValueError('Invalid SSH page options')
+        executable=trusted_tool('journalctl')
+        if executable is None:return Result('missing')
+        arguments=['--lines=+200','--output=json','--no-pager','--quiet',
+            '--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM,_UID,PRIORITY,_BOOT_ID']
+        if system:arguments.insert(0,'--system')
+        if boot_id is not None:arguments.append('--boot='+boot_id)
+        if cursor is not None:arguments.append('--after-cursor='+cursor)
+        for label,value in (('since',since_us),('until',until_us)):
+            if value is not None:arguments.append(f'--{label}=@{value//1000000}.{value%1000000:06d}')
+        try:return _capture([executable,*arguments,*EVENT_FILTERS['ssh_events']])
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError):return Result('unavailable')
+
     def read_firewall_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
         return self._read_boot(boot_id, system=system, query='firewall_events', since_us=since_us, until_us=until_us)
 
