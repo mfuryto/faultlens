@@ -20,8 +20,9 @@ From the checkout, in the actual SSH terminal:
 ```
 
 The persistent **SYNTHETIC DEMO** banner identifies the session. History contains one
-invented previous boot. Enter opens its context; **Investigate this boot** opens
-Diagnostics. Select the OOM finding and open **Records** to inspect the original
+invented previous boot and retained report example. Enter opens the report;
+**Investigate period** opens a bounded inquiry without a boot filter. The separate
+boot-source row still supports **Investigate this boot** explicitly. Select the OOM finding and open **Records** to inspect the original
 invented message, or use `e` for original fields. Evidence retains the same source
 references. The example must explain:
 

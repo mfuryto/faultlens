@@ -153,6 +153,9 @@ def collect(runner=None,*,sources=None,mode='now',boot_id=None,boot_index=None,s
             child['global_query_coverage']=data['query_coverage']
             child['limitations'].append(('Relative boot index is unknown for this retained time-window partition.' if index is None else
                 'Relative boot index comes from the selected listing snapshot.')+' Global query caps also apply.')
+            child['inquiry_context']={'mode':mode,'requested_window':dict(data['requested_window']),
+                'requested_boot_filter':data['boot_filter']['requested'],'resolved_boot_filter':boot_id,
+                'journal_scope':data['journal_scope']['requested'],'source_role':'journal_partition'}
             data['investigations'].append(child)
         for child in data['investigations']:
             sources=[(row['query'],row) for row in child.get('event_search',{}).get('queries',[])]
@@ -181,6 +184,10 @@ def collect(runner=None,*,sources=None,mode='now',boot_id=None,boot_index=None,s
     data['optional_sources']={key:(data[key]['state'] if key in data else
         data['investigations'][0].get('atop',{}).get('state','unavailable') if key=='atop' and atop_date and len(data['investigations'])==1 else 'not_requested')
         for key in ('atop','pstore','pstore_archive')}
+    for source in data['current'].values():
+        source['inquiry_context']={'mode':mode,'requested_window':dict(data['requested_window']),
+            'requested_boot_filter':data['boot_filter']['requested'],'resolved_boot_filter':boot_id,
+            'journal_scope':data['journal_scope']['requested'],'source_role':'current_snapshot'}
     return data
 
 

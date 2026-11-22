@@ -89,5 +89,5 @@ def _notable(data):
         rows.append({'title':finding['title'],'rule_id':finding['rule_id'],'report_count':count,
             'time':utc(reference.get('realtime_us')),
             'message_excerpt':excerpt(records[0]['message']) if records else 'Original message unavailable',
-            'reference':reference})
+            'reference':reference,'record':records[0] if records else None})
     return rows

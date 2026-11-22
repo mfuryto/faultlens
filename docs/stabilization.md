@@ -8,7 +8,8 @@ possible attack/attempt investigation (DDoS is one example); coherent incident/e
 Step 1 is merged in PR #68. Step 2 adds bounded live process and mount-capacity
 investigation; the [source design](architecture/system-process-storage.md) describes
 coverage and acceptance. Step 3 adds [practical network investigation](architecture/practical-network-investigation.md);
-step 4 remains next. The original milestones below retain their dated evidence. The service workflow
+step 4 adds [coherent inquiry/evidence navigation](architecture/coherent-investigation-flow.md)
+and a derived Signals role, gated by the same source/package/resource checks. The original milestones below retain their dated evidence. The service workflow
 now has a [shared interpretation/navigation design](architecture/general-service-troubleshooting.md).
 
 ## What the application solves

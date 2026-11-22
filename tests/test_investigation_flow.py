@@ -81,7 +81,9 @@ class InvestigationTests(unittest.TestCase):
         self.assertIn('example-worker',summary['notable_reports'][0]['message_excerpt'])
         columns,rows=page_table(4,data,Settings());row=next(row for row in rows if row.original is summary)
         self.assertNotIn('Boot ID',columns)
-        self.assertIn('2026-01-01',row.cells[1]);self.assertIn('OOM',row.cells[3])
+        self.assertIn('2026-01-01',row.cells[1])
+        event=next(item for item in page_table(4,data,Settings())[1] if item.kind=='history_event')
+        self.assertIn('OOM',event.cells[0]);self.assertIn('example-worker',event.cells[3])
         self.assertIn('example-worker',str(row.detail['Recorded examples']))
 
     def test_reference_deduplication_preserves_distinct_equal_records_and_source_identity(self):

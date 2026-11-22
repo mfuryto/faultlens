@@ -29,8 +29,7 @@ class DemoRunner:
         self.scenario=scenario
 
     def run(self,command):
-        if command not in {Command.JOURNAL_BOOTS,Command.JOURNAL_SYSTEM_BOOTS}:
-            raise ValueError('Command is not modeled by the synthetic demo')
+        if command not in {Command.JOURNAL_BOOTS,Command.JOURNAL_SYSTEM_BOOTS}:return Result('unavailable')
         return Result('completed','-1 '+BOOT+' synthetic-demo\n',0)
 
     def rows(self,identity,since_us=None,until_us=None):
@@ -54,6 +53,9 @@ class DemoRunner:
             rows=[row for row in rows if query=='kernel_warnings' and row['PRIORITY']=='3']
         return Result('completed','\n'.join(json.dumps(row) for row in rows),0)
 
+    def available(self,name):return False
+    def read_journal_window(self,start,end,*,boot_id=None,query=None,system=False):
+        return self.response(boot_id or BOOT,since_us=start,until_us=end,query=query)
     def read_boot(self,identity): return self.response(identity)
     def read_system_boot(self,identity): return self.response(identity)
     def read_boot_window(self,identity,since_us,*,until_us=None,system=False):
@@ -70,11 +72,36 @@ class DemoRunner:
     def read_atop_extended(self,*args): return Result('missing')
 
 
+class DemoSources:
+    """Explicitly unavailable current sources; never use native source fallback."""
+    def read(self,*args,**kwargs):raise OSError('Synthetic source not modeled')
+    def filesystem(self):raise OSError('Synthetic source not modeled')
+    def process_count(self):raise OSError('Synthetic source not modeled')
+    def directory(self,path):return False
+    def log_filesystem(self,kind):raise OSError('Synthetic source not modeled')
+    def recording_inventory(self):raise OSError('Synthetic source not modeled')
+
+
+def unmodeled_crash_source():raise OSError('Synthetic source not modeled')
+
+
 def build_report(scenario,page,settings):
     runner=DemoRunner(scenario)
     if page==4:
         data=incidents(runner,boot_count=settings.boot_count,system_journal=settings.system_journal,
                        include_current=settings.include_current)
+    elif page==5 and settings.investigation_mode:
+        from faultlens.workflows import collect
+        selector=settings.boot_selector
+        data=collect(runner,sources=DemoSources(),mode=settings.investigation_mode,
+            boot_id=selector if len(selector)==32 else None,boot_index=int(selector) if selector and len(selector)!=32 else None,
+            since_us=int(settings.since_us) if settings.investigation_mode=='period' else None,
+            until_us=int(settings.until_us) if settings.investigation_mode=='period' else None,
+            system_journal=settings.system_journal,search_events=settings.search_events,
+            search_ssh=settings.search_ssh,search_firewall=settings.search_firewall,
+            atop_date=settings.atop_date or None,atop_extended=settings.atop_extended,
+            pstore=settings.pstore,pstore_archive=settings.pstore_archive,
+            pstore_collector=unmodeled_crash_source,pstore_archive_collector=unmodeled_crash_source,clock=lambda:(EPOCH_US+120000000)/1000000)
     elif page==5:
         selector=settings.boot_selector
         data=diagnose(runner,None if len(selector)==32 else int(selector),

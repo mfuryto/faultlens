@@ -41,7 +41,7 @@ class DemoTests(unittest.TestCase):
             self.assertEqual(original,data)
 
     def test_scope_and_optional_settings_cannot_enable_native_sources(self):
-        settings=Settings.administrator_defaults()
+        settings=Settings.administrator_defaults();settings.investigation_mode=''
         settings.boot_selector=BOOT;settings.system_journal=True
         settings.atop_date='20260101';settings.atop_extended=True
         settings.since_us=str(EPOCH_US+60_000_000);settings.until_us=settings.since_us
@@ -61,6 +61,18 @@ class DemoTests(unittest.TestCase):
             self.assertEqual([],build_report('oom',5,settings)['findings'])
             settings.boot_selector='0'
             self.assertEqual('unavailable',build_report('oom',5,settings)['state'])
+
+    def test_primary_period_and_current_inquiries_never_query_real_sources(self):
+        with no_native_access():
+            for mode in ('now','period','before-restart'):
+                settings=Settings.administrator_defaults();settings.investigation_mode=mode
+                settings.since_us=str(EPOCH_US);settings.until_us=str(EPOCH_US+120000000)
+                data=build_report('oom',5,settings)
+                self.assertEqual('investigate',data['command']);self.assertEqual(mode,data['mode'])
+                self.assertFalse(data['synthetic_demo']['native_collection'])
+                self.assertTrue(data['investigations'])
+                self.assertEqual('Unknown',data['root_cause'])
+                self.assertEqual('unavailable',data['pstore']['state'])
 
     def test_readable_entrypoint_is_marked_and_cli_needs_no_frontend(self):
         with no_native_access(),patch('scripts.investigation_demo.version',side_effect=AssertionError('Unexpected frontend check')):
@@ -91,9 +103,10 @@ class DemoWorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn('SYNTHETIC DEMO',str(app.query_one('#demo-banner',Static).render()))
                 app.action_open();await pilot.pause(.01)
                 self.assertIsInstance(app.screen,DetailDialog)
-                await pilot.click('#select-boot')
+                await pilot.click('#history-period')
                 await self.wait_until(pilot,lambda: 5 in app.snapshots and app.job is None)
-                self.assertEqual(BOOT,app.session.settings.boot_selector)
+                self.assertEqual('',app.session.settings.boot_selector)
+                self.assertEqual('period',app.session.settings.investigation_mode)
                 rows=app.entries[5]
                 app.query_one('#grid-5',DataTable).move_cursor(row=next(i for i,row in enumerate(rows) if row.kind=='finding'))
                 app.action_open();await pilot.pause(.01);await pilot.click('#references')

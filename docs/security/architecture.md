@@ -255,3 +255,14 @@ associations, with explicit PID/socket reuse and namespace/access limits. Source
 strings remain literal administrator evidence. Derived cards and temporal log
 patterns never authorize automatic blocking or establish an attack/compromise.
 See [the network source and trust boundary](../architecture/practical-network-investigation.md).
+
+## Inquiry context and retained evidence selections
+
+Signals derives its view from the selected inquiry and does not collect a separate
+network snapshot. Evidence/subject navigation holds at most one pin and one inquiry
+origin by reference, without deep copies, accumulating selection history or changing
+source data. Their original time/scope and explicit replacement remain visible.
+Only user preferences persist; the preference schema/paths are unchanged. Service/peer
+subjects do not silently become query filters, and source boot identities remain
+separate from optional query filters. Original strings still render literally.
+See [navigation provenance and bounds](../architecture/coherent-investigation-flow.md).

@@ -6,6 +6,7 @@
 - [Terminal navigation, settings and investigating a problem](tui.md)
 - [CLI commands and examples](cli-reference.md), including service investigation from 1.0.1
 - [Reading results and inspecting original evidence](readable-results.md)
+- [Inquiry, Signals and fixed Evidence selections](architecture/coherent-investigation-flow.md)
 - [Optional tools and source availability](dependencies.md)
 - [Logged-in session sources](login-sessions.md)
 - [Version 1.0 scope and qualification](release-readiness.md)

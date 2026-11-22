@@ -119,8 +119,9 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         app.settings_store=Mock(); app.settings_store.path='/invented/settings.json'
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.01); app.select_page(4); await pilot.pause(0.01)
-            await pilot.press('down','enter'); self.assertIsInstance(app.screen,DetailDialog)
-            boot=app.screen.entry.original['boot']
+            app.query_one('#grid-4',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[4]) if row.kind=='boot'))
+            await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
+            boot=app.screen.entry.original.get('boot',app.screen.entry.original)
             await pilot.click('#select-boot'); await pilot.pause(0.01)
             self.assertEqual(5,app.page)
             self.assertEqual(boot['boot_id'],app.session.settings.boot_selector)
@@ -239,12 +240,12 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             for page in range(2,8):
                 app.select_page(page)
                 async with asyncio.timeout(3):
-                    while app.page!=page or app.job is not None or (page<6 and page not in app.snapshots):
+                    while app.page!=page or app.job is not None or (page<6 and app.data(page) is None):
                         await pilot.pause(0.01)
-            self.assertEqual(list(range(6)),[page for page,options in calls])
+            self.assertEqual([0,1,2,5,4],[page for page,options in calls])
             app.select_page(1)
             await self.wait_until(pilot,lambda: app.page==1 and app.job is None)
-            self.assertEqual(6,len(calls))
+            self.assertEqual(5,len(calls))
             app.session.update_setting('sample_seconds','0.2')
             app.select_page(0)
             await self.wait_until(pilot,lambda: app.snapshot_options.get(0,{}).get('sample_seconds')==0.2 and app.job is None)
@@ -361,54 +362,42 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause(0.01); app._handle_exception(RuntimeError('invented sensitive evidence'))
         self.assertFalse(app._exit_renderables)
 
-    async def test_security_no_matches_has_coverage_sockets_and_separate_history_navigation(self):
-        from tests.test_network_analysis import analyze
-        from faultlens.sockets import attach
-        from faultlens.commands import Result
-        data=analyze(command='security'); attach(data,SocketRunner(Result('completed','',0)))
-        app=self.app(); app.snapshots[3]=data
-        session=Session(sources=SyntheticNetworkSources(),runner=SyntheticPhase3Runner())
-        session.choose_page(5); session.refresh(); historical=session.data; app.snapshots[5]=historical
-        original=copy.deepcopy(data); options=asdict(app.session.settings)
+    async def test_signals_reuse_the_selected_inquiry_and_do_not_fall_back_to_network(self):
+        from tests.test_problem_workflows import Runner,START,END
+        from faultlens.workflows import collect
+        historical=collect(Runner([]),mode='period',since_us=START,until_us=END)
+        app=self.app();app.snapshots[5]=historical;app.snapshots[3]=status_report()
+        original=copy.deepcopy(historical);options=asdict(app.session.settings)
         async with app.run_test(size=(100,30)) as pilot:
-            await pilot.pause(0.01); app.select_page(3)
-            await self.wait_until(pilot,lambda: app.page==3)
-            table=app.query_one('#grid-3',DataTable); self.assertGreater(table.row_count,3)
-            await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
-            self.assertIn('Unknown',app.screen.entry.detail['Summary'])
-            await pilot.press('e'); self.assertIs(data,app.screen.value)
-            await pilot.press('escape','escape')
-            index=next(i for i,row in enumerate(app.entries[3]) if row.kind=='sockets')
-            table.move_cursor(row=index); await pilot.press('enter')
-            self.assertIsInstance(app.screen,SourceDialog)
-            self.assertEqual(0,app.screen.query_one(DataTable).row_count)
-            self.assertTrue(app.screen.query_one('#source-empty',Static).display)
-            await pilot.press('escape')
-            index=next(i for i,row in enumerate(app.entries[3]) if row.kind=='diagnostics_link')
-            table.move_cursor(row=index); await pilot.press('enter')
-            await self.wait_until(pilot,lambda: app.page==5)
-            self.assertIs(historical,app.data()); self.assertIs(data,app.data(3))
-            self.assertEqual(options,asdict(app.session.settings)); self.assertEqual(original,data)
+            app.select_page(3);await self.wait_until(pilot,lambda:app.page==3)
+            self.assertIs(historical,app.data(3))
+            self.assertTrue(any(row.cells[0]=='Source coverage' for row in app.entries[3]))
+            self.assertFalse(any(row.kind=='sockets' for row in app.entries[3]))
+            app.query_one('#grid-3',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[3]) if row.kind=='investigation_focus'))
+            await pilot.press('enter');await self.wait_until(pilot,lambda:app.page==5)
+            self.assertIs(historical,app.data());self.assertEqual(options,asdict(app.session.settings))
+            self.assertEqual(original,historical)
 
-    async def test_security_loading_cancel_and_errors_are_visible_without_historical_fallback(self):
-        started=asyncio.Event()
+    async def test_signals_collection_uses_inquiry_and_cancel_failure_states_remain_visible(self):
+        started=asyncio.Event();calls=[]
         async def slow(page,settings):
-            if page==3: started.set(); await asyncio.Event().wait()
+            calls.append(page)
+            if page==5:started.set();await asyncio.Event().wait()
             return status_report()
-        app=FaultlensApp(collector=slow); app.snapshots[5]=status_report()
+        app=FaultlensApp(collector=slow)
         async with app.run_test(size=(40,10)) as pilot:
-            await self.wait_until(pilot,lambda: app.job is None and 0 in app.snapshots)
-            app.select_page(3); await asyncio.wait_for(started.wait(),3)
-            self.assertIsNone(app.data(3)); self.assertEqual('Loading',app.entries[3][0].cells[1])
-            await pilot.press('escape'); await self.wait_until(pilot,lambda: app.job is None)
+            await self.wait_until(pilot,lambda:app.job is None and 0 in app.snapshots)
+            app.select_page(3);await asyncio.wait_for(started.wait(),3)
+            self.assertEqual([0,5],calls);self.assertNotIn(3,app.snapshots)
+            self.assertIsNone(app.data(3));self.assertEqual('Loading',app.entries[3][0].cells[1])
+            await pilot.press('escape');await self.wait_until(pilot,lambda:app.job is None)
             self.assertEqual('Cancelled',app.entries[3][0].cells[1])
             for error in (OSError('invented private source'),RuntimeError('invented private error')):
-                async def fail(page,settings): raise error
-                app.collector=fail; await pilot.press('r')
-                await self.wait_until(pilot,lambda: app.job is None and app.collection_states.get(3)=='failed')
-                self.assertEqual('Unavailable',app.entries[3][0].cells[1])
-                self.assertNotIn('invented private',app.notice)
-                await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)
+                async def fail(page,settings):raise error
+                app.collector=fail;await pilot.press('r')
+                await self.wait_until(pilot,lambda:app.job is None and app.collection_states.get(5)=='failed')
+                self.assertEqual('Unavailable',app.entries[3][0].cells[1]);self.assertNotIn('invented private',app.notice)
+                await pilot.press('enter');self.assertIsInstance(app.screen,DetailDialog)
                 self.assertIn('No security or health conclusion',app.screen.entry.detail['What it means'])
                 await pilot.press('escape')
 
