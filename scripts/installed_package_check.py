@@ -62,6 +62,15 @@ async def workspace_check():
             app.action_open();await pilot.pause(0.01)
             if not isinstance(app.screen,SourceDialog):raise ValueError('Installed resource source did not open: '+kind)
             await pilot.press('escape')
+        app.select_page(2)
+        async with asyncio.timeout(20):
+            while app.page!=2 or app.job is not None or app.collection_states.get(2) not in {'completed','failed'}:await pilot.pause(.02)
+        if app.collection_states[2]!='completed' or 'network_review' not in app.snapshots[2]:raise ValueError('Installed network investigation failed')
+        for kind in ('network_issues','network_context','network_samples'):
+            app.query_one('#grid-2',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[2]) if row.kind==kind))
+            app.action_open();await pilot.pause(.01)
+            if not isinstance(app.screen,SourceDialog):raise ValueError('Installed network source did not open: '+kind)
+            await pilot.press('escape')
         app.select_page(5)
         async with asyncio.timeout(20):
             while app.page!=5 or app.job is not None or app.collection_states.get(5) not in {'completed','failed'}:
@@ -152,7 +161,7 @@ def main():
     probe=subprocess.run(['/usr/bin/faultlens','--version'],cwd=poison,
                          env={**os.environ,'PYTHONPATH':str(poison)},capture_output=True,text=True,timeout=10)
     if probe.returncode!=0 or not probe.stdout.startswith('Faultlens '): raise ValueError('Installed launcher isolation failed')
-    for options in (('status',),('health',),('network','--sockets'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
+    for options in (('status',),('health',),('network','--sockets','--network-context'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
                     ('diagnose','--boot','0','--system-journal'),
                     ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal')):
         result=_capture(['/usr/bin/faultlens',*options,'--json'],timeout=30,limit=4194304)
@@ -163,6 +172,13 @@ def main():
                 data.get(key,{}).get('state') not in {'available','partial','unavailable'}
                 or not isinstance(data.get(key,{}).get('rows'),list) for key in ('processes','filesystems')):
             raise ValueError('Installed process/filesystem source contract failed')
+        if options[0]=='network' and (len(data.get('network_samples',[]))!=3
+                or not isinstance(data.get('network_review',{}).get('cards'),list)
+                or any(data.get('network_context',{}).get('sources',{}).get(key,{}).get('state') not in {'available','unavailable'}
+                       for key in ('addresses','routes4','routes6','owners'))):
+            raise ValueError('Native network investigation contract was not reported')
+        if options[0]=='network' and any(data['network_context']['sources'][key]['state']!='available' for key in ('addresses','routes4','routes6','owners')):
+            raise ValueError('Qualification ip/ss source formats could not be assessed')
         if options[0]=='service' and (data.get('unit')!='systemd-journald.service' or not isinstance(data.get('journal_records'),list)
                 or not isinstance(data.get('assessment'),dict) or not isinstance(data['assessment'].get('code'),str)
                 or not isinstance(data.get('invocation_summary'),dict)):

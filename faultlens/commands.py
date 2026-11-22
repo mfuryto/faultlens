@@ -26,12 +26,20 @@ class Command(Enum):
     JOURNAL_SERVICE = "journal_service"
     ATOP_SERVICE = "atop_service"
     SOCKETS = "sockets"
+    SOCKET_OWNERS = "socket_owners"
+    NETWORK_ADDRESSES = "network_addresses"
+    NETWORK_ROUTES4 = "network_routes4"
+    NETWORK_ROUTES6 = "network_routes6"
     LOGIN_SESSIONS = "login_sessions"
     LOGIN_SESSION_LIST = "login_session_list"
     LOGIN_SESSION_SERVICE = "login_session_service"
 
 
 CATALOG = {
+    Command.SOCKET_OWNERS: ("ss", ("-H", "-n", "-O", "-a", "-t", "-u", "-p")),
+    Command.NETWORK_ADDRESSES: ("ip", ("-j", "address", "show")),
+    Command.NETWORK_ROUTES4: ("ip", ("-j", "-4", "route", "show", "table", "all")),
+    Command.NETWORK_ROUTES6: ("ip", ("-j", "-6", "route", "show", "table", "all")),
     Command.LOGIN_SESSIONS: ("who", ("--users",)),
     Command.LOGIN_SESSION_LIST: ("loginctl", ("list-sessions", "--no-legend", "--no-pager", "--no-ask-password")),
     Command.LOGIN_SESSION_SERVICE: ("systemctl", ("is-active", "systemd-logind.service", "--no-pager")),
@@ -53,11 +61,12 @@ EVENT_FILTERS = {
     'ssh_events': ('_UID=0', '_TRANSPORT=syslog', '_COMM=sshd', '_COMM=sshd-session', '_COMM=sshd-auth'),
     'firewall_events': ('_TRANSPORT=kernel',),
 }
-TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss", "who", "loginctl")
+TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss", "who", "loginctl", "ip")
 TOOL_PURPOSES = {
+    "ip": "Optional: read numeric local addresses/link state and route tables in network context; no route lookup/probe or configuration write.",
     "loginctl": "Optional: inspect existing local logind sessions in System/status; never starts or controls sessions/services.",
     "who": "Optional: reported terminal login sessions in System/status; no DNS lookup or session control.",
-    "ss": "Optional: current TCP/UDP endpoints only with network/security --sockets.",
+    "ss": "Optional: numeric current TCP/UDP endpoints with --sockets, plus permitted reported owners with --network-context.",
     "free": "Optional: memory comparison in scripts/validate_local.py; status reads procfs directly.",
     "df": "Optional: filesystem comparison in scripts/validate_local.py; status uses statvfs directly.",
     "systemctl": "Feature dependency: service observations in status/check; other observations remain available without it.",

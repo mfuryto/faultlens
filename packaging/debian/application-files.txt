@@ -23,6 +23,9 @@ faultlens/journal.py
 faultlens/linux.py
 faultlens/models.py
 faultlens/network.py
+faultlens/network_context.py
+faultlens/network_review.py
+faultlens/network_sampling.py
 faultlens/overview.py
 faultlens/parsers.py
 faultlens/presentation.py

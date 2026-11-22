@@ -207,11 +207,9 @@ class Session:
             data=collect(self.sources,self.runner,sample_seconds=self.settings.sample_seconds,
                          preservation=self.settings.preservation)
         elif self.page in {2, 3}:
-            data = network(self.sources, command='network' if self.page == 2 else 'security',
-                           sample_seconds=self.settings.sample_seconds)
-            if self.settings.sockets:
-                from .sockets import attach
-                attach(data, self.runner)
+            from .network_sampling import practical
+            data=practical(self.sources,self.runner,command='network' if self.page==2 else 'security',
+                           sample_seconds=self.settings.sample_seconds,sockets=self.settings.sockets)
         elif self.page == 4:
             data = incidents(self.runner, boot_count=self.settings.boot_count,
                 system_journal=self.settings.system_journal, include_current=self.settings.include_current)

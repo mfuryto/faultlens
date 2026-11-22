@@ -10,13 +10,13 @@ This is useful operator feedback, not an invented pass for every acceptance case
 | Order | Work | Status | Operator outcome |
 | --- | --- | --- | --- |
 | 1 | General service troubleshooting | Completed — PR #68 | Open any listed failed system service, understand the reported failure, read a concrete message and continue to the next evidence |
-| 2 | Processes and storage in System | Implemented; final merge requires green checks | Find the process or filesystem related to observed resource pressure |
-| 3 | Practical Network and possible attack investigation | Queued, explicitly prioritized by owner | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
+| 2 | Processes and storage in System | Completed — PR #69 | Find the process or filesystem related to observed resource pressure |
+| 3 | Practical Network and possible attack investigation | Implemented; green checks gate delivery | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
 | 4 | Coherent History / Investigate / Evidence flow and Signals role | Queued | Follow one incident across retained sources with clear context and provenance |
 
-Step 1 is merged in PR #68. This change implements step 2; its source, interface,
-resource and installed-package checks gate the merge. Network/attack investigation
-remains explicitly queued as step 3.
+Steps 1 and 2 are merged in PRs #68 and #69. This change implements step 3;
+source, interface, resource, CodeQL and installed-package checks gate delivery.
+Step 4 is next; whole-host security/CVE auditing remains future scope.
 Finish and validate one coherent step before starting another. Subtasks belong to
 these four steps; do not turn each patch into a new phase or expand scope silently.
 The [earlier plan](delivery-plan-history.md) preserves the decisions and evidence
@@ -123,6 +123,15 @@ flood-like traffic, plus proxy/NAT ambiguity, missing/reset/wrapped counters, IP
 coverage gaps and absent history. Tests exercise interpretation without generating
 real attacks. Resource limits still apply. [Kernel networking semantics](https://docs.kernel.org/networking/ip-sysctl.html)
 are a reference, not automatic tuning instructions.
+
+Implementation: the [shared network investigation design](architecture/practical-network-investigation.md)
+covers three short counter intervals, numeric link/address/route context, permitted
+reported socket owner/service associations, concrete observation cards and original
+socket/log/period navigation. Narrow SSH/UFW and qualified Atop evidence remain
+explicitly scoped. Peer expectation and application-log review are operator decisions;
+there is no automatic unexpected-peer, whole-firewall or all-authentication verdict.
+Resource budgets and local read-only defaults remain unchanged. No release is
+published by this task; existing stable assets are preserved.
 
 ## Step 4 — coherent incident and evidence flow
 

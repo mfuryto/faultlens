@@ -81,9 +81,11 @@ def live_probe(name, *, boot=0, atop_date=None, pstore=False):
         return values
     if name == 'network':
         from .sockets import attach
-        data = collect(sample_seconds=0.1)
-        attach(data, runner)
-        results = [source_row('network.counters',data), source_row('network.sockets',data['sockets'])]
+        from .network_sampling import practical
+        data=practical(runner=runner,sample_seconds=.1,sockets=True)
+        results = [source_row('network.counters',{'state':data['counter_state']}), source_row('network.sockets',data['sockets'])]
+        results.extend(source_row('network.context.'+key,source) for key,source in data['network_context']['sources'].items())
+        results.append(row('network.intervals','PASS','Three independent counter intervals were retained; this is not continuous coverage or an attack verdict.'))
         results += [row('network.'+str(i)+'.'+value['key'], 'MISSING', 'Counter observation unavailable.')
                     for i,value in enumerate(data['observations']) if value['state'] == 'unavailable']
         if data['findings']:

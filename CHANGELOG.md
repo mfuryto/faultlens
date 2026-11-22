@@ -2,6 +2,14 @@
 
 ## Unreleased — 1.0.2
 
+- Add practical Network investigation with three short intervals, extended TCP and
+  IPv6 UDP coverage, local address/link/route context and permitted owner/service
+  associations. Preserve unavailable and ambiguous sources independently.
+- Explain concrete counter, listener, connection-state and peer observations, with
+  alternatives and navigation to original socket/log evidence and bounded periods.
+- Surface reported multi-peer password failures and acceptance after failures as
+  Possible patterns; preserve narrow authentication/firewall scope and unknown causes.
+
 - Investigate current process CPU/RSS and mount-specific space/inode pressure from
   System and Health, with readable explanations, all retained rows and originals.
 - Open a reported process-to-system-service association in the shared service reader.

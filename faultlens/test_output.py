@@ -34,7 +34,9 @@ def label(key):
         return 'Optional tool '+key.removeprefix('health.dependency.')
     if key.startswith('status.') and key.removeprefix('status.') in METRIC_NAMES:
         return METRIC_NAMES[key.removeprefix('status.')]
-    readable={'status.cpu.busy':'CPU usage', 'status.swap.used':'Used swap',
+    readable={'network.context.addresses':'Local address/link source','network.context.routes4':'IPv4 route source',
+        'network.context.routes6':'IPv6 route source','network.context.owners':'Reported socket-owner source',
+        'network.intervals':'Repeated short network samples','status.cpu.busy':'CPU usage', 'status.swap.used':'Used swap',
         'status.filesystem.root.available':'Available root filesystem space',
         'health.atop.service_active':'Atop recording service', 'health.journal.service_active':'System journal service',
         'network.counter_growth':'Network pressure/error counters',
@@ -82,6 +84,7 @@ def server_summary(data):
             worked.append(description+': '+str(len(values))+'.')
     for key,description in (('network.counters','Current network counters were read.'),
             ('network.sockets','The local socket snapshot was read.'),
+            ('network.intervals','Three independent short network intervals were retained; they are not a baseline or continuous recording.'),
             ('history.visible','Accessible boot history was read.'),('history.system','System journal boot history was read.'),
             ('tui.textual','Reviewed Textual frontend is available.'),('tui.current_terminal','Your current terminal declares interactive support; rendering still needs a manual check.')):
         if take(lambda r:r['key']==key and r['state']=='PASS'):

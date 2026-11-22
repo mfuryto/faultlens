@@ -32,7 +32,7 @@ def binding_meaning(row):
         return 'Wildcard local address','A wildcard local address is reported. Address family, device, namespace and policy constraints still matter; Internet reachability is unverified.'
     if ipaddress.ip_address(address).is_loopback:
         return 'Loopback local address','A loopback local address is reported. This does not exclude forwarding, proxies or exposure through other services.'
-    return 'Specific local address','A specific local address is reported. Interface state, routing and firewall policy were not inspected.'
+    return 'Specific local address','A specific local address is reported. This row alone cannot establish interface state, selected routing or firewall policy; separately requested link/route configuration is not a connectivity test.'
 
 
 def row_label(row):
@@ -48,8 +48,10 @@ def row_view(row):
                 'Compare this endpoint with expected application configuration and existing authorized logs before considering changes.',
                 'Do not identify an application from its port number alone or change firewall rules from this snapshot.'],
             'Evidence limits':['Current namespace and current snapshot only; row counts are not distinct services or independent connections.',
-                'Socket owners, application identity, firewall policy and external reachability were not collected.',
+                'Owner/service fields, when present, are reported sequential associations, not verified identities. Missing owner fields do not prove that no process owns the socket; policy and external reachability remain unverified.',
                 'Queue numbers retain native ss semantics; listening and connected queues differ. No universal byte count, pressure threshold or traffic rate is inferred.'],
+            'Reported owners':row.get('owners',[]),
+            'Owner association':row.get('owner_state','Not requested'),
             'Technical details':row}
 
 

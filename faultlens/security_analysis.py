@@ -42,13 +42,16 @@ def _largest_window(values, width_us, *, distinct_ports=False):
 
 def log_indicators(data):
     groups = defaultdict(list)
+    boot_failures=defaultdict(list);acceptances=defaultdict(list)
     ssh = data.get('ssh_analysis', {})
     firewall = data.get('firewall_analysis', {})
     for value in ssh.get('findings', []) if ssh.get('state') == 'available' else ():
-        if value['rule_id'] != 'ssh.password_failed':
-            continue
-        ref = value['evidence'][0]
-        groups[('ssh', ref['boot_id'], str(ipaddress.ip_address(ref['peer_address'])))].append(ref)
+        ref=value['evidence'][0]
+        peer=str(ipaddress.ip_address(ref['peer_address']))
+        if value['rule_id']=='ssh.password_accepted':acceptances[(ref['boot_id'],peer)].append(ref)
+        if value['rule_id']!='ssh.password_failed':continue
+        boot_failures[ref['boot_id']].append(ref)
+        groups[('ssh',ref['boot_id'],peer)].append(ref)
     for value in firewall.get('findings', []) if firewall.get('state') == 'available' else ():
         ref = value['evidence'][0]
         packet = ref['packet']
@@ -56,6 +59,31 @@ def log_indicators(data):
             key = (packet['protocol'], ref['boot_id'], str(ipaddress.ip_address(packet['source_address'])),
                    str(ipaddress.ip_address(packet['destination_address'])))
             groups[key].append(ref)
+    for boot,failures in sorted(boot_failures.items()):
+        window=_largest_window(failures,300_000_000)
+        peers=sorted({str(ipaddress.ip_address(ref['peer_address'])) for ref in window})
+        if len(window)>=20 and len(peers)>=3:
+            yield finding('security.ssh_multiple_peer_failures','Possible repeated SSH failures across reported peers',
+                'At least twenty failed-password reports from at least three reported peers occur within five minutes.',
+                [{'source_analysis':'ssh_analysis','boot_id':boot,'reported_source_addresses':peers,
+                  'candidate_indices':[ref['candidate_index'] for ref in window],'report_count':len(window),
+                  'first_monotonic_us':window[0]['monotonic_us'],'last_monotonic_us':window[-1]['monotonic_us']}],
+                'A boot-local monotonic window groups supported failure reports. Peers are log fields, not distinct actors; administration, NAT, proxies and duplicated logging remain alternatives.',
+                {'minimum_reports':20,'minimum_reported_peers':3,'window_seconds':300})
+    for (boot,peer),accepted in sorted(acceptances.items()):
+        failures=groups.get(('ssh',boot,peer),[])
+        for success in sorted(accepted,key=lambda ref:ref['monotonic_us']):
+            preceding=[ref for ref in failures if 0<success['monotonic_us']-ref['monotonic_us']<=300_000_000]
+            if len(preceding)<5:continue
+            refs=sorted(preceding+[success],key=lambda ref:ref['monotonic_us'])
+            yield finding('security.ssh_failures_then_acceptance','Review SSH password acceptance after repeated failures',
+                'A supported password-acceptance report follows at least five failure reports from the same reported peer within five minutes.',
+                [{'source_analysis':'ssh_analysis','boot_id':boot,'reported_source_address':peer,
+                  'candidate_indices':[ref['candidate_index'] for ref in refs],'report_count':len(refs),
+                  'first_monotonic_us':refs[0]['monotonic_us'],'last_monotonic_us':refs[-1]['monotonic_us']}],
+                'Reported temporal ordering is established within one boot. Corrected typing, shared peers or legitimate administration can explain it; acceptance is not a verified session, compromise or service misuse.',
+                {'minimum_preceding_failures':5,'window_seconds':300})
+            break
     for key, values in sorted(groups.items()):
         ssh = key[0] == 'ssh'
         width = 300_000_000 if ssh else 60_000_000
@@ -164,3 +192,5 @@ def assess(data):
         'findings_truncated': total > MAX_FINDINGS, 'matching_indicators': total,
         'historical_comparison': dict(progress, state='compared' if progress['compared_series_windows'] else 'insufficient_comparable_history'), 'attack_assessment': 'Unknown', 'root_cause': 'Unknown',
         'limitations': list(LIMITATIONS), 'recommendations': list(RECOMMENDATIONS)}
+    from .network_review import historical
+    historical(data)

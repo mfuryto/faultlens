@@ -12,7 +12,7 @@ STATES = {'UNKNOWN', 'ESTAB', 'SYN-SENT', 'SYN-RECV', 'FIN-WAIT-1', 'FIN-WAIT-2'
 LIMITATIONS = (
     'Current network namespace and existing permissions only; collection is non-atomic and transient.',
     'A wildcard or non-loopback binding does not establish external reachability, firewall policy or a vulnerability.',
-    'TCP/UDP only; bound-inactive TCP, UNIX sockets, socket owners and other namespaces are not collected.',
+    'TCP/UDP only; bound-inactive TCP, UNIX sockets and other namespaces are not collected. The base query does not read owners; requested context supplies separate reported associations.',
     'Queue values are native ss values; listening queues and connected queues have different semantics.',
     'No reverse DNS, service lookup, remote connection, packet capture, elevation or configuration change is performed.',
     'Original accepted rows and numeric endpoints are retained without privacy masking; terminal escaping is reversible.',

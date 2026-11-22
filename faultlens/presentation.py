@@ -28,6 +28,12 @@ COUNTER_NAMES={'SyncookiesSent':'SYN cookies sent','SyncookiesRecv':'SYN cookies
     'SyncookiesFailed':'Invalid SYN cookies','ListenOverflows':'TCP listener overflows','ListenDrops':'TCP listener drops',
     'InDatagrams':'UDP datagrams received','OutDatagrams':'UDP datagrams sent','NoPorts':'UDP traffic without a listener',
     'InErrors':'UDP input errors','RcvbufErrors':'UDP receive-buffer errors','SndbufErrors':'UDP send-buffer errors'}
+COUNTER_NAMES.update({'ActiveOpens':'TCP active opens','PassiveOpens':'TCP passive opens',
+    'AttemptFails':'TCP failed connection attempts','EstabResets':'Established TCP resets',
+    'InSegs':'TCP segments received','OutSegs':'TCP segments sent','RetransSegs':'TCP retransmitted segments',
+    'InErrs':'TCP input errors','OutRsts':'TCP resets sent'})
+COUNTER_NAMES.update({'Udp6'+key:'IPv6 '+COUNTER_NAMES[key] for key in
+    ('InDatagrams','OutDatagrams','NoPorts','InErrors','RcvbufErrors','SndbufErrors')})
 RULE_MEANINGS={
     'kernel.oom':'The kernel reported killing a process because of a memory shortage or limit. This can explain that process stopping; it does not establish why memory ran out or why the whole host stopped responding.',
     'kernel.panic':'The kernel reported a panic, a serious condition that can stop normal operation. The message alone does not identify its cause.',
@@ -95,7 +101,7 @@ def name(item):
     key=item['key']
     if key in NAMES: return NAMES[key]
     if key.startswith('dependency.'): return 'Tool: '+key.removeprefix('dependency.')
-    if key.startswith(('network.tcp.','network.udp.')): return COUNTER_NAMES.get(key.rsplit('.',1)[1],key)
+    if key.startswith(('network.tcp.','network.udp.','network.tcp_basic.','network.udp6.')): return COUNTER_NAMES.get(key.rsplit('.',1)[1],key)
     return key.replace('_',' ').replace('.',' / ').capitalize()
 
 
@@ -171,7 +177,7 @@ def observation_view(item):
         steps=['Inspect the affected service units and their logs before considering changes.'] if state!='normal' else []
     elif key.endswith('_directory'):
         meaning='Directory presence only. It does not prove retained journal history, a working crash backend or complete access.'
-    elif key.startswith(('network.tcp.','network.udp.')):
+    elif key.startswith(('network.tcp.','network.udp.','network.tcp_basic.','network.udp6.')):
         meaning='Change in a kernel protocol counter between two samples. Counters can overlap; growth does not identify an attacker or prove a flood.'
         steps=['Compare expected load, application behavior and resource limits when error/pressure counters grow.'] if isinstance(value,dict) and value.get('delta',0)>0 else []
     elif key=='network.interfaces':
@@ -440,7 +446,7 @@ def render_sockets(snapshot,out):
             line(out,value['protocol'].upper()+' '+value['state']+': '+title+'. '+meaning,'  ')
             explained.add(identity)
         line(out,row_label(value)+' | '+binding_meaning(value)[0],'  ')
-    line(out,'Queue values retain native semantics; socket owners and external reachability were not collected.','  ')
+    line(out,'Queue values retain native semantics. Reported owner associations, when requested, are separate sequential reads; Internet reachability remains unverified.','  ')
 
 
 def render(data,out):
@@ -481,6 +487,8 @@ def render(data,out):
             print('\nRetained mount examples (all rows in System/details)',file=out)
             for row in filesystem_order(data['filesystems'])[:5]:
                 line(out,filesystem_detail(row,data['filesystems'])['Observed'],'  ')
+        from .network_review import render as render_network_review
+        render_network_review(data,out)
         line(out,'Suggested follow-up commands are optional and never run automatically.')
         line(out,'Use --details or --json for all retained readings, exact values and original source fields.')
         return
@@ -511,6 +519,8 @@ def render(data,out):
                     for text,key in zip(detail['Measurements'][2:],('receive_errors','receive_drops','send_errors','send_drops')):
                         if interface['delta'][key]>0: line(out,text,'    ')
                 if interface['state']!='compared': line(out,detail['What it means'],'    ')
+    from .network_review import render as render_network_review
+    render_network_review(data,out)
     groups=finding_groups(data)
     if groups:
         print('\nExplained findings',file=out)

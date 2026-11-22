@@ -68,23 +68,28 @@ def validate(data,kind):
     return data
 
 
+def read_source(kind,runner,sample_seconds=0.1):
+    if kind not in {'processes','filesystems'}:raise ValueError('Unsupported resource source')
+    started=datetime.now(timezone.utc).isoformat()
+    source={'state':'unavailable','rows':[],'coverage':{},'reason':'source_not_supported',
+            'limitations':['This resource source could not be assessed; no zero/healthy result is inferred.']}
+    read=getattr(runner,'read_system_resources',None)
+    if read is not None:
+        result=read(kind,sample_seconds)
+        source.update(command_state=result.state,returncode=result.returncode,reason='command_unsuccessful')
+        if result.state=='completed' and result.returncode==0:
+            try:
+                if len(result.stdout.encode('utf-8'))>1048576:raise ValueError('Resource output limit')
+                parsed=json.loads(result.stdout,object_pairs_hook=unique_object,parse_constant=reject_constant)
+                bounded_structure(parsed);parsed=validate(parsed,kind)
+                source.update(parsed,reason=None)
+            except (ValueError,KeyError,TypeError,OverflowError,UnicodeError,RecursionError):source['reason']='unsupported_or_over_limit_output'
+    source.update(started_at=started,finished_at=datetime.now(timezone.utc).isoformat())
+    return source
+
+
 def attach(data,runner=None,sample_seconds=0.1):
     runner=runner or CommandRunner()
     for kind in ('processes','filesystems'):
-        started=datetime.now(timezone.utc).isoformat()
-        source={'state':'unavailable','rows':[],'coverage':{},'reason':'source_not_supported',
-                'limitations':['This resource source could not be assessed; no zero/healthy result is inferred.']}
-        read=getattr(runner,'read_system_resources',None)
-        if read is not None:
-            result=read(kind,sample_seconds)
-            source.update(command_state=result.state,returncode=result.returncode,reason='command_unsuccessful')
-            if result.state=='completed' and result.returncode==0:
-                try:
-                    if len(result.stdout.encode('utf-8'))>1048576:raise ValueError('Resource output limit')
-                    parsed=json.loads(result.stdout,object_pairs_hook=unique_object,parse_constant=reject_constant)
-                    bounded_structure(parsed);parsed=validate(parsed,kind)
-                    source.update(parsed,reason=None)
-                except (ValueError,KeyError,TypeError,OverflowError,UnicodeError,RecursionError):source['reason']='unsupported_or_over_limit_output'
-        source.update(started_at=started,finished_at=datetime.now(timezone.utc).isoformat())
-        data[kind]=source
+        data[kind]=read_source(kind,runner,sample_seconds)
     data['collected_at']=datetime.now(timezone.utc).isoformat()

@@ -243,3 +243,15 @@ probes. No command lines, environment, repair, process control or arbitrary user
 path is added. Partial/unavailable sources cannot imply a healthy host. Kernel
 uninterruptible I/O and compromised local evidence remain trust limits. See the
 [full source boundary](../architecture/system-process-storage.md).
+
+## Practical network context
+
+Fixed trusted-catalog ip/ss reads add numeric local address/route configuration and
+reported socket owners without a route lookup, remote probe, packet capture, DNS
+lookup or configuration change. Bounded structured parsing and independent source
+states reject malformed/ambiguous/over-limit output. Unique complete socket-row
+matches constrain sequential joins; bounded current cgroups provide reported service
+associations, with explicit PID/socket reuse and namespace/access limits. Source
+strings remain literal administrator evidence. Derived cards and temporal log
+patterns never authorize automatic blocking or establish an attack/compromise.
+See [the network source and trust boundary](../architecture/practical-network-investigation.md).
