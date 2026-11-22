@@ -108,6 +108,9 @@ def _group_members(data,representative,source):
 
 
 def source_table(entry,data):
+    if entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline'}:
+        from .ssh_presentation import table
+        return table(entry.kind,entry.original)
     source=entry.original
     if entry.kind=='retained_report':
         from .tui_model import Settings

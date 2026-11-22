@@ -1,55 +1,65 @@
-# Next development proposal
+# Approved next development sequence
 
-Status: proposed on 2026-11-22 after the owner's request to finish stabilization
-and start planning the next work. The four-step 1.1.0 delivery is complete. This
-document proposes the next sequence; it does not authorize feature implementation,
-a release or a wider host-security product. The [delivery plan](delivery-plan.md)
-remains the execution record.
+Approved 2026-11-22: SSH statistics, firewall/Fail2ban, then port accessibility.
+The four-step 1.1.0 delivery is complete; post-release stabilization merged in
+PR #73. The [delivery plan](delivery-plan.md) remains the execution record.
+Finish and verify one coherent step before starting another. This task authorizes
+step 1 implementation and merge, not a new release or steps 2–3 implementation.
 
-## Goal and order
-
-Help an administrator answer what failed, when it was reported, which concrete
-records support that answer and what to inspect next. Prioritize earlier incidents
-as well as present symptoms. A boot is an optional evidence filter, not the main
-organizing unit. Complete one step and its acceptance before starting the next.
-
-| Order | Proposed work | Administrator outcome | Acceptance |
+| Order | Work | Administrator outcome | Acceptance |
 | --- | --- | --- | --- |
-| 1 | Service history for the selected incident period | Investigate a service failure from an earlier period even if the service has recovered or the server restarted | A bounded service query uses the chosen receipt-time range and optional boot filter; current manager state stays separate from historical attempts; original messages and missing/capped coverage remain inspectable |
-| 2 | Resource recordings aligned with the incident period | Compare the reported fault with existing resource history instead of relying on current readings or a last-record anchor | Explicitly report which dates, intervals and files were examined; define total read/file/sample limits before implementation; gaps, resets, midnight boundaries and unverified host/boot identity stay explicit |
-| 3 | Storage-fault follow-up from original reports | Follow an I/O or filesystem report to the reported device/mount and relevant service evidence | Retain exact messages and times; distinguish present capacity from past I/O failures; explain ambiguous device/mount associations without inferring hardware failure |
+| 1 | SSH authentication statistics | See when, how often and which reported usernames/peers appear in authentication reports since boot, during the last hour/day or a chosen period | Paged bounded collection beyond the old 500-row tail; explicit failed/accepted/partial/context counts; per-user, peer and time summaries; original records; honest lower bounds and unavailable totals |
+| 2 | Firewall policy and Fail2ban attribution | Understand what is blocked, why and which component reports initiating it | Inspect active native rules/policies/sets, supported counters and retained logs; distinguish a Fail2ban-reported ban from matching active enforcement; state unknown administrator identity where audit evidence is absent |
+| 3 | Port accessibility | Understand a listener's binding, reported service, local filtering and forwarding/container path | Separate local listening, policy-based assessment and actual external test evidence; IPv4/IPv6 and source restrictions stay explicit; no automatic external scan |
 
-Step 1 is the recommended first implementation. The current service reader obtains
-current-boot unit logs, while general investigation supports selected periods.
-Connecting those capabilities addresses a concrete retrospective gap without
-requiring a new service, database, recording policy or external dependency.
+## Step 1: current delivery
 
-Step 2 requires an architecture decision about bounds and file selection before
-editing readers. The existing one-file, two-hour replay remains supported until
-that decision is reviewed. Do not silently scan all recordings or claim that
-matching timestamps prove the recording's host/boot identity.
+See [SSH design and bounds](architecture/ssh-statistics.md). Network opens the
+explicit SSH history reader. CLI uses `faultlens ssh`, existing journal scope,
+optional immutable boot ID and timezone-qualified period boundaries. Count explicit
+authentication reports rather than adding invalid-user/PAM context to failures.
+An accepted method is not a confirmed complete or authorized session. Retain original
+usernames, peers and messages without privacy masking, with terminal controls escaped.
+No persistent counters, recording policy, daemon, database or extra dependency.
 
-Step 3 initially uses retained journal and existing local source context. Hardware
-health tools, active disk tests, SMART/NVMe collection and new privileges are separate
-scope decisions, not implicit prerequisites.
+## Step 2: design boundary
+
+Read real nftables/iptables state, recognizing compatibility/frontends such as UFW;
+do not treat multiple views of the same backend as independent corroboration.
+Interpret supported chain/hook priority, defaults, sets, direction and relevant
+forwarding. Unsupported paths remain unresolved rather than guessing a verdict.
+Read-only Fail2ban state/logs may explain jail, reported threshold, timing and action;
+current settings are not proof of the settings at an older ban. A chain name alone
+is not verified rule ownership. A ban through Fail2ban need not identify the human
+who requested it. Existing audit evidence is needed for human attribution.
+No ban/unban, rule changes, rule tracing that changes state or production attack tests.
+
+## Step 3: design boundary
+
+Join actual TCP listeners/UDP bindings with addresses, reported service and supported
+filter/NAT/container-publishing paths. A listening socket or local accept rule alone
+cannot establish Internet accessibility. Router/provider policy, NAT and source
+restrictions can remain outside local visibility. An optional separately performed
+external test must identify source, protocol and time, and only establishes that
+observed path. TCP and UDP have different validation requirements. No automatic
+remote probe, cloud integration or false global reachable/closed verdict.
 
 ## Shared completion criteria
 
-- Explain concrete observed messages, source/time scope, uncertainty and a useful
-  next investigation. Inaccessible evidence remains unassessed, never an all-clear.
-- Retain complete administrator evidence without privacy masking; escape hostile
-  terminal controls and never turn evidence into executable commands.
-- Test synthetic positive, healthy/recovered, ambiguous, inaccessible, empty and
-  capped cases, including cross-restart periods and actual frontend navigation.
-- Keep local read-only defaults, existing access, bounded/cancellable collection,
-  exact dependency locks and all existing resource budgets.
-- Work on staging, inspect the final diff and merge only after security, source,
-  platform and installed Debian/Ubuntu package checks pass. Publish a new official
-  GitHub release only when the owner requests it.
+- Useful explanation, actual evidence, scope/time, coverage and next investigation.
+- Read-only existing access, bounded/cancellable commands and no automatic exports.
+- Synthetic positive, ordinary, ambiguous, missing, capped and malformed cases;
+  actual frontend original-record navigation and source-failure distinctions.
+- Unchanged dependency locks and CPU/wall/RSS budgets; required source/security,
+  Ubuntu/Debian platform, installed-package and CodeQL gates before merge.
+- Only staging/main, no force push/deletion. A new ordinary GitHub release requires
+  the owner's release instruction; published tags/assets remain immutable.
 
-## Optional future scope
+## Deferred work
 
-Broader security analysis and package/CVE assessment remain possible later roadmap
-items. They are outside this proposed fault-investigation sequence. Automatic
-repair, blocking, packet capture, remote probes, cloud services and daemons are
-not added by these steps.
+The earlier proposed service-history periods, incident-aligned Atop recordings and
+storage-fault follow-up remain candidate work after this approved network sequence.
+No implementation or new collection bounds for those proposals are implied here.
+Hardware tools/active tests and additional privileges are separate scope decisions.
+Broader security/package-CVE assessment remains possible future roadmap scope,
+not part of this delivery. Automatic repair, blocking and packet capture are excluded.

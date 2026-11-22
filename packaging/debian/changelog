@@ -1,5 +1,7 @@
 faultlens (1.1.1~dev0) unstable; urgency=medium
 
+  * Add bounded paged SSH statistics and Network evidence navigation.
+
   * Accept ss owner-column padding without changing read/row limits.
   * Separate address/route coverage and explain network-source failures.
   * Preserve complete service-message previews in pinned Evidence selections.

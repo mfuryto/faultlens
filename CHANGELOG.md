@@ -2,6 +2,10 @@
 
 ## Unreleased — 1.1.1.dev0
 
+- Add paged SSH authentication statistics for boot/hour/day/selected periods, with
+  explicit outcome counts, username/peer/time groups and original-record navigation
+  in CLI and Network. Missing sources and bounded scans retain honest coverage.
+
 - Accept native ss owner-column padding while preserving original rows and all
   collection bounds; reject unexpected controls and trailing non-padding fields.
 - Assess addresses/routes independently from failed socket-owner/process sources,

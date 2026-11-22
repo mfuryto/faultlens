@@ -161,13 +161,18 @@ remains an operator check. The original step merged without a release; the owner
 
 ## Delivery and future scope
 
-The owner requested post-release stabilization followed by a proposal for the next
-development sequence on 2026-11-22. The [post-release review](post-release-review.md)
-records concrete regressions and its verification scope. Development is now
-`1.1.1.dev0`; the published 1.1.0 tag and assets stay immutable. The
-[next development proposal](next-development-plan.md) is a proposal, not approval
-to start new collectors or widen the product scope. No further release is authorized
-by this stabilization task.
+Post-release stabilization merged in PR #73. The owner then approved the next
+sequence: **SSH authentication statistics → firewall/Fail2ban → port accessibility**.
+The [approved next sequence](next-development-plan.md) defines outcomes and acceptance.
+The current task implements SSH statistics on staging and authorizes merge after all
+required checks. Firewall and port-accessibility implementation remain subsequent
+steps. Earlier proposed service-history/resource/storage work is deferred, and broad
+package/CVE auditing remains possible future scope.
+
+Development remains `1.1.1.dev0`; published 1.1.0 assets are immutable. No further
+release is authorized by this implementation task. The [SSH design](architecture/ssh-statistics.md)
+records explicit-count semantics, original evidence, forward pagination, coverage
+and bounds. The [post-release review](post-release-review.md) preserves prior fixes.
 
 Work on staging, review the final diff and merge to main only after required security,
 source/platform and Debian/Ubuntu package checks pass. Keep only main/staging, no
