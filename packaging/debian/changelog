@@ -1,3 +1,10 @@
+faultlens (1.0.2~dev0) unstable; urgency=medium
+
+  * Complete the shared service failure/message/context investigation flow.
+  * Preserve reported invocation scope and add bounded follow-up navigation.
+
+ -- mfuryto <34251082+mfuryto@users.noreply.github.com>  Sun, 22 Nov 2026 00:00:00 +0000
+
 faultlens (1.0.1) stable; urgency=medium
 
   * Investigate selected failed services with bounded local status and unit logs.

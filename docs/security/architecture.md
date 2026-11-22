@@ -219,3 +219,15 @@ messages and references alongside supported explanations and unknown causes.
 Primary command semantics: [systemctl](https://www.freedesktop.org/software/systemd/man/255/systemctl.html)
 and [journalctl](https://www.freedesktop.org/software/systemd/man/255/journalctl.html).
 AppArmor interpretation context: [Ubuntu AppArmor guide](https://documentation.ubuntu.com/server/how-to/security/apparmor/).
+
+
+The [general service workflow](../architecture/general-service-troubleshooting.md)
+adds interpretation and navigation without expanding command privileges. Extra
+journal fields are retained by validated cursor association; malformed/missing
+invocation identity stays unverified. Only PID 1/systemd/root selected-unit records
+can supply a dependency job explanation or manager-side invocation association.
+Message rows use trusted program-created navigation fields, separate from source
+report context and raw objects. Context opens bounded retained neighbors; period
+navigation validates and clamps receipt timestamps. Current-view navigation requests
+fresh readings without treating them as historical conditions. No log text is run
+and no remediation is performed.

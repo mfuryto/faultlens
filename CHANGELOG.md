@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — 1.0.2
+
+- Generalize service troubleshooting across manager failure results, main-process
+  exits/signals and common error messages, retaining unknown causes and messages.
+- Open individual messages, surrounding context, a bounded investigation period
+  and relevant current System/Network readings from the service view.
+- Distinguish same, different and unverified reported invocation identities.
+- Replace the active delivery plan with the owner-approved four-step order and
+  explicit practical Network / possible attack investigation requirements. DDoS
+  is one example, not the design focus.
+
 ## 1.0.1 — 2026-11-22
 
 - Open failed service rows to inspect current system-manager state and retained

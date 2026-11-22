@@ -75,7 +75,9 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
         if options[0]=='service' and (data.get('unit')!='systemd-journald.service'
                 or data.get('state') not in {'available','partial','unavailable'}
                 or any(data.get(key,{}).get('state') not in {'available','unavailable'} for key in ('status','journal'))
-                or not isinstance(data.get('journal_records'),list)):
+                or not isinstance(data.get('journal_records'),list)
+                or not isinstance(data.get('assessment'),dict) or not isinstance(data['assessment'].get('code'),str)
+                or not isinstance(data.get('invocation_summary'),dict)):
             raise ValueError('Native service investigation contract was not reported')
         if options[0]=='investigate':
             if (data.get('mode')!='period' or data.get('current')!={} or data.get('boot_filter',{}).get('requested') is not None

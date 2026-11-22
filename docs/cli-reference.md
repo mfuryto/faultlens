@@ -70,6 +70,27 @@ problems, actual loaded policy and the relationship between errors remain unveri
 A small set of common error phrases also offers conditional investigation guidance.
 Unmatched messages remain readable and are not treated as a no-fault verdict.
 
+### General service workflow (development after 1.0.1)
+
+The same inquiry applies to any supported literal system `.service` name. Manager
+results such as exit failure, signal/core-dump, timeout, watchdog, OOM kill, start
+limit, resource/protocol/condition and unit-load errors have shared interpretations.
+Exit/signal numbers remain reported values; arbitrary application exit codes do
+not receive guessed application-specific meanings.
+
+In Health, open a failed service, then **Messages**. Explained reports and error/
+warning messages are prioritized, with every retained information/unknown message
+still accessible. Enter opens one actual message, its meaning, next step and reported
+invocation scope. **Context** opens up to three neighboring records on either side.
+**Investigate period** selects two minutes before/after that journal receipt time;
+boot remains optional and journal scope follows Settings. **Current System/Network**
+requests a current comparison snapshot, which cannot prove earlier conditions.
+
+Same/different invocation IDs are reported metadata associations, not authentication
+or causal proof. Missing, malformed or manager-only identity remains unverified.
+AppArmor remains an additional specific rule; no service product is required for the
+shared workflow. See [scope and acceptance](architecture/general-service-troubleshooting.md).
+
 ### Additional examples
 
 ```sh
