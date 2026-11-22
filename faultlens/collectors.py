@@ -1,5 +1,7 @@
 """Read-only observations from Linux interfaces, with explicit evidence gaps."""
 import time
+import os
+from dataclasses import replace
 
 from .commands import Command, CommandRunner, TOOLS, TOOL_PURPOSES
 from .linux import LinuxSources
@@ -106,6 +108,10 @@ def status(sources=None, runner=None, sample_seconds=0.1, sleep=time.sleep) -> l
                                            ("Excludes reserved free blocks from usable capacity; df rounds its display up to whole percent.",)))
         else:
             observations.append(unavailable("filesystem.root.user_used", "statvfs(/)", "No user-accessible capacity denominator."))
+        if type(getattr(data,'f_flag',None)) is int and data.f_flag & os.ST_RDONLY:
+            observations=[replace(item,state='unknown',explanation='Read-only root flag observed in the same statvfs sample; capacity ratios are informational, not a writable-space alarm.',
+                                  limitations=(*item.limitations,'Read-only state can be intentional; inspect related errors if unexpected.'))
+                          if item.key in {'filesystem.root.used','filesystem.root.user_used'} and item.value is not None else item for item in observations]
         return observations
     _attempt(items, "filesystem.root.used", "statvfs(/)", collect_disk)
     _attempt(items, "storage.io_counters", "/proc/diskstats",

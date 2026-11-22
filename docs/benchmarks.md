@@ -472,3 +472,14 @@ All 63 constrained synthetic runs passed one-CPU-affinity and
 62.97 MiB. These are synthetic process
 regressions, not target-server/SSH qualification or VM RAM requirements. Real native
 journal traversal, storage latency and incident reconstruction remain outside them.
+
+## Current process and mount coverage — 2026-11-22
+
+The existing `status` and `tui-status` scenarios now include 512 invented current
+process rows and 256 invented mount rows, with the actual 32-probe capacity limit
+and explicit remaining unprobed rows. `tui-status` opens the process source table;
+pagination retains all rows while rendering a bounded batch. The same worker is
+used by constrained-resource profiles and installed-package qualification. This
+strengthens the workload without changing the 28 benchmark modes, 21 profiles,
+50/80 MiB memory budgets, one CPU second, two wall seconds or aggregate deadlines.
+These synthetic checks do not measure native procfs/mount I/O on arbitrary hosts.

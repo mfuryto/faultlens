@@ -2,6 +2,12 @@
 
 ## Unreleased — 1.0.2
 
+- Investigate current process CPU/RSS and mount-specific space/inode pressure from
+  System and Health, with readable explanations, all retained rows and originals.
+- Open a reported process-to-system-service association in the shared service reader.
+- Keep independent bounded resource workers, inaccessible/partial source coverage,
+  intentional read-only mounts and unassessed inode counts explicit.
+
 - Generalize service troubleshooting across manager failure results, main-process
   exits/signals and common error messages, retaining unknown causes and messages.
 - Open individual messages, surrounding context, a bounded investigation period

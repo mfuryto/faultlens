@@ -31,6 +31,7 @@ def worker(command: str) -> dict:
         if page==5:
             for key in ('search_ssh','search_firewall','pstore','pstore_archive'): session.update_setting(key)
             session.update_setting('atop_date','20260101'); session.update_setting('atop_extended')
+        if command=='tui-status': session.runner.maximum_system_resources=True
         session.refresh()
         app=FaultlensApp(session=session,initial_collect=False); app.snapshots[page]=session.data
         async def exercise():
@@ -39,6 +40,9 @@ def worker(command: str) -> dict:
                 app.select_page(page)
                 await pilot.pause(0.01)
                 if app.page!=page: raise RuntimeError('Workspace section did not activate')
+                if command=='tui-status':
+                    from textual.widgets import DataTable
+                    app.query_one('#grid-0',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[0]) if row.kind=='processes'))
                 if command=='tui-health':
                     from textual.widgets import DataTable
                     app.query_one('#grid-1',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[1]) if row.kind=='failed_services'))
@@ -109,12 +113,15 @@ def worker(command: str) -> dict:
     if command=='health':
         from tests.support import SyntheticHealthRunner
         runner=SyntheticHealthRunner()
+    if command=='status': runner.maximum_system_resources=True
     code = main(arguments, sources=sources, runner=runner, stdout=output,
                 pstore_collector=SyntheticSources().pstore_snapshot,
                 pstore_archive_collector=SyntheticSources().pstore_snapshot)
     payload = json.loads(output.getvalue())
     if code != 0 or payload.get('state') == 'unavailable' or not (payload.get('observations') or payload.get('boots')):
         raise RuntimeError('Synthetic collection failed')
+    if command=='status' and (len(payload['processes']['rows'])!=512 or len(payload['filesystems']['rows'])!=256):
+        raise RuntimeError('Maximum synthetic process/filesystem coverage failed')
     if command in {'network', 'security', 'network-sockets'}:
         if (len(payload['observations'][0]['value']) != 128 or len(payload['findings']) != 3
                 or payload['attack_assessment'] != 'Unknown'):

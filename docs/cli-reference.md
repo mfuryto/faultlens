@@ -13,7 +13,7 @@ Run as the current user with existing source permissions. With no command,
 | --- | --- |
 | `faultlens` / `faultlens tui` | Primary terminal workspace |
 | `faultlens investigate` | Problems now, a chosen period or before restart |
-| `faultlens status` | Current system measurements and login sessions |
+| `faultlens status` | Current measurements, process CPU/RSS, mount space/inodes and login sessions |
 | `faultlens service --unit NAME.service` | Service state, retained logs, explanations and next steps |
 | `faultlens health` | Operational symptoms and diagnostic readiness |
 | `faultlens check` | Tools, services and recording setup |
@@ -126,7 +126,9 @@ the launcher disables them. Faultlens does not save reports or change system set
 
 Status covers sampled aggregate CPU, load, RAM/swap, root filesystem capacity,
 cumulative per-device I/O and interface counters, visible process count, kernel/boot
-information and the systemd manager state where available. `check` inspects optional
+information and the systemd manager state where available. Independent sources add
+current process CPU/RSS and mount-specific space/inodes within declared bounds;
+this is not complete process or filesystem inventory. `check` inspects optional
 utilities, journal directory presence, visible prior boots, and journald/atop service
 state. It never reads out raw log entries or claims that a directory proves recording.
 
@@ -341,3 +343,19 @@ examined. Requested but unavailable searches are distinct from searches that wer
 not requested. Partial journal/SSH/firewall coverage prevents an overall no-fault
 assessment. Findings from independently available sources remain visible with their
 own scope and unchanged confidence; no permission-denial cause is guessed.
+
+## Current processes and mount capacity
+
+`faultlens status` and `faultlens health` include independent `processes` and
+`filesystems` sources. Readable output highlights retained examples and affected
+mounts; `--details` and `--json` retain every collected row, exact counters, sampling
+intervals and coverage. `--sample-seconds` also controls the short process CPU
+sample. CPU is relative to one logical CPU; RSS includes shared pages and must not
+be added as unique memory. A new/reused or unreadable process is not zero usage.
+
+Mount space and inode usage are independent. Writable mounts use exact 90% review
+and 95% critical thresholds; read-only mounts may be intentional. Unprobed types,
+identity changes, unavailable sources and missing inode denominators stay explicit.
+No arbitrary path, process control, repair or cleanup is accepted. These are bounded
+current-namespace readings, not complete inventory or historical conclusions.
+See [process and storage design](architecture/system-process-storage.md).

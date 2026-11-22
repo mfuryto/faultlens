@@ -200,6 +200,8 @@ class Session:
             data=report('status',status(self.sources,self.runner,self.settings.sample_seconds))
             from .sessions import attach
             attach(data,self.runner)
+            from .system_resources import attach as attach_resources
+            attach_resources(data,self.runner,self.settings.sample_seconds)
         elif self.page==1:
             from .health import collect
             data=collect(self.sources,self.runner,sample_seconds=self.settings.sample_seconds,

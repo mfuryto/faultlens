@@ -105,6 +105,8 @@ class DetailDialog(ModalScreen):
                 yield Button('Original',id='original')
                 if self.entry.kind=='finding': yield Button('Records',id='references')
                 if self.entry.kind=='service_message': yield Button('Context',id='service-context',variant='primary')
+                if self.entry.kind=='process' and self.entry.original.get('service'):
+                    yield Button('Reported service',id='process-service')
                 if 'Timeline position' in (self.entry.detail or {}): yield Button('Position',id='position')
                 if self.entry.kind=='boot': yield Button('Investigate this boot',id='select-boot',variant='primary')
                 yield Button('Close',id='close')
@@ -123,6 +125,10 @@ class DetailDialog(ModalScreen):
         if event.button.id=='original': self.action_original()
         elif event.button.id=='position': self.action_position()
         elif event.button.id=='references': self.app.push_screen(RecordsDialog(self.data,self.entry.original))
+        elif event.button.id=='process-service' and self.entry.kind=='process':
+            from .workspace import Entry
+            unit=self.entry.original['service']
+            self.app.push_screen(ServiceDialog(Entry((unit,),{'unit':unit},None,'service'),self.data))
         elif event.button.id=='service-context' and self.entry.kind=='service_message':
             index=self.entry.navigation['record_index']
             self.app.push_screen(RecordsDialog(self.data,records=self.data['journal_records'][max(0,index-3):index+4]))
@@ -305,12 +311,12 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages'}:
+        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages'}:
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
                     [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
@@ -351,7 +357,7 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
@@ -732,7 +738,7 @@ class FaultlensApp(App):
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='service': self.push_screen(ServiceDialog(entry,data))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions'}:
+        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 

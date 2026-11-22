@@ -1,5 +1,6 @@
 faultlens (1.0.2~dev0) unstable; urgency=medium
 
+  * Add bounded process CPU/RSS and mount-specific capacity/inode investigation.
   * Complete the shared service failure/message/context investigation flow.
   * Preserve reported invocation scope and add bounded follow-up navigation.
 

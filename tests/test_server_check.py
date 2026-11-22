@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from tests.support import SyntheticRunner
 from unittest.mock import patch
 
 from faultlens.commands import Result
@@ -119,12 +120,14 @@ class ServerCheckTests(unittest.TestCase):
         self.assertIn('--pstore',argv)
 
     def test_live_status_uses_existing_adapter_without_emitting_measurements(self):
-        with patch('faultlens.collectors.status',return_value=[Observation('cpu.busy',12.345,'percent','proc')]), patch('faultlens.sessions.collect',return_value={'state':'available','rows':[{'username':'private-user'}]}):
+        with patch('faultlens.commands.CommandRunner',return_value=SyntheticRunner()), patch('faultlens.collectors.status',return_value=[Observation('cpu.busy',12.345,'percent','proc')]), patch('faultlens.sessions.collect',return_value={'state':'available','rows':[{'username':'private-user'}]}):
             data=live_probe('status')
         self.assertEqual('PASS',data[0]['state'])
         self.assertNotIn('12.345',json.dumps(data))
         self.assertNotIn('private-user',json.dumps(data))
         self.assertEqual('sessions.source',data[-1]['key'])
+        self.assertTrue(all(value['state']=='PASS' for value in data if value['key'].startswith('resources.')))
+        self.assertEqual({'resources.processes','resources.filesystems'},{value['key'] for value in data if value['key'].startswith('resources.')})
         self.assertIn('status.cpu.busy',json.dumps(data))
 
     def test_primary_flows_separate_empty_unavailable_and_partial_evidence(self):

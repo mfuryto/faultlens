@@ -61,5 +61,7 @@ def collect(sources=None,runner=None,*,sample_seconds=0.1,preservation=False):
         observations.extend(assess(sources,runner))
     data=report('health',observations)
     data['failed_services']=failed_services(runner)
+    from .system_resources import attach
+    attach(data,runner,sample_seconds)
     data['limitations'].extend(LIMITS)
     return data

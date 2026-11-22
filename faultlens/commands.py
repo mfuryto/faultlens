@@ -160,6 +160,15 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fd
 
 
 class CommandRunner:
+    def read_system_resources(self,kind,sample_seconds):
+        import math
+        if (not isinstance(kind,str) or kind not in {'processes','filesystems'} or type(sample_seconds) not in {int,float}
+                or not math.isfinite(sample_seconds) or not 0.05<=sample_seconds<=1):
+            raise ValueError('Invalid resource inquiry')
+        helper=str(Path(__file__).with_name('_system_exec.py').resolve())
+        try:return _capture([sys.executable,'-I','-B','-S',helper,kind,str(sample_seconds)],limit=1048576)
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError):return Result('unavailable')
+
     def read_service_properties(self, unit):
         validate_service_unit(unit)
         executable=trusted_tool('systemctl')

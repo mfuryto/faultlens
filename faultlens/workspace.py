@@ -156,6 +156,19 @@ def _group_members(data,representative,source):
 
 def source_table(entry,data):
     source=entry.original
+    if entry.kind=='processes':
+        from .system_resource_views import process_order,process_detail
+        from .presentation import size
+        return 'Retained current processes — CPU relative to one logical CPU',('PID','Reported name','CPU (one CPU)','Resident memory'),[
+            Entry((str(row['pid']),row['name'],str(row['cpu_percent'])+'%' if row['cpu_percent'] is not None else 'Uncomparable',size(row['rss_bytes'])),
+                  row,process_detail(row,source),'process') for row in process_order(source)]
+    if entry.kind=='filesystems':
+        from .system_resource_views import filesystem_order,filesystem_detail
+        def value(row,key):
+            return str(row['capacity'][key])+'%' if row['capacity'] is not None and row['capacity'][key] is not None else 'Not assessed'
+        return 'Retained mounts — shared capacities must not be summed',('Mount','Type / source state','Space used','Inodes used'),[
+            Entry((row['target'],row['filesystem_type']+' / '+row['state'],value(row,'user_used_percent'),value(row,'inode_used_percent')),
+                  row,filesystem_detail(row,source),'filesystem') for row in filesystem_order(source)]
     if entry.kind=='service_messages':
         from .service_diagnostics import problem_rows,record_detail
         from .investigation import utc,excerpt
