@@ -1,36 +1,22 @@
 # Changelog
 
-## Unreleased — 1.1.0
+## 1.1.0 — 2026-11-22
 
-- Follow retained History reports into a selected period, inquiry signals and fixed
-  Evidence selections with original record/source/time provenance.
-- Make Signals a derived review of the selected inquiry, with shared-record previews
-  consolidated; it no longer collects a second Network snapshot.
-- Keep service/peer navigation context explicit, preserve pinned evidence across
-  unrelated reads/refreshes and explain collection purposes and cached availability.
+- Investigate general system-service failures through reported results, exits/signals,
+  concrete messages, surrounding logs and bounded follow-up periods.
+- Inspect current process CPU/RSS, reported system-service associations and separate
+  filesystem space/inode pressure with explicit partial/unavailable coverage.
+- Add practical Network investigation: three short intervals, extended TCP/IPv6 UDP
+  counters, local addresses/link state/routes and permitted socket owner/service context.
+- Explain network pressure and possible scan/authentication/traffic patterns with
+  actual peers/ports, alternatives and original records; attack/root cause remain unverified.
+- Follow History report examples into a selected period, reuse inquiry findings in
+  Signals and pin exact Evidence selections across tab visits and refreshes.
+- Retain original query/partition provenance, explicit service/peer navigation subjects,
+  cached source-access explanations and compatible saved user preferences.
 
-- Add practical Network investigation with three short intervals, extended TCP and
-  IPv6 UDP coverage, local address/link/route context and permitted owner/service
-  associations. Preserve unavailable and ambiguous sources independently.
-- Explain concrete counter, listener, connection-state and peer observations, with
-  alternatives and navigation to original socket/log evidence and bounded periods.
-- Surface reported multi-peer password failures and acceptance after failures as
-  Possible patterns; preserve narrow authentication/firewall scope and unknown causes.
-
-- Investigate current process CPU/RSS and mount-specific space/inode pressure from
-  System and Health, with readable explanations, all retained rows and originals.
-- Open a reported process-to-system-service association in the shared service reader.
-- Keep independent bounded resource workers, inaccessible/partial source coverage,
-  intentional read-only mounts and unassessed inode counts explicit.
-
-- Generalize service troubleshooting across manager failure results, main-process
-  exits/signals and common error messages, retaining unknown causes and messages.
-- Open individual messages, surrounding context, a bounded investigation period
-  and relevant current System/Network readings from the service view.
-- Distinguish same, different and unverified reported invocation identities.
-- Replace the active delivery plan with the owner-approved four-step order and
-  explicit practical Network / possible attack investigation requirements. DDoS
-  is one example, not the design focus.
+Existing read-only defaults, local evidence handling, dependency locks and resource
+budgets are preserved. No daemon, telemetry, automatic repair, capture or blocking.
 
 ## 1.0.1 — 2026-11-22
 

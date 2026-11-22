@@ -1,4 +1,60 @@
-# Faultlens 1.0.1 release scope and qualification
+# Faultlens 1.1.0 release scope and qualification
+
+The owner authorized official GitHub publication on 2026-11-22. Version 1.1.0
+combines the additive service, process/storage, practical network and coherent
+inquiry/evidence work merged after 1.0.1. No 1.0.2 release was published. This is a
+local fault-investigation release, not a host-security or detector-accuracy certificate.
+
+## Included since 1.0.1
+
+- General service result/exit/signal explanations, original messages, surrounding
+  context and bounded follow-up periods across system services.
+- Current process CPU/RSS, reported cgroup service associations and mount-specific
+  space/inode review, with inaccessible/partial/read-only sources explicit.
+- Three short network intervals, TCP/IPv6 UDP source coverage, numeric local link,
+  address/route context, permitted socket owners and explainable review cards.
+- Possible scan/authentication/traffic patterns with actual referenced peers/ports,
+  alternatives and original records; attack and underlying cause remain unverified.
+- History report examples, question/time-based Investigate, Signals derived from the
+  same inquiry and fixed Evidence selections across unrelated reads and refreshes.
+- Additive inquiry/partition provenance and compatible saved preference keys, with
+  collection-purpose and cached-access explanations.
+
+The primary terminal command, explicit CLI/JSON commands and private reviewed
+frontend remain available. The runtime/dependency/read-only boundaries documented
+below and in [package verification](debian-package.md) still apply. No new Python
+runtime dependency, daemon, automatic recording, privilege grant, capture, blocking,
+repair, telemetry or cloud service is introduced.
+
+## Publication gates for 1.1.0
+
+The stable version, exact-lock advisory report, changelog and install instructions
+are reviewed on staging and merged only after source/platform/resource/CodeQL and
+both package CI targets pass. Publication uses that exact verified main commit.
+
+The bundle must contain `faultlens_1.1.0_all.deb`, corresponding committed source
+with the reviewed wheels, `release.json` and `SHA256SUMS`. The source bundle must
+reproduce the package byte for byte offline. Qualify the final artifact on both
+Debian 12 and Ubuntu 24.04, preserving existing install/upgrade/removal, native
+CLI/TUI/PTY and resource checks. Verify main checks and CodeQL analysis at the exact
+publication commit. Tag only that commit, upload to a draft, download and compare
+all asset hashes, then publish under the owner's authorization. Keep only
+main/staging branches and preserve prior tags/assets; no APT repository is created.
+
+The [1.1.0 dependency audit](security/dependency-audit-1.1.0.json), dated 2026-11-22,
+reports all nine exact requirements without known findings or skipped packages.
+It is not proof against unknown vulnerabilities. GitHub CI runs and release.json
+identify qualification and exact-source provenance; source/rebuild and target
+results are verified during release execution, not assumed from an earlier build.
+
+Earlier owner SSH/server feedback remains valid for its recorded revision. The new
+inquiry flow has synthetic frontend and installed package acceptance; live SSH
+feedback for that new flow remains operator follow-up. Container tests share a
+kernel and do not establish native workload impact or empirical detection rates.
+See [acceptance evidence](acceptance/server-qualification.md) and
+[the current delivery plan](delivery-plan.md).
+
+# Historical 1.0.1 qualification record
 
 Version 1.0.1 extends the initial local Linux fault-investigation release with
 selected-service status, retained unit logs and message explanations. The owner

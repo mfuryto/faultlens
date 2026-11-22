@@ -1,6 +1,6 @@
 # Debian package and release verification
 
-Version 1.0 is distributed as a downloadable `.deb`, with corresponding source and
+Version 1.1.0 is distributed as a downloadable `.deb`, with corresponding source and
 checksums, through [GitHub Releases](https://github.com/mfuryto/faultlens/releases).
 There is no project APT repository. Additional Ubuntu-server testing is planned by
 the owner after receiving the package; it is follow-up verification, not a functional
@@ -60,7 +60,7 @@ explicit packaging/docs inputs are exported: ignored environments, credentials,
 local modules, collected evidence and the Git directory are not package inputs.
 The security policy requires this allowlist to match tracked application modules.
 
-Stable versions match the application version (`1.0.1`). Development snapshots use
+Stable versions match the application version (`1.1.0`). Development snapshots use
 the source version and commit timestamp/hash. `--version`, `--epoch` and
 `--source-revision` support explicit source-archive rebuild inputs; versions must
 retain the application identity. Release qualification upgrades an internal RC
@@ -132,7 +132,7 @@ version separately from reproducible application-archive inputs.
 
 ## Release source and checksum verification
 
-The release assets are `faultlens_1.0.1_all.deb`, `faultlens-1.0.1-source.tar.gz`,
+The release assets are `faultlens_1.1.0_all.deb`, `faultlens-1.1.0-source.tar.gz`,
 `release.json` and `SHA256SUMS`. Download them from the same release. Run
 `sha256sum --check SHA256SUMS` in that directory before installation. Checksums detect
 corruption; obtain both assets and checksums through the trusted release page.
