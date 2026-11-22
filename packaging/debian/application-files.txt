@@ -19,6 +19,7 @@ faultlens/health.py
 faultlens/incidents.py
 faultlens/interface_presentation.py
 faultlens/investigation.py
+faultlens/investigation_flow.py
 faultlens/journal.py
 faultlens/linux.py
 faultlens/models.py

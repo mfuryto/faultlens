@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased — 1.0.2
+## Unreleased — 1.1.0
+
+- Follow retained History reports into a selected period, inquiry signals and fixed
+  Evidence selections with original record/source/time provenance.
+- Make Signals a derived review of the selected inquiry, with shared-record previews
+  consolidated; it no longer collects a second Network snapshot.
+- Keep service/peer navigation context explicit, preserve pinned evidence across
+  unrelated reads/refreshes and explain collection purposes and cached availability.
 
 - Add practical Network investigation with three short intervals, extended TCP and
   IPv6 UDP coverage, local address/link/route context and permitted owner/service

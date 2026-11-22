@@ -20,7 +20,7 @@ class OverviewRunner:
         self.calls, self.reads = [], []
         self.results = {}
         for identity in IDS:
-            rows = [record('Out of memory: Killed process 42', _BOOT_ID=identity)]
+            rows = [record('Out of memory: Killed process 42', _BOOT_ID=identity,__CURSOR='s=synthetic-'+identity)]
             self.results[identity] = Result('completed', '\n'.join(json.dumps(row) for row in rows), 0)
 
     def run(self, command):

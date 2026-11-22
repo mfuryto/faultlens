@@ -38,6 +38,7 @@ permissions. No elevation, account/group changes or host configuration writes oc
 | Enter | Open the selected record, finding, source or setting |
 | Esc | Close the current dialog; at the workspace, cancel active collection |
 | e | Open unchanged original evidence for the selected row/source |
+| v | Keep the selected finding/source/record in Evidence without collecting |
 | s | Explain the current snapshot or source coverage |
 | r | Explicitly collect the current source section |
 | /, n, N | Literal table search; next / previous match without filtering rows |
@@ -67,10 +68,10 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | System | Prioritized resource/service readings, current process CPU/RSS, mount space/inodes, reported logged-in users and grouped access to all retained rows |
 | Health | Operational readings and observed failed services, separate from journal/recording readiness and tool/default details |
 | Network | Concrete investigation cards, repeated counter intervals, addresses/link flags, separate IPv4/IPv6 routes and permitted socket owner/service context; all retained sources remain inspectable |
-| Signals | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
-| History | Retained UTC ranges and named report examples; Investigate this boot pins its ID and opens Diagnostics |
+| Signals | Review observations and source gaps from the selected inquiry; reuses Investigate data and never runs a separate Network scan |
+| History | Named retained event examples with original messages and period actions, alongside explicit optional boot-source investigation |
 | Investigate | Problems now, a selected period or before-restart context; investigation answer, actual message excerpts, timestamps and follow-up; all grouped reports and sources remain accessible |
-| Evidence | Explicit access to complete original report/source trees |
+| Evidence | A fixed selected finding/source/record with scope and time, direct record navigation and complete original fields; explicit replacement and return actions |
 | Settings | Typed per-user preferences, saved on valid changes; no server configuration editor |
 
 Open **Processes** for ranked PID/name/CPU/RSS rows, then a process for its sampling
@@ -89,7 +90,7 @@ service in the shared service/log reader when association is available. This doe
 not establish a malicious peer, application identity or Internet reachability.
 **Addresses and routes** opens independent local sources; **Measured intervals**
 shows byte/packet rates for each short interval without a host-throughput sum.
-These sources load on opening Network/Signals; optional socket collection still
+These sources load on opening Network; optional socket collection still
 follows Settings. No active scan, capture, external lookup or blocking runs.
 
 Historical network cards expose reported peers/ports and **Referenced records**.
@@ -106,9 +107,10 @@ a rendering bound, not source truncation or redaction. Details explain observati
 meaning, confidence and next steps. Original and Records open retained evidence.
 Raw trees are secondary inspection tools, never the main navigation model.
 
-The workspace retains at most one bounded snapshot per six source sections. Replacing
-a section drops its prior report first; Evidence shares source references. Security
-uses its own current report and never falls back to a cached diagnosis. Timestamps, actual report command and changed-option
+The workspace retains bounded source snapshots. Signals shares the selected inquiry;
+Evidence shares an explicit selection, or that inquiry when no pin exists. One pin
+and one inquiry origin can retain older bounded source objects across refresh;
+replacing them drops those references. No selection history accumulates. Timestamps, actual report command and changed-option
 notices distinguish stale or differently scoped results. No diagnostic snapshots or evidence are persisted.
 
 ## Safety and acceptance
@@ -272,9 +274,11 @@ context. Boot-local monotonic timelines are never combined across restarts. Each
 query retains at most 500 records globally, with at most seven interpreted boot
 partitions; caps and invalid/unavailable sources remain visible coverage gaps.
 
-History remains an optional boot/evidence browser. **Investigate this boot** adds an
-explicit filter to the appropriate current/pre-restart inquiry. Evidence retains
-complete originals from the last source report; it never starts collection. Repeated
+History opens retained report examples and their actual original message when its
+reference resolves. **Investigate period** selects two minutes around that receipt
+time and clears the optional boot filter. **Investigate this boot** remains an
+explicit filter action. Evidence pins the chosen source/finding/records with its own
+time/scope; unrelated tab visits and refreshes never replace that pin. It never collects. Repeated
 reports can occur in multiple queries and are not distinct incidents or independent
 corroboration. No supported match is not an all-clear; unavailable logs are a question
 that could not be answered, not a zero-fault result.
@@ -287,7 +291,7 @@ attribution. These options never configure recording or expose reports externall
 For explicitly invented OOM/no-match/unavailable examples, use the separately labeled
 [synthetic walkthrough](acceptance/investigation-walkthrough.md). Its technical
 single-boot scenario does not replace the primary question/time workflow or real
-server acceptance. Supporting authentication/firewall evidence remains in Signals;
+server acceptance. Signals summarizes supported reports and coverage from the selected inquiry;
 comprehensive security/CVE auditing is outside this plan.
 
 ## Select the incident period
@@ -344,3 +348,27 @@ remain available. Investigate period selects a bounded interval around receipt t
 using the current journal-scope setting. Current System/Network explicitly collects
 comparison readings; neither those readings nor temporal proximity prove an earlier
 cause. Esc returns through the dialog stack and still cancels a pending service read.
+
+## Follow an inquiry without losing its evidence
+
+Open a History report, service message or network observation, then its period/log
+follow-up. **Inquiry origin** keeps the selected subject available. A service or peer
+subject is navigation context, not an implicit query filter; actual bounds, journal
+scope and optional boot filters remain visible. Source partitions retain their own
+boot identity and parent inquiry scope. Current snapshots remain collection-time
+measurements, even when associated with an inquiry about journal evidence.
+
+Open Signals to review that same inquiry's findings and source gaps. When no inquiry
+has been retained, it loads the configured inquiry through Investigate's collector.
+Refresh repeats that inquiry; failure/cancellation never substitutes a Network report.
+Supported repeated references are consolidated only in this preview; original query
+results remain accessible and are not independent corroboration.
+
+Press v or the Evidence button in a source/message/service dialog. The Evidence
+section fixes the exact chosen objects and owning source. Open the retained selection
+for explanation/records or Full original report for technical fields. **Return to
+source** returns to its section; a source refreshed in the meantime may differ.
+**Use current inquiry instead** explicitly replaces the fixed selection. Navigation
+contexts and evidence are session-only; saved preferences retain their existing schema.
+Settings explain each option's purpose and last cached source availability without
+probing or implying that On grants access. See [the flow design](architecture/coherent-investigation-flow.md).

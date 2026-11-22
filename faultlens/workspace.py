@@ -57,46 +57,20 @@ def collection_entry(page,state='not_collected'):
 
 
 def security_entries(data,settings):
-    scope=guide(data)
-    rows=[Entry(('Current network signals',data.get('state','unknown'),'Live sample',
-                 'Short counter sample; attack assessment Unknown'),data,scope)]
-    observations=data.get('observations',[])
-    readable=sum(item['state']!='unavailable' and item['value'] is not None for item in observations)
-    detail={'Observed':str(readable)+' of '+str(len(observations))+' counter observations are readable.',
-        'What it means':'This section checks a short current-network-namespace sample. It does not inspect SSH history, effective firewall policy or external reachability.',
-        'What you can do':['Open counter readings to inspect unavailable values and the actual sampling interval.',
-                           'Review SSH and firewall reports for the chosen inquiry or time period.'],
-        'Evidence limits':['No matched indicator is not an all-clear. Missing or reset counters are not evaluated as zero.']}
-    rows.append(Entry(('Counter evidence',str(readable)+'/'+str(len(observations))+' readable','Current namespace',
-                       'Enter explains coverage; e opens original readings'),observations,detail))
-    if not data.get('findings'):
-        label='No supported network indicators matched' if readable else 'No usable network counter evidence'
-        rows.append(Entry((label,'Unknown','Live sample','No attack or safety verdict'),data,
-            {'Observed':label+'.','What it means':'Missing matches cannot rule out an attack. Short samples can miss intermittent events; unavailable counters cannot establish absence.',
-             'What you can do':['Inspect counter coverage and source limitations. Review historical SSH/firewall evidence if relevant.']}))
-    if 'sockets' in data:
-        socket=data['sockets']
-        rows.append(Entry(('Local socket evidence',socket['state'],'ss / current namespace',
-                           str(len(socket['rows']))+(' retained row' if len(socket['rows'])==1 else ' retained rows')+'; reachability unverified'),socket,None,'sockets'))
-    else:
-        rows.append(Entry(('Local socket evidence','Not requested','Current namespace','Enable socket endpoints in Settings'),None,
-            {'Observed':'Socket evidence was not requested.','What it means':'No socket or reachability conclusion is available.',
-             'What you can do':['Enable socket endpoints in Settings and refresh this section.']}))
-    requested={'boot_selector':settings.boot_selector,'journal_scope':'system' if settings.system_journal else 'visible',
-               'search_ssh':settings.search_ssh,'search_firewall':settings.search_firewall,'investigation_mode':settings.investigation_mode}
-    rows.append(Entry(('SSH and firewall history','Separate query','Inquiry '+(settings.investigation_mode or 'technical')+'; filter '+(settings.boot_selector or 'none'),
-                       'SSH '+('On' if settings.search_ssh else 'Off')+' / firewall '+('On' if settings.search_firewall else 'Off')+'; Enter opens Investigate'),requested,None,'diagnostics_link'))
-    return rows
+    from .investigation_flow import signals
+    return signals(data,settings)
 
 
 def page_table(page,data,settings):
     """Return domain columns/rows, never a primary JSON field browser."""
     if page==7:
-        return ('Collection option','Value','Scope'),[
+        from .investigation_flow import PURPOSES
+        return ('Collection option','Value','Purpose / access'),[
             Entry((SETTING_NAMES[key],('On' if getattr(settings,key) else 'Off') if type(getattr(settings,key)) is bool
-                   else setting_value(settings,key),'Session only'),key,None,'setting') for key in SETTING_KEYS]
+                   else setting_value(settings,key),PURPOSES[key]),key,{'What it means':PURPOSES[key]},'setting') for key in SETTING_KEYS]
     if page==5 and (data is not None and data.get('command')=='investigate' or data is None and settings.investigation_mode):
         return ('Question / evidence','Time / state','Observed evidence / scope','Next step'),workflow_entries(data,settings)
+    if page==3:return ('Signal / evidence','State','Retained scope','Next step'),security_entries(data,settings)
     if data is None: return ('Item','Value','Status'),[collection_entry(page)]
     if page in {0,1,2}:
         from .current_views import build
@@ -106,43 +80,21 @@ def page_table(page,data,settings):
         if settings.investigation_mode: rows.append(Entry(('Investigate a problem now','Current + recent evidence','Open inquiry','Enter opens Problems now'),'now',None,'investigation_start'))
         return ('Check','Result','Assessment','Meaning / next step'),rows
     if page==4:
-        from .investigation import history_detail,utc
-        summaries={row['boot']['boot_id']:row for row in data.get('summaries',[])}
-        rows=[]
-        for boot in data.get('boots',[]):
-            summary=summaries.get(boot['boot_id'])
-            detail=history_detail(summary) if summary else {'Observed':'Boot visible; not examined in this overview',
-                'What it means':'Select this boot to investigate it; this listing does not establish complete history.'}
-            first=summary.get('first_record') if summary else None
-            last=summary.get('last_record') if summary else None
-            reports=summary.get('notable_reports',[]) if summary else []
-            rows.append(Entry(('Boot '+str(boot['index']),utc(first.get('realtime_us')) if first else 'Not examined',
-                utc(last.get('realtime_us')) if last else 'Not verified',
-                reports[0]['title'] if reports else 'No supported match' if summary and summary['state']=='available' else 'Evidence not assessed',
-                'Enter to investigate'),summary or boot,detail,'boot'))
-        if not rows:
-            empty=collection_entry(4,'failed')
-            rows.append(Entry((*empty.cells,'No boot assessed','Check journal scope'),empty.original,empty.detail))
-        return ('Boot','First retained UTC','Last retained UTC','Reported problem','Next step'),rows
-    if page in {3,5}:
+        from .investigation_flow import history_entries
+        return ('Reported event / source','Retained UTC','Boot / end UTC','Recorded message / state','Next step'),history_entries(data)
+    if page==5:
         entries=[]
         for representative,count,source in finding_groups(data):
             members=_group_members(data,representative,source)
             entries.append(Entry((representative['title'],representative['confidence'],source,
                                   str(count)+' matched reports; not distinct incidents'),members,None,'finding_group'))
-        if page==3: entries.extend(security_entries(data,settings))
-        if page==5:
-            entries=investigation_entries(data)+entries
-            entries.append(Entry(('Selected boot chronology',data.get('state','unknown'),'Main retained tail',
-                str(data.get('records_examined',0))+' records; not a complete boot'),data,None,'timeline'))
+        entries=investigation_entries(data)+entries
+        entries.append(Entry(('Selected boot chronology',data.get('state','unknown'),'Main retained tail',
+            str(data.get('records_examined',0))+' records; not a complete boot'),data,None,'timeline'))
         entries.extend(source_entries(data))
-        return (('Finding / evidence','Time / confidence','Recorded message / source','Next step') if page==5 else ('Finding / evidence','Confidence / state','Source','Meaning')),entries
-    # Evidence is an explicit, secondary entry to complete source originals.
-    entries=workflow_entries(data,settings,actions=False) if data['command']=='investigate' else investigation_entries(data) if data['command']=='diagnose' else []
-    entries.append(Entry(('Full original report',data['command'],'All retained fields','Open original'),data,None,'raw'))
-    for entry in source_entries(data):
-        entries.append(Entry((entry.cells[0],entry.cells[1],'Complete retained source','Open original'),entry.original,None,'raw'))
-    return ('Evidence / finding','Time / state','Observed evidence','Next step'),entries
+        return ('Finding / evidence','Time / confidence','Recorded message / source','Next step'),entries
+    from .investigation_flow import evidence
+    return ('Evidence / finding','Time / state','Observed evidence','Next step'),evidence(None,data)
 
 
 def _group_members(data,representative,source):
@@ -157,6 +109,12 @@ def _group_members(data,representative,source):
 
 def source_table(entry,data):
     source=entry.original
+    if entry.kind=='retained_report':
+        from .tui_model import Settings
+        if source['command']=='investigate':return 'Retained inquiry — original snapshot',('Question / evidence','Time / state','Observed evidence','Next step'),workflow_entries(source,Settings(),actions=False)
+        page={'status':0,'health':1,'check':1,'network':2,'security':2,'incidents':4,'history':4,'diagnose':5}[source['command']]
+        columns,rows=page_table(page,source,Settings())
+        return 'Retained report — original snapshot',columns,rows
     if entry.kind=='network_issues':
         from .network_review import detail
         return 'Network observations — attack and cause remain Unknown',('Observation','Assessment','Actual evidence','Next step'),[

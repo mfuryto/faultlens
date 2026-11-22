@@ -77,6 +77,13 @@ async def workspace_check():
                 await pilot.pause(0.02)
         if app.collection_states[5]!='completed' or app.snapshots[5]['command']!='investigate':
             raise ValueError('Installed investigation collector failed')
+        inquiry=app.snapshots[5]
+        app.select_page(3);await pilot.pause(.02)
+        if app.data(3) is not inquiry or app.job is not None or 3 in app.snapshots:raise ValueError('Installed Signals started a separate source')
+        app.query_one('#grid-3',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[3]) if row.cells[0]=='Source coverage'))
+        app.action_evidence();await pilot.pause(.02)
+        if app.data(6) is not inquiry or app.evidence_selection is None:raise ValueError('Installed evidence selection lost inquiry context')
+        app.select_page(5);await pilot.pause(.02)
         from faultlens.workspace import Entry
         from faultlens.textual_app import ServiceDialog
         app.open_entry(Entry(('systemd-journald.service',),{'unit':'systemd-journald.service'},kind='service'),app.snapshots[5])

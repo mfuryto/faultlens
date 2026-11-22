@@ -91,7 +91,7 @@ class RawDialog(ModalScreen):
 
 
 class DetailDialog(ModalScreen):
-    BINDINGS=[Binding('escape','dismiss','Close'),Binding('e','original','Original evidence'),
+    BINDINGS=[Binding('escape','dismiss','Close'),Binding('e','original','Original evidence'),Binding('v','evidence','Evidence'),
               Binding('p','position','Timeline position')]
 
     def __init__(self,entry,data):
@@ -115,11 +115,17 @@ class DetailDialog(ModalScreen):
                 if 'Timeline position' in (self.entry.detail or {}): yield Button('Position',id='position')
                 if self.entry.kind=='boot': yield Button('Investigate this boot',id='select-boot',variant='primary')
                 yield Button('Close',id='close')
+            with Horizontal(classes='buttons'):
+                yield Button('Evidence',id='pin-evidence')
+                if self.entry.kind=='history_event':
+                    yield Button('Investigate period',id='history-period')
+                    if self.entry.navigation.get('record') is not None:yield Button('Recorded message',id='history-record')
             if self.entry.kind=='service_message':
                 with Horizontal(classes='buttons'):
                     yield Button('Investigate period',id='service-period')
                     yield Button('Current Network' if self.entry.navigation['current_page']==2 else 'Current System',id='service-current')
 
+    def action_evidence(self):self.app.show_evidence(self.entry,self.data)
     def action_original(self): self.app.push_screen(RawDialog(self.entry.original))
     def action_position(self):
         if 'Timeline position' in (self.entry.detail or {}):
@@ -127,7 +133,17 @@ class DetailDialog(ModalScreen):
 
     def on_button_pressed(self,event):
         event.stop()
-        if event.button.id=='original': self.action_original()
+        if event.button.id=='pin-evidence':self.action_evidence()
+        elif event.button.id=='history-record':
+            self.app.push_screen(RecordsDialog(self.data,record=self.entry.navigation['record']))
+        elif event.button.id=='history-period':
+            from .investigation_flow import period
+            window=period(self.entry.navigation['reference'])
+            if window is None:self.app.notice='No usable receipt time was retained; no period was guessed.';self.app.update_status();return
+            self.app.set_inquiry_anchor(self.entry,self.data)
+            while len(self.app.screen_stack)>1:self.app.pop_screen()
+            self.app.start_investigation('period',start=window[0],end=window[1],preserve_anchor=True)
+        elif event.button.id=='original': self.action_original()
         elif event.button.id=='position': self.action_position()
         elif event.button.id=='references': self.app.push_screen(RecordsDialog(self.data,self.entry.original))
         elif event.button.id=='socket-owners':
@@ -141,7 +157,7 @@ class DetailDialog(ModalScreen):
             subset=dict(source,rows=[row for row in source.get('rows',[]) if row['row_index'] in indices])
             self.app.push_screen(SourceDialog(Entry(('Referenced socket rows',),subset,kind='sockets'),self.data))
         elif event.button.id=='network-logs':
-            self.app.open_network_logs(self.entry.original)
+            self.app.open_network_logs(self.entry.original,data=self.data)
         elif event.button.id=='process-service' and self.entry.kind=='process':
             unit=self.entry.original['service']
             self.app.push_screen(ServiceDialog(Entry((unit,),{'unit':unit},None,'service'),self.data))
@@ -154,15 +170,18 @@ class DetailDialog(ModalScreen):
             app=self.app;target=self.entry.navigation['current_page']
             while len(app.screen_stack)>1:app.pop_screen()
             if event.button.id=='service-period':
-                app.start_investigation('period',start=start,end=end)
+                app.set_inquiry_anchor(self.entry,self.data)
+                app.start_investigation('period',start=start,end=end,preserve_anchor=True)
                 app.notice='Selected two minutes around a service journal receipt time. Journal scope uses Settings; temporal proximity is not causality.'
                 app.update_status()
             else:
+                app.set_inquiry_anchor(self.entry,self.data)
                 for cache in (app.snapshots,app.snapshot_options,app.collection_attempts):cache.pop(target,None)
                 app.select_page(target)
                 app.notice='Collect current readings for comparison; they do not establish conditions at the earlier service error.'
                 app.update_status();app.call_later(app.ensure_snapshot)
         elif event.button.id=='select-boot':
+            self.app.set_inquiry_anchor(self.entry,self.data)
             source=self.entry.original; boot=source.get('boot',source)
             self.app.session.update_setting('boot_selector',boot['boot_id'])
             if self.app.session.settings.investigation_mode:
@@ -196,6 +215,7 @@ class ServiceDialog(ModalScreen):
                 yield Button('Logs',id='service-logs',disabled=True)
                 yield Button('Original fields',id='service-original',disabled=True)
                 yield Button('Back',id='service-back')
+            with Horizontal(classes='buttons'):yield Button('Evidence',id='service-evidence',disabled=True)
 
     def on_mount(self): self.action_retry()
 
@@ -203,7 +223,7 @@ class ServiceDialog(ModalScreen):
         if self.collection_task is not None: return
         self.report=None
         self.query_one('#service-explanation',Static).update('Loading service status and current-boot unit logs...')
-        for name in ('service-messages','service-logs','service-original'): self.query_one('#'+name,Button).disabled=True
+        for name in ('service-messages','service-logs','service-original','service-evidence'): self.query_one('#'+name,Button).disabled=True
         self.collection_task=asyncio.create_task(self.load_service())
 
     async def load_service(self):
@@ -216,6 +236,7 @@ class ServiceDialog(ModalScreen):
             self.query_one('#service-messages',Button).disabled=not value['journal_records']
             self.query_one('#service-logs',Button).disabled=not value['journal_records']
             self.query_one('#service-original',Button).disabled=False
+            self.query_one('#service-evidence',Button).disabled=False
             self.query_one('#service-messages' if value['journal_records'] else '#service-original',Button).focus()
         except asyncio.CancelledError: raise
         except (OSError,ValueError,TimeoutError):
@@ -242,18 +263,23 @@ class ServiceDialog(ModalScreen):
         elif event.button.id=='service-logs' and self.report is not None:
             self.app.push_screen(RecordsDialog(self.report,records=self.report['journal_records']))
         elif event.button.id=='service-original': self.action_original()
+        elif event.button.id=='service-evidence' and self.report is not None:
+            from .service import view
+            entry=Entry((self.report['unit']+' — retained service messages',),self.report,view(self.report),'service_messages')
+            self.app.show_evidence(entry,self.report)
         else: self.dismiss()
 
 
 class RecordsDialog(ModalScreen):
     """Readable, scrollable source messages; exact retained objects remain available."""
-    BINDINGS=[Binding('escape','dismiss','Back'),Binding('e','original','Original fields'),
+    BINDINGS=[Binding('escape','dismiss','Back'),Binding('e','original','Original fields'),Binding('v','evidence','Evidence'),
               Binding('ctrl+right','next_records','Next records'),Binding('ctrl+left','previous_records','Previous records')]
 
     def __init__(self,data,finding=None,*,record=None,records=None):
         super().__init__()
         from .investigation import linked_records
         self.records=records if records is not None else [record] if record is not None else linked_records(data,finding)
+        self.data=data
         self.record_offset=0
         self.linkage=records if records is not None else resolve(data,finding) if finding is not None else record
 
@@ -280,12 +306,16 @@ class RecordsDialog(ModalScreen):
             with Horizontal(classes='buttons'):
                 yield Button('Previous',id='record-previous'); yield Button('Next',id='record-next')
                 yield Button('Original fields',id='original'); yield Button('Back',id='back')
+            with Horizontal(classes='buttons'):yield Button('Evidence',id='pin-evidence')
 
     def on_mount(self): self.position()
     def position(self):
         self.query_one('#record-position',Static).update('Retained records '+str(self.record_offset+1 if self.records else 0)+'–'+str(min(self.record_offset+16,len(self.records)))+' of '+str(len(self.records))+'. Reports can overlap; no independent corroboration is inferred.')
         self.query_one('#record-previous',Button).disabled=self.record_offset==0
         self.query_one('#record-next',Button).disabled=self.record_offset+16>=len(self.records)
+    def action_evidence(self):
+        entry=Entry(('Referenced records',),self.records,{'What it means':'These exact retained records keep their original source context.'},'retained_records')
+        self.app.show_evidence(entry,self.data)
     def action_original(self): self.app.push_screen(RawDialog(self.linkage,'Complete source references and originals'))
     async def change_records(self,step):
         self.record_offset=max(0,min(max(0,(len(self.records)-1)//16*16),self.record_offset+step))
@@ -295,7 +325,8 @@ class RecordsDialog(ModalScreen):
     async def action_previous_records(self): await self.change_records(-16)
     async def on_button_pressed(self,event):
         event.stop()
-        if event.button.id=='original': self.action_original()
+        if event.button.id=='pin-evidence':self.action_evidence()
+        elif event.button.id=='original': self.action_original()
         elif event.button.id=='record-next': await self.action_next_records()
         elif event.button.id=='record-previous': await self.action_previous_records()
         else: self.dismiss()
@@ -303,7 +334,7 @@ class RecordsDialog(ModalScreen):
 
 class SourceDialog(ModalScreen):
     BINDINGS=[Binding('escape','dismiss','Back'),Binding('e','original','Original source'),
-              Binding('ctrl+right','next_page','Next records'),Binding('ctrl+left','previous_page','Previous records'),
+              Binding('v','evidence','Evidence'),Binding('ctrl+right','next_page','Next records'),Binding('ctrl+left','previous_page','Previous records'),
               Binding('s','summary','Source summary')]
     PAGE_SIZE=64
 
@@ -321,6 +352,7 @@ class SourceDialog(ModalScreen):
             yield Static('No session rows reported; this does not establish that nobody is logged in. s explains coverage.' if self.entry.kind=='login_sessions' else 'No rows in this view. Events may still exist; s explains coverage, e opens originals.',id='source-empty',classes='hint',markup=False)
             with Horizontal(classes='buttons'):
                 yield Button('Previous',id='previous'); yield Button('Next',id='next'); yield Button('Back',id='back')
+            with Horizontal(classes='buttons'):yield Button('Evidence',id='pin-evidence')
 
     def on_mount(self):
         self.rebuild_table()
@@ -357,13 +389,15 @@ class SourceDialog(ModalScreen):
         if self.page_offset: self.page_offset=max(0,self.page_offset-self.PAGE_SIZE); self.populate()
     def on_button_pressed(self,event):
         event.stop()
-        if event.button.id=='next': self.action_next_page()
+        if event.button.id=='pin-evidence':self.action_evidence()
+        elif event.button.id=='next': self.action_next_page()
         elif event.button.id=='previous': self.action_previous_page()
         else: self.dismiss()
 
     def on_data_table_row_selected(self,event):
         event.stop(); self.app.open_entry(self.entries[int(event.row_key.value)],self.data)
 
+    def action_evidence(self):self.app.show_evidence(self.entry,self.data)
     def action_original(self): self.app.push_screen(RawDialog(self.entry.original))
 
     def action_summary(self):
@@ -483,7 +517,7 @@ class FaultlensApp(App):
     #raw-scalar { height: 1fr; }
     '''
     BINDINGS=[Binding('q','quit','Quit'),Binding('r','refresh','Refresh'),Binding('enter','open','Open'),
-              Binding('e','original','Original'),Binding('/','search','Search'),Binding('n','next_match','Next match'),
+              Binding('e','original','Original'),Binding('v','evidence','Evidence'),Binding('/','search','Search'),Binding('n','next_match','Next match'),
               Binding('N','previous_match','Previous match'),Binding('?','help','Help'),Binding('s','summary','Summary'),
               Binding('left','previous_tab','Previous section',priority=True),
               Binding('right','next_tab','Next section',priority=True),
@@ -494,6 +528,7 @@ class FaultlensApp(App):
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
         self.table_models={}; self.rendered_tables={}
+        self.evidence_selection=None;self.inquiry_anchor=None;self.active_source_page=0;self.keep_inquiry_once=False
         self.initial_collect=initial_collect; self.search_query=''
         self.collection_attempts={}; self.collection_states={}; self.closing=False; self.workspace_ready=False
         self.settings_store=settings_store; self.settings_status=settings_status
@@ -518,7 +553,7 @@ class FaultlensApp(App):
     def section_widgets(self,page):
         yield Static('Opening a source section loads its data; r refreshes or retries.',id='summary-'+str(page),classes='summary'+(' current-summary' if page<3 or page in {4,5,6} else '')+(' incident-summary' if page in {5,6} else ''),markup=False)
         yield DataTable(id='grid-'+str(page),cursor_type='row',zebra_stripes=True)
-        if page in {4,5,6}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
+        if page in {3,4,5,6,7}: yield Static('',id='selected-evidence-'+str(page),classes='selected-evidence',markup=False)
 
     def on_mount(self):
         self.populate(self.page)
@@ -539,16 +574,17 @@ class FaultlensApp(App):
             if self.query('#grid-'+str(self.page)): self.populate(self.page)
 
     def check_action(self,action,parameters):
-        if action in {'previous_tab','next_tab','open','refresh','original','search','next_match','previous_match','help','summary'}:
+        if action in {'previous_tab','next_tab','open','refresh','original','evidence','search','next_match','previous_match','help','summary'}:
             return len(self.screen_stack)==1
         return True
 
     def data(self,page=None):
         page=self.page if page is None else page
-        if page==6: return self.snapshots.get(self.last_source())
+        if page==6:return self.evidence_selection.report if self.evidence_selection else self.snapshots.get(5) or self.snapshots.get(self.active_source_page)
+        if page==3:return self.snapshots.get(5)
         return self.snapshots.get(page)
 
-    def last_source(self): return next(reversed(self.snapshots),0)
+    def last_source(self):return 5 if self.snapshots.get(5) is not None else self.active_source_page
 
     def populate(self,page):
         table=self.query_one('#grid-'+str(page),DataTable); selected=table.cursor_row
@@ -557,15 +593,29 @@ class FaultlensApp(App):
         if cached is not None and cached[0] is data and cached[1]==options:
             model=cached[2]
         else:
-            model=page_table(page,data,self.session.settings)
+            if page==6 and self.evidence_selection:
+                from .investigation_flow import evidence
+                model=(('Evidence / finding','State','Retained context','Next step'),evidence(self.evidence_selection,data))
+            else:model=page_table(page,data,self.session.settings)
+            if page in {3,5,6} and self.inquiry_anchor:
+                from .investigation_flow import context,subject
+                anchor=self.inquiry_anchor
+                anchor_row=Entry(('Inquiry origin',subject(anchor.entry,anchor.report),context(anchor.report),'Open original selection; filters shown in inquiry scope'),anchor.entry.original,
+                    {'What it means':'Selected subject retained as navigation context; actual journal filters are shown separately. A service/peer subject alone does not narrow the query.','Scope':context(anchor.report)},'inquiry_origin')
+                model=(model[0],[anchor_row,*model[1]])
             self.table_models[page]=(data,options,model)
         columns,entries=model
-        if data is None and page<7 and not (page==5 and self.session.settings.investigation_mode): entries=[collection_entry(page,self.collection_states.get(page,'not_collected'))]
+        if data is None and page<7 and page!=3 and not (page==5 and self.session.settings.investigation_mode): entries=[collection_entry(page,self.collection_states.get(page,'not_collected'))]
         elif data is None and page==5 and self.session.settings.investigation_mode:
             status=collection_entry(page,self.collection_states.get(page,'not_collected'))
             entries=entries[:-1]+[replace(status,cells=(status.cells[0],status.cells[1],status.cells[2],'Choose an inquiry or refresh/retry'))]
-        if page==7 and self.settings_store is not None:
-            entries=[replace(entry,cells=(*entry.cells[:2],'User preference')) for entry in entries]
+        if page==7:
+            from .investigation_flow import availability
+            entries=[replace(entry,cells=(*entry.cells[:2],entry.cells[2]+' '+availability(entry.original,self.snapshots)),
+                detail={**(entry.detail or {}),'Last retained availability':availability(entry.original,self.snapshots)}) for entry in entries]
+        if page==3 and data is None and self.collection_states.get(5) in {'loading','failed','cancelled'}:
+            state=collection_entry(3,self.collection_states[5])
+            entries=[replace(state,cells=(*state.cells,'Inquiry evidence not assessed')),*entries]
         self.entries[page]=entries
         view=(self.size.width,self.collection_states.get(page),self.settings_store is not None)
         rendered=self.rendered_tables.get(page)
@@ -589,6 +639,14 @@ class FaultlensApp(App):
             if self.settings_status: summary.append('\n').append(literal(self.settings_status))
             if self.settings_store is not None:
                 summary.append('\nPreferences file: ').append(literal(str(self.settings_store.path)))
+        elif page==3:
+            from .investigation_flow import context
+            summary=literal('Signals reuse the selected inquiry: review observations and coverage gaps; no independent collection or attack verdict.')
+            if data:summary.append('\n').append(literal(context(data)))
+        elif page==6 and self.evidence_selection:
+            from .investigation_flow import selected_scope
+            summary=literal('Pinned selection: '+self.evidence_selection.entry.cells[0]+' | '+selected_scope(self.evidence_selection))
+            summary.append('\nOther tab visits and refreshes do not replace this retained evidence. Use current inquiry explicitly to release it.')
         elif page<3 and data:
             from .current_views import build
             view=build(data,('status','health','network')[page])
@@ -598,7 +656,7 @@ class FaultlensApp(App):
             view=story(data)
             summary=literal(view['answer']); summary.append('\nScope: ').append(literal(view['scope'])); summary.append('\nNext: ').append(literal(view['next']))
         elif page==4 and data:
-            summary=literal('Optional boot history browser. For a problem now or a time range, open Investigate directly. Retained record times are not boot/crash boundaries.')
+            summary=literal('Retained report examples and optional boot sources. Open a report for its original message and receipt-time period; boot identity is not required for a period inquiry. Coverage remains bounded.')
         else:
             summary=literal(guide(data)['Summary'] if data else
                 'No retained snapshot. Opening this source section loads data; r refreshes or retries.')
@@ -606,7 +664,7 @@ class FaultlensApp(App):
 
     def update_status(self):
         data=self.data(); state='No snapshot' if data is None else data.get('state','observations; no health verdict')
-        source_page=self.last_source() if self.page==6 else self.page
+        source_page=(self.evidence_selection.page if self.evidence_selection else self.last_source()) if self.page==6 else 5 if self.page==3 else self.page
         stale=(source_page in self.snapshot_options and self.snapshot_options[source_page]!=asdict(self.session.settings))
         text=TABS[self.page]+' | '+(data['command']+' | ' if data else '')+state+(' | SETTINGS CHANGED: refresh explicitly' if stale else '')
         if data: text+=' | '+str(data.get('collected_at',''))
@@ -622,6 +680,7 @@ class FaultlensApp(App):
         if not self.query('#grid-'+str(page)):
             await event.pane.mount(*self.section_widgets(page))
         if event.pane.id!=sections.active: return
+        if page in {0,1,2,4,5}:self.active_source_page=page
         if page!=self.page: self.page=page; self.populate(self.page)
         self.update_status()
         self.query_one('#grid-'+str(self.page),DataTable).focus()
@@ -629,7 +688,12 @@ class FaultlensApp(App):
 
     def ensure_snapshot(self):
         if self.query_one('#sections',TabbedContent).active!='page-'+str(self.page): return
-        if not self.workspace_ready or not self.initial_collect or self.closing or self.page>=6 or self.job is not None: return
+        if not self.workspace_ready or not self.initial_collect or self.closing or self.page>=6 or self.job is not None:return
+        if self.page==3:
+            if self.snapshots.get(5) is None and self.collection_attempts.get(5)!=asdict(self.session.settings):self.action_refresh()
+            return
+        if self.page==5 and self.keep_inquiry_once and self.snapshots.get(5) is not None:
+            self.keep_inquiry_once=False;return
         options=asdict(self.session.settings)
         if self.page in self.snapshots and self.snapshot_options.get(self.page)==options: return
         # Failed/cancelled reads need r to retry; tab events must never create a loop.
@@ -638,10 +702,10 @@ class FaultlensApp(App):
     def action_refresh(self):
         if self.job is not None: self.notice='Collection already running. Esc cancels.'; self.update_status(); return
         if self.page>=6: self.notice='This section does not collect. Choose a source section.'; self.update_status(); return
-        page=self.page; options=replace(self.session.settings)
+        page=5 if self.page==3 else self.page; options=replace(self.session.settings)
         self.collection_attempts[page]=asdict(options)
         self.collection_states[page]='loading'
-        self.snapshots.pop(page,None); self.populate(page)
+        self.snapshots.pop(page,None); self.populate(self.page)
         self.notice='Collecting '+TABS[page]+'... Esc cancels; q exits.'; self.update_status()
         self.job=asyncio.create_task(self.load(page,options))
 
@@ -680,12 +744,17 @@ class FaultlensApp(App):
         return entries[table.cursor_row] if entries else None
 
     def on_data_table_row_highlighted(self,event):
-        if len(self.screen_stack)!=1 or self.page not in {4,5,6} or event.data_table.id!='grid-'+str(self.page): return
+        if len(self.screen_stack)!=1 or self.page not in {3,4,5,6,7} or event.data_table.id!='grid-'+str(self.page): return
         rows=self.entries.get(self.page,[])
         if not rows or not 0<=event.cursor_row<len(rows): return
         entry=rows[event.cursor_row];detail=entry.detail or {}
         text=Text()
-        if self.page==4:
+        if self.page==7:
+            text.append(literal(entry.cells[2]))
+        elif self.page==4 and entry.kind=='history_event':
+            text.append(literal('Recorded: '+entry.original['time']+' | '+entry.original['message_excerpt']))
+            text.append('\nEnter opens the retained message and period actions; a report is not an independent incident.')
+        elif self.page==4:
             text.append(literal('Retained UTC: '+str(detail.get('Retained UTC range','Not examined'))))
             for example in detail.get('Recorded examples',[])[:1]: text.append('\nRecorded: ').append(literal(example))
             text.append('\nEnter opens context and Investigate this boot.')
@@ -701,17 +770,47 @@ class FaultlensApp(App):
             if steps: text.append('\nNext: ').append(literal(steps[0]))
         self.query_one('#selected-evidence-'+str(self.page),Static).update(text)
 
-    def open_network_logs(self,issue=None):
+    def set_inquiry_anchor(self,entry,data):
+        from .investigation_flow import Selection
+        if entry.context is not None:data=entry.context
+        self.inquiry_anchor=Selection(entry,data,self.page)
+        self.table_models.clear();self.rendered_tables.clear()
+
+    def show_evidence(self,entry,data):
+        from .investigation_flow import Selection
+        if entry.context is not None:data=entry.context
+        if entry.kind=='investigation_focus':entry=replace(entry,original=data,kind='retained_report')
+        table=self.query_one('#grid-'+str(self.page),DataTable)
+        origin=self.evidence_selection.page if self.page==6 and self.evidence_selection else self.page
+        self.evidence_selection=Selection(entry,data,origin,table.cursor_row)
+        while len(self.screen_stack)>1:self.pop_screen()
+        self.table_models.pop(6,None);self.rendered_tables.pop(6,None)
+        self.select_page(6)
+        if self.page==6:self.populate(6)
+        self.notice='Evidence selection fixed to its original retained snapshot; no collection started.'
+        self.update_status()
+
+    def action_evidence(self):
+        entry=self.selected()
+        if entry and self.data() is not None and entry.kind!='setting':self.show_evidence(entry,self.data())
+
+    def open_network_logs(self,issue=None,*,data=None):
         issue=issue or {};window=issue.get('window')
+        if issue:
+            entry=Entry((issue.get('title','Network observation'),),issue)
+            self.set_inquiry_anchor(entry,data if data is not None else self.data() or {})
         while len(self.screen_stack)>1:self.pop_screen()
         self.session.settings=replace(self.session.settings,search_ssh=True,search_firewall=True)
         if window:
-            self.start_investigation('period',start=max(0,window['since_us']-60000000),end=window['until_us']+60000000)
-        else:self.start_investigation('now')
+            self.start_investigation('period',start=max(0,window['since_us']-60000000),end=window['until_us']+60000000,preserve_anchor=bool(issue))
+        else:self.start_investigation('now',preserve_anchor=bool(issue))
         self.notice='Network follow-up: journal scope uses Settings; optional boot filter cleared. Inspect original peers/ports and service logs; the query is not peer-filtered.'
         self.update_status()
 
-    def start_investigation(self,mode,*,start=None,end=None):
+    def start_investigation(self,mode,*,start=None,end=None,preserve_anchor=False):
+        if not preserve_anchor:self.inquiry_anchor=None
+        self.table_models.clear()
+        self.rendered_tables.clear()
         self.session.settings=replace(self.session.settings,investigation_mode=mode,boot_selector='',
             since_us=str(start) if start is not None else self.session.settings.since_us,
             until_us=str(end) if end is not None else self.session.settings.until_us)
@@ -737,6 +836,19 @@ class FaultlensApp(App):
 
     def open_entry(self,entry,data):
         if entry.context is not None: data=entry.context
+        if entry.kind=='return_source':
+            selection=self.evidence_selection
+            if selection:self.select_page(selection.page)
+            self.notice='Returned to the source section. Pinned evidence retains its original snapshot even if this section has been refreshed.';self.update_status();return
+        if entry.kind=='current_evidence':
+            self.evidence_selection=None;self.table_models.pop(6,None);self.rendered_tables.pop(6,None);self.populate(6);self.update_status();return
+        if entry.kind=='inquiry_origin':
+            if self.inquiry_anchor:self.show_evidence(self.inquiry_anchor.entry,self.inquiry_anchor.report)
+            return
+        if entry.kind=='investigation_focus':
+            self.keep_inquiry_once=self.page!=5 and self.snapshots.get(5) is not None
+            self.select_page(5);return
+        if entry.kind=='retained_records':self.push_screen(RecordsDialog(data,records=entry.original));return
         if entry.kind=='network_logs':
             self.open_network_logs();return
         if entry.kind=='investigation_start':
@@ -766,7 +878,7 @@ class FaultlensApp(App):
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='service': self.push_screen(ServiceDialog(entry,data))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
+        elif entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','retained_report','service_messages','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 

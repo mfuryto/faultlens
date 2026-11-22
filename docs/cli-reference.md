@@ -388,3 +388,18 @@ Historical review cards link scan-like/password-failure/UDP report patterns and
 qualified recorded traffic changes to original logs and receipt-time windows.
 Missing or quiet evidence is not an all-clear. No capture, probe, reputation lookup,
 blocking or tuning runs. See [source boundaries and acceptance](architecture/practical-network-investigation.md).
+
+## Inquiry provenance and terminal review
+
+Inquiry journal partitions/current snapshots now include additive `inquiry_context`
+metadata: mode, requested window, requested/resolved optional boot filter, journal
+scope and source role. A partition boot identity is not automatically a query filter;
+current measurements remain collection-time evidence, not earlier incident conditions.
+History summaries retain linked original example records only when references resolve.
+
+In the terminal workspace, Signals reuses the selected inquiry, while Evidence can
+pin an exact finding/source/record across unrelated tab visits and refreshes. The
+CLI `security` command remains a current-counter reader. These roles introduce no
+new collection, server setting, export or persisted evidence. Development version
+1.1.0.dev0 combines the unreleased feature work since stable 1.0.1; release publication
+is separate. See [terminal flow](architecture/coherent-investigation-flow.md).

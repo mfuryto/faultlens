@@ -11,12 +11,14 @@ This is useful operator feedback, not an invented pass for every acceptance case
 | --- | --- | --- | --- |
 | 1 | General service troubleshooting | Completed — PR #68 | Open any listed failed system service, understand the reported failure, read a concrete message and continue to the next evidence |
 | 2 | Processes and storage in System | Completed — PR #69 | Find the process or filesystem related to observed resource pressure |
-| 3 | Practical Network and possible attack investigation | Implemented; green checks gate delivery | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
-| 4 | Coherent History / Investigate / Evidence flow and Signals role | Queued | Follow one incident across retained sources with clear context and provenance |
+| 3 | Practical Network and possible attack investigation | Completed — PR #70 | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
+| 4 | Coherent History / Investigate / Evidence flow and Signals role | Implemented; green checks gate delivery | Follow one incident across retained sources with clear context and provenance |
 
-Steps 1 and 2 are merged in PRs #68 and #69. This change implements step 3;
+Steps 1–3 are merged in PRs #68, #69 and #70. This change implements step 4;
 source, interface, resource, CodeQL and installed-package checks gate delivery.
-Step 4 is next; whole-host security/CVE auditing remains future scope.
+The combined development version is 1.1.0.dev0; the owner requested merge only.
+A future stable release remains a separate delivery. Whole-host security/CVE
+auditing remains possible future scope.
 Finish and validate one coherent step before starting another. Subtasks belong to
 these four steps; do not turn each patch into a new phase or expand scope silently.
 The [earlier plan](delivery-plan-history.md) preserves the decisions and evidence
@@ -130,8 +132,8 @@ reported socket owner/service associations, concrete observation cards and origi
 socket/log/period navigation. Narrow SSH/UFW and qualified Atop evidence remain
 explicitly scoped. Peer expectation and application-log review are operator decisions;
 there is no automatic unexpected-peer, whole-firewall or all-authentication verdict.
-Resource budgets and local read-only defaults remain unchanged. No release is
-published by this task; existing stable assets are preserved.
+Resource budgets and local read-only defaults remain unchanged. Step 3 merged
+without publishing a stable release; existing assets are preserved.
 
 ## Step 4 — coherent incident and evidence flow
 
@@ -144,6 +146,15 @@ must explain collection purpose, required access and actual source availability.
 Exit evidence: the operator can follow one reported symptom to a time range,
 related sources, supported explanation and next step without losing context or
 browsing JSON as the primary interface. Cross-boot time uncertainty stays explicit.
+
+Implementation: [coherent investigation flow](architecture/coherent-investigation-flow.md)
+adds event-oriented History entries with linked original records, inquiry provenance
+on source partitions/current snapshots, explicit service/peer origins and pinned
+Evidence selections. Signals reuses the selected inquiry and consolidates verified
+shared-reference previews, with source failures and explicit limits. Settings explain
+purpose and cached availability without probes. Existing preferences remain compatible.
+Automated source/UI/package/resource checks gate merge; new-flow SSH acceptance
+remains an operator check. The owner selected merge only, with release publication later.
 
 ## Delivery and future scope
 
