@@ -1,7 +1,8 @@
-# Faultlens 1.0 release scope and qualification
+# Faultlens 1.0.1 release scope and qualification
 
-Version 1.0.0 is the first local Linux fault-investigation release. The owner explicitly
-authorized its preparation and publication on 2026-11-19. The version number describes
+Version 1.0.1 extends the initial local Linux fault-investigation release with
+selected-service status, retained unit logs and message explanations. The owner
+requested the 1.0.1 Debian release on 2026-11-22. The version number describes
 this feature set; it does not certify a server as healthy, secure or attack-free.
 
 ## Included
@@ -11,6 +12,8 @@ current System/Health/Network views, three problem-centered investigation entrie
 reported login sessions, retained journal analysis, original evidence navigation,
 existing Atop replay and supported live/archived pstore readers. Collection is local,
 bounded, read-only and uses existing access. Preferences are saved per user.
+Health service rows open a current-boot unit investigation, retaining all returned
+messages and distinguishing supported explanations from unknown messages.
 
 The `.deb` includes the reviewed Textual closure privately and uses APT for system
 Python. No runtime pip, virtual environment, daemon, automatic recording, permission
@@ -27,8 +30,9 @@ grant, log-policy change, cloud service or automatic report upload is installed.
 | Source/reproducibility | Two builds agree; shipped source plus wheels reproduce the release package offline |
 | Security | Source/history secret checks, strict read-only SHA-pinned workflows, CodeQL, and an advisory audit of the exact dependency lock |
 
-The owner plans another Ubuntu-server test after receiving the `.deb`. This is an
-ordinary follow-up test, not a functional limitation or release blocker. Prior source
+The owner is testing the installed package on another server and reported the
+AppArmor failure that motivated this service reader. The supplied native output
+is not a result of testing the new reader; new-reader feedback remains follow-up. Prior source
 SSH feedback is preserved rather than requested again. Automated containers share a
 host kernel and do not establish native workload impact or statistical detection rates.
 See [acceptance evidence](acceptance/server-qualification.md).
@@ -52,7 +56,7 @@ future security/CVE work remains a separate roadmap decision.
 Merge the reviewed staging PR only after all source/platform/package/security checks
 pass. Build from the verified main commit. Qualify the final `.deb` on both targets,
 verify the source rebuild and checksums, and wait for main's required checks. Tag that
-exact commit as `v1.0.0`. Upload to a draft release, download and verify every asset,
+exact commit as `v1.0.1`. Upload to a draft release, download and verify every asset,
 then publish using the owner's explicit authorization. Preserve only main/staging
 branches and synchronize staging after the squash merge. No APT repository is created.
 

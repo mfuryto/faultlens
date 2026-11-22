@@ -196,3 +196,26 @@ assigned only to known generated observation/finding locations. Raw report/messa
 navigation retains a raw role, preventing a forged message object from becoming
 trusted diagnostic advice. Exact objects remain referenced by Technical details;
 JSON schemas and collection/permission contracts are unchanged.
+
+## Selected-service inquiry
+
+Health rows may open a single validated literal `.service` name. Native execution
+uses trusted system paths, argument arrays and no shell: fixed `systemctl show`
+properties and a `journalctl --system --boot=0 --unit=...` tail. Reject options,
+paths, glob syntax, controls and unsupported name layouts before executable lookup.
+The existing two-second/262144-byte command limits apply. The 201st requested record
+is a cap sentinel; retain at most 200 and report omitted earlier evidence.
+
+Require exact property identity and journal unit metadata, consistent reported boot
+identity, bounded/duplicate-free JSON and the existing strict timestamp/cursor rules.
+Metadata does not authenticate the source. Manager messages about the unit may be
+included; logs and current state are not automatically the same invocation.
+Source names, profile paths and include names remain literal display data, never
+new file reads, executable commands, service controls or generated repairs. Keep
+empty, unavailable, unsupported and capped evidence distinct. UI collection uses a
+cancellable isolated CLI child; closing the dialog reaps it. Preserve original
+messages and references alongside supported explanations and unknown causes.
+
+Primary command semantics: [systemctl](https://www.freedesktop.org/software/systemd/man/255/systemctl.html)
+and [journalctl](https://www.freedesktop.org/software/systemd/man/255/journalctl.html).
+AppArmor interpretation context: [Ubuntu AppArmor guide](https://documentation.ubuntu.com/server/how-to/security/apparmor/).

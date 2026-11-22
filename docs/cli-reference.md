@@ -14,6 +14,7 @@ Run as the current user with existing source permissions. With no command,
 | `faultlens` / `faultlens tui` | Primary terminal workspace |
 | `faultlens investigate` | Problems now, a chosen period or before restart |
 | `faultlens status` | Current system measurements and login sessions |
+| `faultlens service --unit NAME.service` | Service state, retained logs, explanations and next steps |
 | `faultlens health` | Operational symptoms and diagnostic readiness |
 | `faultlens check` | Tools, services and recording setup |
 | `faultlens network` | Current network counters; optional socket snapshot |
@@ -38,6 +39,36 @@ Current measurements describe now; a historical period does not require a boot f
 `--system-journal` selects accessible system logs without granting permission. Use
 `--details` for technical context, `--json` for structured results and `--show-evidence`
 when original diagnostic records are needed. Missing/unreadable logs remain unassessed.
+
+### Investigate one failed service
+
+Available from version 1.0.1. Earlier packages do not contain the service reader.
+
+```sh
+faultlens service --unit apparmor.service
+faultlens service --unit apparmor.service --details
+faultlens service --unit apparmor.service --json
+```
+
+In the workspace, open Health → Failed services → a service row with Enter. Status
+and logs load on entry. Read the reported error, its meaning and next step; open
+**Logs** for surrounding messages or **Original fields** for exact references.
+`r` refreshes and Esc returns/cancels. This is an explicit current-system-service
+inquiry: it does not reuse an unrelated Investigate time range or boot setting.
+
+The reader queries structured `systemctl show` properties and the last 200 accessible
+current-boot system-journal records for one literal service name. A month-old startup
+failure can remain visible in a long-running boot; this query has no recent-time
+cutoff. Manager messages about the unit are included. Earlier boots, rotated records,
+other namespaces, arbitrary files and service-control operations are outside this
+reader. Existing permissions still apply; unavailable logs never mean no errors.
+
+AppArmor include-open failures and loader numeric errors have separate message
+explanations. The source-reported profile, line and include are shown as data; they
+are never opened or executed automatically. A missing file, permissions, packaging
+problems, actual loaded policy and the relationship between errors remain unverified.
+A small set of common error phrases also offers conditional investigation guidance.
+Unmatched messages remain readable and are not treated as a no-fault verdict.
 
 ### Additional examples
 

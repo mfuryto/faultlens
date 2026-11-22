@@ -291,3 +291,18 @@ UTC login time and source address/reported source. Enter explains an individual
 record and its native state; e retains all original fields. A fallback or empty
 accounting result never proves that no users are logged in. See
 [session sources and limitations](login-sessions.md).
+
+## Investigate a failed service (1.0.1+)
+
+Open **Health**, choose **Failed services**, then open a service row with Enter.
+The service view loads automatically and separates the current manager state,
+service description, last reported state change and retained unit logs. Supported
+messages show the actual error, meaning and a suggested investigation step.
+**Logs** opens all retained messages with timestamps; **Original fields** keeps exact
+source data. Use `r` to refresh and Esc to return or cancel a pending read.
+
+The service reader selects the current system boot and at most 200 records, using
+existing system-journal access. It has no recent-time cutoff, so old startup errors
+in a long-running boot can be examined. It does not restart services, load profiles,
+repair files or grant access. Status and log availability remain independent.
+See the [service commands and collection limits](cli-reference.md#investigate-one-failed-service).

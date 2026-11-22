@@ -18,6 +18,7 @@ def reply(argv,**limits):
     if command in {'status','health'}:data['observations']=[{'key':'memory.used','value':40}]
     if command=='status':data['login_sessions']={'state':'unavailable','rows':[]}
     if command=='health':data['failed_services']={'state':'unavailable','rows':[]}
+    if command=='service':data.update(unit='systemd-journald.service',status={'state':'unavailable'},journal={'state':'unavailable'},journal_records=[])
     if command=='network':data['sockets']={'state':'unavailable','rows':[]}
     if command=='investigate':data.update(mode='period',current={},boot_filter={'requested':None},
         requested_window={'since_realtime_us':0,'until_realtime_us':1},query_coverage={'tail':{'state':'unavailable'}})
@@ -32,7 +33,7 @@ def native(**options):
 class PlatformAcceptanceTests(unittest.TestCase):
     def test_absent_optional_sources_are_successful_contracts_not_host_health(self):
         data=native()
-        self.assertEqual(6,len(data['checks']))
+        self.assertEqual(7,len(data['checks']))
         self.assertTrue(all(row['contract']=='PASS' for row in data['checks']))
         self.assertEqual('unavailable',data['checks'][-1]['source_state'])
         self.assertEqual('pending',data['operator_acceptance'])
@@ -54,7 +55,7 @@ class PlatformAcceptanceTests(unittest.TestCase):
             with self.subTest(result=result),self.assertRaises(ValueError):native(execute=lambda *a,**k:result)
 
     def test_missing_source_contracts_do_not_pass_as_generic_success(self):
-        for command,field in (('status','login_sessions'),('health','failed_services'),('network','sockets'),('diagnose','state'),('investigate','state')):
+        for command,field in (('status','login_sessions'),('health','failed_services'),('network','sockets'),('diagnose','state'),('investigate','state'),('service','journal')):
             def execute(argv,**limits):
                 result=reply(argv,**limits)
                 if argv[4]==command and '--json' in argv:

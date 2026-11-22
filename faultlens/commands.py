@@ -68,6 +68,18 @@ TOOL_PURPOSES = {
 DIRECTORIES = ("/usr/bin", "/usr/sbin", "/bin", "/sbin")
 ENVIRONMENT = {"PATH": "/usr/bin:/usr/sbin:/bin:/sbin", "LANG": "C", "LC_ALL": "C",
                "SYSTEMD_PAGER": "", "PAGER": "", "SYSTEMD_COLORS": "0"}
+SERVICE_PROPERTIES = ('Id', 'Description', 'LoadState', 'ActiveState', 'SubState',
+                      'Result', 'ExecMainCode', 'ExecMainStatus', 'StateChangeTimestamp',
+                      'InvocationID', 'FragmentPath')
+
+
+def validate_service_unit(unit):
+    """One literal service name; no options, paths, globs or shell interpretation."""
+    atom = r'(?:[A-Za-z0-9_]|\\x[0-9a-fA-F]{2})'
+    tail = r'(?:[A-Za-z0-9:_.@-]|\\x[0-9a-fA-F]{2})*'
+    if not isinstance(unit, str) or len(unit)>255 or re.fullmatch(atom+tail+r'\.service',unit) is None:
+        raise ValueError('Use one literal system service name ending in .service')
+    return unit
 
 
 @dataclass(frozen=True)
@@ -148,6 +160,25 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fd
 
 
 class CommandRunner:
+    def read_service_properties(self, unit):
+        validate_service_unit(unit)
+        executable=trusted_tool('systemctl')
+        if executable is None: return Result('missing')
+        try:
+            return _capture([executable,'show','--no-pager','--no-ask-password','--all',
+                '--property='+','.join(SERVICE_PROPERTIES),'--',unit],utc=True)
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError): return Result('unavailable')
+
+    def read_service_journal(self, unit):
+        validate_service_unit(unit)
+        executable=trusted_tool('journalctl')
+        if executable is None: return Result('missing')
+        try:
+            return _capture([executable,'--system','--boot=0','--unit='+unit,'--lines=201',
+                '--output=json','--no-pager','--quiet',
+                '--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM,_UID,PRIORITY,_BOOT_ID,_SYSTEMD_UNIT,UNIT,OBJECT_SYSTEMD_UNIT,COREDUMP_UNIT'],utc=True)
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError): return Result('unavailable')
+
     def read_atop(self, date: str, start: int, end: int) -> Result:
         return self._read_atop(date, start, end, extended=False)
 

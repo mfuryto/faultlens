@@ -33,6 +33,7 @@ faultlens/recordings.py
 faultlens/resource_history.py
 faultlens/security_analysis.py
 faultlens/server_check.py
+faultlens/service.py
 faultlens/sessions.py
 faultlens/settings_store.py
 faultlens/socket_presentation.py

@@ -60,7 +60,7 @@ explicit packaging/docs inputs are exported: ignored environments, credentials,
 local modules, collected evidence and the Git directory are not package inputs.
 The security policy requires this allowlist to match tracked application modules.
 
-Stable versions match the application version (`1.0.0`). Development snapshots use
+Stable versions match the application version (`1.0.1`). Development snapshots use
 the source version and commit timestamp/hash. `--version`, `--epoch` and
 `--source-revision` support explicit source-archive rebuild inputs; versions must
 retain the application identity. Release qualification upgrades an internal RC
@@ -114,7 +114,7 @@ The gate verifies:
 
 1. Identical bytes from two builds and failure to install with missing offline
    dependencies, followed by normal APT dependency resolution on a Python-free base.
-2. Six installed CLI contracts, private frontend isolation, real workspace child
+2. Seven installed CLI contracts, including service investigation, private frontend isolation, real workspace child
    collection and no-argument PTY startup, navigation/resize, quit/Ctrl-C restoration.
 3. All 28 synthetic benchmark scenarios (two iterations) and 21 one-CPU constrained
    profiles against installed application modules, preserving the existing CPU,
@@ -132,7 +132,7 @@ version separately from reproducible application-archive inputs.
 
 ## Release source and checksum verification
 
-The release assets are `faultlens_1.0.0_all.deb`, `faultlens-1.0.0-source.tar.gz`,
+The release assets are `faultlens_1.0.1_all.deb`, `faultlens-1.0.1-source.tar.gz`,
 `release.json` and `SHA256SUMS`. Download them from the same release. Run
 `sha256sum --check SHA256SUMS` in that directory before installation. Checksums detect
 corruption; obtain both assets and checksums through the trusted release page.

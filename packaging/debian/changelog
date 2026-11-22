@@ -1,3 +1,10 @@
+faultlens (1.0.1) stable; urgency=medium
+
+  * Investigate selected failed services with bounded local status and unit logs.
+  * Explain supported messages while preserving original evidence and uncertainty.
+
+ -- mfuryto <34251082+mfuryto@users.noreply.github.com>  Sun, 22 Nov 2026 00:00:00 +0000
+
 faultlens (1.0.0) stable; urgency=medium
 
   * Initial release of the local terminal workspace and CLI.

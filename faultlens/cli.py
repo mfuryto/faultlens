@@ -37,6 +37,12 @@ def interval(value: str) -> float:
     return parsed
 
 
+def service_unit(value):
+    from .commands import validate_service_unit
+    try: return validate_service_unit(value)
+    except ValueError as exc: raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def boot_index(value: str) -> int:
     try:
         parsed = int(value)
@@ -276,7 +282,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         argv = ['tui']
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux diagnostics. With no arguments, open the terminal workspace; use explicit commands for scripts.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate"), default="status")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate", "service"), default="status")
+    parser.add_argument('--unit',type=service_unit,help='One literal system .service name to investigate with service; current-boot system logs, no elevation.')
     parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
     parser.add_argument("--sockets", action="store_true", help="Include current TCP/UDP endpoints with network/security; no remote probes (investigate: now mode only).")
@@ -304,9 +311,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     end.add_argument('--until-us',type=receipt_boundary,help='Inclusive end in Unix receipt-time microseconds for all requested journal searches (investigate/diagnose).')
     parser.add_argument("--boot-count", type=overview_count, help="Summarize 1–7 newest visible previous boots (incidents only; default 3).")
     parser.add_argument("--include-current", action="store_true", help="Include the current visible boot in incidents selection.")
-    parser.add_argument("--show-evidence", action="store_true", help="Show retained original journal, Atop and pstore evidence locally (investigate/diagnose).")
+    parser.add_argument("--show-evidence", action="store_true", help="Show retained original evidence locally (investigate/diagnose/service).")
     parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (investigate/diagnose).")
     args = parser.parse_args(argv)
+    if (args.command=='service')!=(args.unit is not None): parser.error('Use service --unit NAME.service to investigate one service.')
     if args.no_search_events and args.command!='investigate': parser.error('--no-search-events is supported only with investigate.')
     if args.mode is not None and args.command!='investigate': parser.error('--mode is supported only with investigate.')
     if args.command=='investigate':
@@ -319,8 +327,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("TUI has its own explanation and evidence views; use explicit CLI commands for JSON/details.")
     if args.search_firewall and args.command not in {'diagnose','investigate'}:
         parser.error("Firewall journal analysis is supported only with diagnose.")
-    if args.show_evidence and args.command not in {'diagnose','investigate'}:
-        parser.error("Original journal evidence is supported only with diagnose.")
+    if args.show_evidence and args.command not in {'diagnose','investigate','service'}:
+        parser.error("Original journal evidence is supported only with investigate, diagnose or service.")
     if args.search_ssh and args.command not in {'diagnose','investigate'}:
         parser.error("SSH journal analysis is supported only with diagnose.")
     if args.atop_extended and (args.command not in {'diagnose','investigate'} or args.atop_date is None):
@@ -355,7 +363,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             from .tui import run
             return run(sources=sources, runner=runner, sample_seconds=args.sample_seconds, stderr=stderr,
                        pstore_collector=pstore_collector, pstore_archive_collector=pstore_archive_collector)
-        if args.command=='investigate':
+        if args.command=='service':
+            from .service import collect
+            data=collect(args.unit,runner)
+        elif args.command=='investigate':
             from .workflows import collect
             data=collect(runner,sources=sources,mode=args.mode,boot_index=args.boot,boot_id=args.boot_id,
                 since_us=args.since_us,until_us=args.until_us,system_journal=args.system_journal,
@@ -398,6 +409,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 attach_sessions(data,runner)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
+        elif args.command=='service':
+            from .service import render
+            render(data,stdout,details=args.details)
         elif not (args.details or args.show_evidence):
             from .presentation import render
             render(data,stdout)

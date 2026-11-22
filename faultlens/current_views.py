@@ -132,7 +132,7 @@ def _health(data):
             'No failed service rows were returned; this does not prove that all applications work.' if available else
             'The bounded service query was unavailable or unsupported; no empty-success result is inferred.',source,
             {'What it means':'Observed system-manager service state only; not user units or proof of application impact.',
-             'What you can do':(['Inspect the listed service units and their logs using existing access. No service is restarted.'] if available else
+             'What you can do':(['In Health, open a listed service with Enter. CLI: faultlens service --unit NAME.service. Read status, logs, explanations and next steps; no service is restarted.'] if available else
                 ['Optional source check with existing access: systemctl list-units --state=failed --type=service --all --plain --no-legend --no-pager --full']),
              'Evidence limits':source['limitations']},'failed_services'))
     readiness_start=len(rows)

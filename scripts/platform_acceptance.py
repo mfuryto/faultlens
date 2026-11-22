@@ -50,7 +50,7 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
     ui=ui_version()
     if ui!=('8.2.8' if frontend else None): raise ValueError('Optional frontend does not match the expected reviewed/absent setup')
     checks=[]
-    commands=(('status',),('health',),('network','--sockets'),('history','--system-journal'),
+    commands=(('status',),('health',),('network','--sockets'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
               ('diagnose','--boot','0','--system-journal','--search-events'),
               ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'))
     for options in commands:
@@ -72,6 +72,11 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
             raise ValueError('Native network/socket source states were not reported')
         if options[0] in {'history','diagnose','investigate'} and data.get('state') not in ({'available','partial','unavailable'} if options[0]=='investigate' else {'available','unavailable'}):
             raise ValueError('Native journal source state was not reported')
+        if options[0]=='service' and (data.get('unit')!='systemd-journald.service'
+                or data.get('state') not in {'available','partial','unavailable'}
+                or any(data.get(key,{}).get('state') not in {'available','unavailable'} for key in ('status','journal'))
+                or not isinstance(data.get('journal_records'),list)):
+            raise ValueError('Native service investigation contract was not reported')
         if options[0]=='investigate':
             if (data.get('mode')!='period' or data.get('current')!={} or data.get('boot_filter',{}).get('requested') is not None
                     or data.get('requested_window')!={'since_realtime_us':0,'until_realtime_us':1}

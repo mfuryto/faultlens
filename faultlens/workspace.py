@@ -180,8 +180,8 @@ def source_table(entry,data):
             Entry((item['unit'],item['active'],item['description']),item,
                 {'Observed':item['unit']+' was listed as failed.',
                  'What it means':'System-manager service state only; service impact and root cause are not established.',
-                 'What you can do':['Review this unit and its logs with existing access. No restart or reset is performed.'],
-                 'Evidence limits':source['limitations']}) for item in source['rows']]
+                 'What you can do':['Enter opens current service state, retained unit logs, message explanations and next steps. No restart or reset is performed.'],
+                 'Evidence limits':source['limitations']},'service') for item in source['rows']]
     if entry.kind=='finding_group':
         return 'Matched reports (not independent incidents)',('Finding','Confidence','Source','Meaning'),[
             finding_entry(row,entry.cells[2]) for row in source]
