@@ -13,7 +13,7 @@ import sys
 import time
 
 sys.dont_write_bytecode = True
-MODES = ('status','health', 'check', 'phase3-security', 'ssh-statistics', 'tui-ssh', 'tui-status', 'tui-diagnostic','tui-health')
+MODES = ('status','health', 'check', 'phase3-security', 'ssh-statistics', 'tui-ssh', 'firewall-state', 'tui-firewall', 'tui-status', 'tui-diagnostic','tui-health')
 PROFILES = (128, 256, 512)
 
 

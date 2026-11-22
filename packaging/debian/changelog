@@ -1,5 +1,7 @@
 faultlens (1.1.1~dev0) unstable; urgency=medium
 
+  * Add read-only firewall/Fail2ban rule, ban and log investigation.
+
   * Add bounded paged SSH statistics and Network evidence navigation.
 
   * Accept ss owner-column padding without changing read/row limits.

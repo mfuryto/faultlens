@@ -19,7 +19,7 @@ def context(data):
     if command=='investigate':
         parts.append({'now':'Problems now','period':'Selected period','before-restart':'Before restart'}[data['mode']])
         window=data['requested_window'];boot=data['boot_filter'].get('resolved')
-    elif command=='ssh':
+    elif command in {'ssh','firewall'}:
         parts.append(data['window']);window=data['requested_window'];boot=data['boot_filter']
     elif data.get('inquiry_context'):
         inquiry=data['inquiry_context'];window=inquiry['requested_window']

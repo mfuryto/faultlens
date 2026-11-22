@@ -2,6 +2,10 @@
 
 ## Unreleased — 1.1.1.dev0
 
+- Add explicit read-only firewall/Fail2ban investigation in Network and CLI: active
+  rule/default/set context, current jail thresholds and reported bans, qualified
+  rule correspondence, retained logs and original-evidence navigation.
+
 - Add paged SSH authentication statistics for boot/hour/day/selected periods, with
   explicit outcome counts, username/peer/time groups and original-record navigation
   in CLI and Network. Missing sources and bounded scans retain honest coverage.

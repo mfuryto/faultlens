@@ -3,8 +3,8 @@
 Approved 2026-11-22: SSH statistics, firewall/Fail2ban, then port accessibility.
 The four-step 1.1.0 delivery is complete; post-release stabilization merged in
 PR #73. The [delivery plan](delivery-plan.md) remains the execution record.
-Finish and verify one coherent step before starting another. This task authorizes
-step 1 implementation and merge, not a new release or steps 2–3 implementation.
+Finish and verify one coherent step before starting another. SSH statistics merged in PR #74. The owner subsequently authorized step 2
+implementation and merge. A new release and step 3 implementation are separate work.
 
 | Order | Work | Administrator outcome | Acceptance |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ step 1 implementation and merge, not a new release or steps 2–3 implementation
 | 2 | Firewall policy and Fail2ban attribution | Understand what is blocked, why and which component reports initiating it | Inspect active native rules/policies/sets, supported counters and retained logs; distinguish a Fail2ban-reported ban from matching active enforcement; state unknown administrator identity where audit evidence is absent |
 | 3 | Port accessibility | Understand a listener's binding, reported service, local filtering and forwarding/container path | Separate local listening, policy-based assessment and actual external test evidence; IPv4/IPv6 and source restrictions stay explicit; no automatic external scan |
 
-## Step 1: current delivery
+## Step 1: delivered in PR #74
 
 See [SSH design and bounds](architecture/ssh-statistics.md). Network opens the
 explicit SSH history reader. CLI uses `faultlens ssh`, existing journal scope,
@@ -22,7 +22,14 @@ An accepted method is not a confirmed complete or authorized session. Retain ori
 usernames, peers and messages without privacy masking, with terminal controls escaped.
 No persistent counters, recording policy, daemon, database or extra dependency.
 
-## Step 2: design boundary
+## Step 2: current delivery
+
+See [firewall/Fail2ban design and bounds](architecture/firewall-fail2ban.md). Network
+and `faultlens firewall` expose current rules/defaults, sets, jail status/settings,
+qualified same-address correspondence and retained unit/file log context. Human
+initiator and final enforcement remain unverified when evidence cannot establish them.
+
+### Interpretation boundary
 
 Read real nftables/iptables state, recognizing compatibility/frontends such as UFW;
 do not treat multiple views of the same backend as independent corroboration.

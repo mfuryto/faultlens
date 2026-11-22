@@ -187,6 +187,8 @@ def decisions(data):
         result.append(Decision('SSH authentication history','Choose a time window','Info',
             'Inspect failed/accepted authentication reports, reported usernames, peers and time buckets. Uses accessible logs, not current socket counts.',
             None,{},'ssh_statistics'))
+        result.append(Decision('Firewall and Fail2ban','Inspect current policy / retained logs','Info',
+            'Review conditional rules/defaults and reported bans with original evidence. No policy changes or reachability verdict.',None,{},'firewall_state'))
     return result
 
 

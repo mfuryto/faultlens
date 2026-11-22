@@ -33,9 +33,23 @@ class Command(Enum):
     LOGIN_SESSIONS = "login_sessions"
     LOGIN_SESSION_LIST = "login_session_list"
     LOGIN_SESSION_SERVICE = "login_session_service"
+    NFT_RULESET = "nft_ruleset"
+    IPTABLES_SAVE = "iptables_save"
+    IP6TABLES_SAVE = "ip6tables_save"
+    IPTABLES_VERSION = "iptables_version"
+    IP6TABLES_VERSION = "ip6tables_version"
+    UFW_STATUS = "ufw_status"
+    FAIL2BAN_STATUS = "fail2ban_status"
 
 
 CATALOG = {
+    Command.NFT_RULESET: ('nft',('-j','-n','-a','list','ruleset')),
+    Command.IPTABLES_SAVE: ('iptables-save',('-c',)),
+    Command.IP6TABLES_SAVE: ('ip6tables-save',('-c',)),
+    Command.IPTABLES_VERSION: ('iptables',('--version',)),
+    Command.IP6TABLES_VERSION: ('ip6tables',('--version',)),
+    Command.UFW_STATUS: ('ufw',('status','verbose')),
+    Command.FAIL2BAN_STATUS: ('fail2ban-client',('status',)),
     Command.SOCKET_OWNERS: ("ss", ("-H", "-n", "-O", "-a", "-t", "-u", "-p")),
     Command.NETWORK_ADDRESSES: ("ip", ("-j", "address", "show")),
     Command.NETWORK_ROUTES4: ("ip", ("-j", "-4", "route", "show", "table", "all")),
@@ -61,8 +75,11 @@ EVENT_FILTERS = {
     'ssh_events': ('_UID=0', '_TRANSPORT=syslog', '_COMM=sshd', '_COMM=sshd-session', '_COMM=sshd-auth'),
     'firewall_events': ('_TRANSPORT=kernel',),
 }
-TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss", "who", "loginctl", "ip")
+TOOLS = ("free", "df", "systemctl", "journalctl", "systemd-analyze", "atop", "ss", "who", "loginctl", "ip",
+         'nft','iptables-save','ip6tables-save','iptables','ip6tables','ufw','fail2ban-client')
 TOOL_PURPOSES = {
+    **{name:'Optional: inspect existing local firewall/Fail2ban state with firewall; no changes or probes.'
+       for name in ('nft','iptables-save','ip6tables-save','iptables','ip6tables','ufw','fail2ban-client')},
     "ip": "Optional: read numeric local addresses/link state and route tables in network context; no route lookup/probe or configuration write.",
     "loginctl": "Optional: inspect existing local logind sessions in System/status; never starts or controls sessions/services.",
     "who": "Optional: reported terminal login sessions in System/status; no DNS lookup or session control.",
@@ -308,6 +325,44 @@ class CommandRunner:
 
     def read_firewall_candidates(self, boot_id: str, *, system=False, since_us=None, until_us=None) -> Result:
         return self._read_boot(boot_id, system=system, query='firewall_events', since_us=since_us, until_us=until_us)
+
+    def read_fail2ban(self,jail,query):
+        if not isinstance(jail,str) or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}',jail):raise ValueError('Invalid Fail2ban jail')
+        if query not in {'status','maxretry','findtime','bantime','actions'}:raise ValueError('Unsupported Fail2ban read')
+        executable=trusted_tool('fail2ban-client')
+        if executable is None:return Result('missing')
+        args=['status',jail] if query=='status' else ['get',jail,query]
+        try:return _capture([executable,*args])
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError):return Result('unavailable')
+
+    def read_fail2ban_journal(self,since_us,until_us,*,boot_id=None,system=False):
+        validate_window(since_us,until_us)
+        if until_us is None or since_us is None and boot_id is None:raise ValueError('Bounded Fail2ban journal scope required')
+        if boot_id is not None and (not isinstance(boot_id,str) or re.fullmatch('[0-9a-f]{32}',boot_id) is None):raise ValueError('Invalid boot filter')
+        if type(system) is not bool:raise ValueError('Invalid journal scope')
+        executable=trusted_tool('journalctl')
+        if executable is None:return Result('missing')
+        args=['--unit=fail2ban.service','--lines=201','--output=json','--no-pager','--quiet',
+            '--output-fields=MESSAGE,MESSAGE_ID,_BOOT_ID,_UID,_PID,_COMM,_TRANSPORT,PRIORITY,_SYSTEMD_UNIT,UNIT']
+        if system:args.insert(0,'--system')
+        if boot_id is not None:args.append('--boot='+boot_id)
+        for label,value in (('since',since_us),('until',until_us)):
+            if value is not None:args.append(f'--{label}=@{value//1000000}.{value%1000000:06d}')
+        try:return _capture([executable,*args])
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError):return Result('unavailable')
+
+    def read_fail2ban_log(self,previous=False):
+        if type(previous) is not bool:raise ValueError('Invalid Fail2ban log selection')
+        helper=str(Path(__file__).with_name('_firewall_log.py').resolve())
+        try:
+            result=_capture([sys.executable,'-I','-B',helper,'previous' if previous else 'current'])
+            if result.state=='completed' and result.returncode==0:
+                import json
+                value=json.loads(result.stdout)
+                if isinstance(value,dict) and value.get('reader_state') in {'file_missing','file_access_denied','unsupported_encoding','unsafe_file','file_unavailable'}:
+                    return Result(value['reader_state'],returncode=result.returncode)
+            return result
+        except (OSError,ValueError,UnicodeError,subprocess.SubprocessError):return Result('unavailable')
 
     def _read_boot(self, boot_id: str, *, system: bool, query=None, until_us=None, since_us=None) -> Result:
         validate_window(since_us, until_us)

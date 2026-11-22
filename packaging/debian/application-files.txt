@@ -1,6 +1,7 @@
 faultlens/__init__.py
 faultlens/__main__.py
 faultlens/_atop_exec.py
+faultlens/_firewall_log.py
 faultlens/_system_exec.py
 faultlens/acceptance_context.py
 faultlens/atop.py
@@ -15,6 +16,10 @@ faultlens/event_search.py
 faultlens/evidence_links.py
 faultlens/filesystems.py
 faultlens/firewall.py
+faultlens/firewall_history.py
+faultlens/firewall_presentation.py
+faultlens/firewall_rules.py
+faultlens/firewall_state.py
 faultlens/health.py
 faultlens/incidents.py
 faultlens/interface_presentation.py
