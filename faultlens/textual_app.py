@@ -104,9 +104,14 @@ class DetailDialog(ModalScreen):
             with Horizontal(classes='buttons'):
                 yield Button('Original',id='original')
                 if self.entry.kind=='finding': yield Button('Records',id='references')
+                if self.entry.kind=='service_message': yield Button('Context',id='service-context',variant='primary')
                 if 'Timeline position' in (self.entry.detail or {}): yield Button('Position',id='position')
                 if self.entry.kind=='boot': yield Button('Investigate this boot',id='select-boot',variant='primary')
                 yield Button('Close',id='close')
+            if self.entry.kind=='service_message':
+                with Horizontal(classes='buttons'):
+                    yield Button('Investigate period',id='service-period')
+                    yield Button('Current Network' if self.entry.navigation['current_page']==2 else 'Current System',id='service-current')
 
     def action_original(self): self.app.push_screen(RawDialog(self.entry.original))
     def action_position(self):
@@ -118,6 +123,23 @@ class DetailDialog(ModalScreen):
         if event.button.id=='original': self.action_original()
         elif event.button.id=='position': self.action_position()
         elif event.button.id=='references': self.app.push_screen(RecordsDialog(self.data,self.entry.original))
+        elif event.button.id=='service-context' and self.entry.kind=='service_message':
+            index=self.entry.navigation['record_index']
+            self.app.push_screen(RecordsDialog(self.data,records=self.data['journal_records'][max(0,index-3):index+4]))
+        elif event.button.id in {'service-period','service-current'} and self.entry.kind=='service_message':
+            from .service_diagnostics import followup_window
+            start,end=followup_window(self.entry.original)
+            app=self.app;target=self.entry.navigation['current_page']
+            while len(app.screen_stack)>1:app.pop_screen()
+            if event.button.id=='service-period':
+                app.start_investigation('period',start=start,end=end)
+                app.notice='Selected two minutes around a service journal receipt time. Journal scope uses Settings; temporal proximity is not causality.'
+                app.update_status()
+            else:
+                for cache in (app.snapshots,app.snapshot_options,app.collection_attempts):cache.pop(target,None)
+                app.select_page(target)
+                app.notice='Collect current readings for comparison; they do not establish conditions at the earlier service error.'
+                app.update_status();app.call_later(app.ensure_snapshot)
         elif event.button.id=='select-boot':
             source=self.entry.original; boot=source.get('boot',source)
             self.app.session.update_setting('boot_selector',boot['boot_id'])
@@ -134,7 +156,7 @@ class DetailDialog(ModalScreen):
 
 class ServiceDialog(ModalScreen):
     """Load one selected unit on entry; cancellation reaps its isolated CLI worker."""
-    BINDINGS=[Binding('escape','back','Back'),Binding('r','retry','Refresh'),
+    BINDINGS=[Binding('escape','back','Back'),Binding('r','retry','Refresh'),Binding('p','problems','Messages'),
               Binding('e','original','Original fields')]
 
     def __init__(self,entry,data):
@@ -148,7 +170,8 @@ class ServiceDialog(ModalScreen):
                 yield Static('Loading service status and current-boot unit logs...',id='service-explanation',markup=False)
             yield Static('Read-only system service query; existing access only. r refreshes; Esc returns.',classes='hint',markup=False)
             with Horizontal(classes='buttons'):
-                yield Button('Logs',id='service-logs',disabled=True,variant='primary')
+                yield Button('Messages',id='service-messages',disabled=True,variant='primary')
+                yield Button('Logs',id='service-logs',disabled=True)
                 yield Button('Original fields',id='service-original',disabled=True)
                 yield Button('Back',id='service-back')
 
@@ -158,7 +181,7 @@ class ServiceDialog(ModalScreen):
         if self.collection_task is not None: return
         self.report=None
         self.query_one('#service-explanation',Static).update('Loading service status and current-boot unit logs...')
-        for name in ('service-logs','service-original'): self.query_one('#'+name,Button).disabled=True
+        for name in ('service-messages','service-logs','service-original'): self.query_one('#'+name,Button).disabled=True
         self.collection_task=asyncio.create_task(self.load_service())
 
     async def load_service(self):
@@ -168,9 +191,10 @@ class ServiceDialog(ModalScreen):
             explanation=Text(detail_text(view(value)))
             self.query_one('#service-explanation',Static).update(explanation)
             self.report=value
+            self.query_one('#service-messages',Button).disabled=not value['journal_records']
             self.query_one('#service-logs',Button).disabled=not value['journal_records']
             self.query_one('#service-original',Button).disabled=False
-            self.query_one('#service-logs' if value['journal_records'] else '#service-original',Button).focus()
+            self.query_one('#service-messages' if value['journal_records'] else '#service-original',Button).focus()
         except asyncio.CancelledError: raise
         except (OSError,ValueError,TimeoutError):
             self.query_one('#service-explanation',Static).update('Service investigation unavailable within collection limits. No fault or absence of faults was established. r retries; Esc returns.')
@@ -186,9 +210,14 @@ class ServiceDialog(ModalScreen):
     def action_back(self): self.dismiss()
     def action_original(self):
         if self.report is not None: self.app.push_screen(RawDialog(self.report,'Original service status and unit logs'))
+    def action_problems(self):
+        if self.report is not None:
+            from .workspace import Entry
+            self.app.push_screen(SourceDialog(Entry(('Service messages',),self.report,None,'service_messages'),self.report))
     def on_button_pressed(self,event):
         event.stop()
-        if event.button.id=='service-logs' and self.report is not None:
+        if event.button.id=='service-messages':self.action_problems()
+        elif event.button.id=='service-logs' and self.report is not None:
             self.app.push_screen(RecordsDialog(self.report,records=self.report['journal_records']))
         elif event.button.id=='service-original': self.action_original()
         else: self.dismiss()
@@ -276,12 +305,12 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions'}:
+        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions'}:
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages'}:
             weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
                     [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
@@ -322,7 +351,7 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',

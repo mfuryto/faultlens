@@ -19,6 +19,7 @@ class Entry:
     detail: dict | None = None
     kind: str = 'detail'
     context: dict | None = None
+    navigation: dict | None = None
 
 
 def finding_entry(item,source):
@@ -155,6 +156,18 @@ def _group_members(data,representative,source):
 
 def source_table(entry,data):
     source=entry.original
+    if entry.kind=='service_messages':
+        from .service_diagnostics import problem_rows,record_detail
+        from .investigation import utc,excerpt
+        rows=[]
+        for item in problem_rows(data):
+            index=item['record_index'];record=data['journal_records'][index]
+            detail=record_detail(data,index)
+            topic=2 if 'address in use' in item['title'] or 'refused connection' in item['title'] else 0
+            rows.append(Entry((item['title'],utc(record['reference']['realtime_us']),
+                item['invocation'],excerpt(record['message'],160)),record,detail,'service_message',
+                navigation={'record_index':index,'current_page':topic}))
+        return 'Service messages — explained / error / other; not independent incidents',('Message / report','Recorded UTC','Invocation scope','Actual message'),rows
     if entry.kind=='scope_details':
         from .tui_model import Settings
         columns,rows=page_table(5,source,Settings())

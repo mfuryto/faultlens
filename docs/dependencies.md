@@ -90,4 +90,4 @@ Atop and other optional diagnostic tools will not be automatic installation
 dependencies. Their packages can enable services, so recorder installation and policy
 remain explicit administrator choices. No package script or application startup may
 bootstrap dependencies with pip or downloads. See the
-[package milestone](delivery-plan.md#4--installable-debian-package) for acceptance gates.
+[package milestone](debian-package.md#automated-package-qualification) for acceptance gates.

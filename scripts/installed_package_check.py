@@ -152,7 +152,9 @@ def main():
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed CLI check failed: '+options[0])
         data=json.loads(result.stdout)
         if data.get('schema_version')!=1 or data.get('command')!=options[0]: raise ValueError('Installed CLI schema failed')
-        if options[0]=='service' and (data.get('unit')!='systemd-journald.service' or not isinstance(data.get('journal_records'),list)):
+        if options[0]=='service' and (data.get('unit')!='systemd-journald.service' or not isinstance(data.get('journal_records'),list)
+                or not isinstance(data.get('assessment'),dict) or not isinstance(data['assessment'].get('code'),str)
+                or not isinstance(data.get('invocation_summary'),dict)):
             raise ValueError('Installed service investigation schema failed')
     from faultlens import ui_collection
     if Path(ui_collection.__file__).resolve().parents[1]!=Path('/usr/share/faultlens'):

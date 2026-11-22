@@ -176,7 +176,7 @@ class CommandRunner:
         try:
             return _capture([executable,'--system','--boot=0','--unit='+unit,'--lines=201',
                 '--output=json','--no-pager','--quiet',
-                '--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM,_UID,PRIORITY,_BOOT_ID,_SYSTEMD_UNIT,UNIT,OBJECT_SYSTEMD_UNIT,COREDUMP_UNIT'],utc=True)
+                '--output-fields=MESSAGE,MESSAGE_ID,_TRANSPORT,_PID,_COMM,_UID,PRIORITY,_BOOT_ID,_SYSTEMD_UNIT,UNIT,OBJECT_SYSTEMD_UNIT,COREDUMP_UNIT,_SYSTEMD_INVOCATION_ID,INVOCATION_ID,JOB_RESULT'],utc=True)
         except (OSError,ValueError,UnicodeError,subprocess.SubprocessError): return Result('unavailable')
 
     def read_atop(self, date: str, start: int, end: int) -> Result:

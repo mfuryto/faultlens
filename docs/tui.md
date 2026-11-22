@@ -306,3 +306,15 @@ existing system-journal access. It has no recent-time cutoff, so old startup err
 in a long-running boot can be examined. It does not restart services, load profiles,
 repair files or grant access. Status and log availability remain independent.
 See the [service commands and collection limits](cli-reference.md#investigate-one-failed-service).
+
+## General service workflow (development after 1.0.1)
+
+Open Health → Failed services → a service → Messages. The manager result is explained
+independently of log availability. The message table prioritizes supported reports
+and error/warning records without hiding retained informational or unknown messages.
+Open any row for its actual text, interpretation, next step and same/different/
+unverified invocation scope. Context opens neighboring records; original fields
+remain available. Investigate period selects a bounded interval around receipt time
+using the current journal-scope setting. Current System/Network explicitly collects
+comparison readings; neither those readings nor temporal proximity prove an earlier
+cause. Esc returns through the dialog stack and still cancels a pending service read.

@@ -51,7 +51,15 @@ def records(text, unit):
     boot=rows[0].get('_BOOT_ID')
     if not isinstance(boot,str): raise ValueError('Missing service journal boot identity')
     parsed,_,unsupported=journal.entries(text,boot)
-    return [journal.evidence_record(item) for item in parsed[-200:]],len(parsed)>200,unsupported
+    by_cursor={row['__CURSOR']:row for row in rows if isinstance(row.get('__CURSOR'),str)}
+    retained=[]
+    for item in parsed[-200:]:
+        record=journal.evidence_record(item)
+        original=by_cursor.get(item.cursor,{})
+        record['unit_metadata']={key:original[key] for key in ('_SYSTEMD_UNIT','UNIT','OBJECT_SYSTEMD_UNIT',
+            'COREDUMP_UNIT','_SYSTEMD_INVOCATION_ID','INVOCATION_ID','JOB_RESULT') if key in original}
+        retained.append(record)
+    return retained,len(parsed)>200,unsupported
 
 
 def explain(unit, retained):
@@ -77,8 +85,17 @@ def explain(unit, retained):
                 ('No space left on device','Service message mentions no space available','A retained message contains No space left on device. Blocks, inodes, quotas or another resource may be involved; current capacity is not established.','Review filesystem capacity, inode and quota evidence for the reported destination before changing or deleting files.'),
                 ('Permission denied','Service message mentions permission denied','A retained message contains Permission denied. Ownership, permissions, security policy and the exact operation need inspection; no cause is inferred.','Inspect the named operation and related messages with existing access before changing permissions or security policy.'),
                 ('Address already in use','Service message mentions an address in use','A retained message contains Address already in use. The owning process and current endpoint state are not established.','Compare the recorded endpoint and service configuration with the current local socket snapshot before changing or stopping anything.'),
+                ('No such file or directory','Service message mentions a missing path','The message contains No such file or directory. The missing component could be an executable, interpreter, directory or other dependency; the affected path and execution context need inspection.','Read the named operation and surrounding logs. Compare the intended package, paths and service environment before creating files or changing the unit.'),
+                ('Read-only file system','Service message mentions a read-only filesystem','The message contains Read-only file system. A mount, filesystem fault, service sandbox or intended policy may be involved; the current mount state and cause are unverified.','Review the named destination, filesystem messages and service restrictions for the same period before changing mounts or policy.'),
+                ('Connection refused','Service message mentions a refused connection','The message contains Connection refused. The reported endpoint and operation need context; an absent listener or rejection is possible, not a verified root cause.','Read the reported endpoint and surrounding logs, then compare the relevant listener/service and network context. Current sockets cannot prove earlier reachability.'),
             ):
                 if signature in message: title,meaning,next_step=label,description,action;break
+        fields=record.get('unit_metadata',{})
+        manager=record['metadata'].get('pid')=='1' and record['metadata'].get('comm')=='systemd' and record['metadata'].get('uid')=='0'
+        if title is None and manager and fields.get('UNIT')==unit and fields.get('JOB_RESULT')=='dependency':
+            title='Manager reported a dependency failure'
+            meaning='The manager recorded a dependency job result for this service. The failed dependency and its underlying cause are not identified by this result alone.'
+            next_step='Investigate the same period for prerequisite-unit failures. Review each reported dependency before attempting to start this service again.'
         if title:
             result.append({'title':title,'meaning':meaning,'next_step':next_step,'record_index':index,
                            'reference':record['reference']})
@@ -109,12 +126,18 @@ def collect(unit, runner=None):
         data[key]=source
     data['journal_records']=data['journal']['records']
     data['explanations']=explain(unit,data['journal_records'])
+    from .service_diagnostics import assessment,problem_rows
+    data['assessment']=assessment(data['status'])
+    scoped_rows=problem_rows(data)
+    data['invocation_summary']={label:sum(row['invocation']==label for row in scoped_rows) for label in
+        ('Same reported invocation ID','Different reported invocation ID','Unverified invocation')}
     available=sum(data[key]['state']=='available' for key in ('status','journal'))
     data['state']='available' if available==2 else 'partial' if available else 'unavailable'
     return data
 
 
 def view(data):
+    from .service_diagnostics import termination
     status=data['status']; logs=data['journal']; values=status['properties']
     if status['state']!='available': observed='Current service state could not be assessed.'
     elif values['LoadState']=='not-found': observed='The system manager reports that the unit was not found.'
@@ -129,9 +152,12 @@ def view(data):
     else: coverage=str(len(logs['records']))+' retained current-boot unit records; complete history and invocation association are unverified.'
     if logs['record_limit_reached']: coverage+=' Earlier records were omitted by the 200-record cap.'
     detail={'Observed':observed,'Description (not an error message)':values.get('Description','Unavailable'),
+            'Main-process report':termination(status),
             'Last manager state change (UTC)':values.get('StateChangeTimestamp') or 'Not reported',
             'Journal coverage':coverage,
-            'What it means':'Read the reported errors below and open Logs for surrounding messages. Service state alone does not establish impact or an underlying cause.'}
+            'What it means':data['assessment']['meaning'],
+            'Next investigation':data['assessment']['next_steps'],
+            'Log invocation context':'; '.join(str(count)+' '+label for label,count in data['invocation_summary'].items())+'. Older attempts are not automatically the current failure.'}
     for index,item in enumerate(data['explanations'][:20],1):
         from .investigation import utc
         record=data['journal_records'][item['record_index']]
