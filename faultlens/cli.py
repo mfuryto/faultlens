@@ -282,7 +282,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         argv = ['tui']
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux diagnostics. With no arguments, open the terminal workspace; use explicit commands for scripts.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate", "service", "ssh", "firewall"), default="status")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate", "service", "ssh", "firewall", "ports"), default="status")
     parser.add_argument("--window",choices=("boot","hour","day","period"),help="SSH/firewall log window: boot/hour/day/period; firewall defaults to day, ssh to boot.")
     parser.add_argument('--unit',type=service_unit,help='One literal system .service name to investigate with service; current-boot system logs, no elevation.')
     parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")
@@ -339,8 +339,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("TUI has its own explanation and evidence views; use explicit CLI commands for JSON/details.")
     if args.search_firewall and args.command not in {'diagnose','investigate'}:
         parser.error("Firewall journal analysis is supported only with diagnose.")
-    if args.show_evidence and args.command not in {'diagnose','investigate','service','ssh','firewall'}:
-        parser.error("Original journal evidence is supported only with investigate, diagnose, service, ssh or firewall.")
+    if args.show_evidence and args.command not in {'diagnose','investigate','service','ssh','firewall','ports'}:
+        parser.error("Original journal evidence is supported only with investigate, diagnose, service, ssh, firewall or ports.")
     if args.search_ssh and args.command not in {'diagnose','investigate'}:
         parser.error("SSH journal analysis is supported only with diagnose.")
     if args.atop_extended and (args.command not in {'diagnose','investigate'} or args.atop_date is None):
@@ -375,7 +375,10 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             from .tui import run
             return run(sources=sources, runner=runner, sample_seconds=args.sample_seconds, stderr=stderr,
                        pstore_collector=pstore_collector, pstore_archive_collector=pstore_archive_collector)
-        if args.command=='firewall':
+        if args.command=='ports':
+            from .ports import collect
+            data=collect(runner)
+        elif args.command=='firewall':
             from .firewall_state import collect
             data=collect(runner,sources=sources,window=args.window,since_us=args.since_us,until_us=args.until_us,
                 boot_id=args.boot_id,system_journal=args.system_journal)
@@ -437,6 +440,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 attach_resources(data,runner,args.sample_seconds)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
+        elif args.command=='ports':
+            from .port_presentation import render
+            render(data,stdout,details=args.details,evidence=args.show_evidence)
         elif args.command=='firewall':
             from .firewall_presentation import render
             render(data,stdout,details=args.details,evidence=args.show_evidence)

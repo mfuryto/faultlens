@@ -18,6 +18,7 @@ Run as the current user with existing source permissions. With no command,
 | `faultlens health` | Operational symptoms and diagnostic readiness |
 | `faultlens check` | Tools, services and recording setup |
 | `faultlens network` | Current network counters; optional socket snapshot |
+| `faultlens ports` | Listener bindings/owners, conditional filtering, forwarding and external verification guidance |
 | `faultlens security` | Supporting network/authentication/firewall evidence |
 | `faultlens history` | Accessible boot listing |
 | `faultlens incidents` | Bounded summaries from retained boots |
@@ -450,3 +451,33 @@ path, successful blocking, rule ownership or the human initiator. Full originals
 remain available without masking; no action template, ban/unban, firewall write,
 DNS lookup or external probe runs. Tools and sources are optional and use existing
 access. See [source bounds and interpretation](architecture/firewall-fail2ban.md).
+
+## Port accessibility (development after 1.1.0)
+
+```sh
+faultlens ports
+faultlens ports --details
+faultlens ports --show-evidence
+faultlens ports --json
+```
+
+Network → Port accessibility loads current IPv4/IPv6 TCP listeners and unconnected
+UDP bindings separately. Open a row for the exact binding, reported owner/service,
+candidate addresses and actual rule examples. Policy opens compatible conditional
+rules and incoming base defaults; Addresses/Routes expose local configuration.
+Reported service opens the existing general service status/log reader. None of
+these observations alone proves that the port is available from the Internet.
+
+Forwarding shows DNAT/redirect declarations even without a host listener. Open the
+declaration, target-policy references and any observed target sockets. Dynamic
+targets, other namespaces, upstream NAT and complete packet paths can remain
+unresolved. Original fields and Evidence retain exact accepted sources; capped
+previews and unavailable families never become an all-clear.
+
+External check explains a separately authorized test from an independent external
+network. Confirm the public target/port first, then record source, target, family,
+protocol, UTC time and result. TCP connection success establishes that observed
+path/time; UDP requires a valid service-specific request and matching response.
+Silence is inconclusive. Faultlens performs no external probe, DNS query, upload or
+policy change. There is no historical window/boot filter for this current inquiry.
+See [design, source bounds and acceptance](architecture/port-accessibility.md).

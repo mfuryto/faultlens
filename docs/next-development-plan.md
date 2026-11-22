@@ -3,8 +3,9 @@
 Approved 2026-11-22: SSH statistics, firewall/Fail2ban, then port accessibility.
 The four-step 1.1.0 delivery is complete; post-release stabilization merged in
 PR #73. The [delivery plan](delivery-plan.md) remains the execution record.
-Finish and verify one coherent step before starting another. SSH statistics merged in PR #74. The owner subsequently authorized step 2
-implementation and merge. A new release and step 3 implementation are separate work.
+Finish and verify one coherent step before starting another. SSH statistics merged
+in PR #74 and firewall/Fail2ban in PR #75. The owner authorized port accessibility
+on staging, with merge after required checks. A new release is separate work.
 
 | Order | Work | Administrator outcome | Acceptance |
 | --- | --- | --- | --- |
@@ -22,7 +23,7 @@ An accepted method is not a confirmed complete or authorized session. Retain ori
 usernames, peers and messages without privacy masking, with terminal controls escaped.
 No persistent counters, recording policy, daemon, database or extra dependency.
 
-## Step 2: current delivery
+## Step 2: delivered in PR #75
 
 See [firewall/Fail2ban design and bounds](architecture/firewall-fail2ban.md). Network
 and `faultlens firewall` expose current rules/defaults, sets, jail status/settings,
@@ -41,7 +42,15 @@ is not verified rule ownership. A ban through Fail2ban need not identify the hum
 who requested it. Existing audit evidence is needed for human attribution.
 No ban/unban, rule changes, rule tracing that changes state or production attack tests.
 
-## Step 3: design boundary
+## Step 3: current delivery
+
+See [port evidence, source bounds and acceptance](architecture/port-accessibility.md).
+Network and `faultlens ports` connect dual-stack bindings, reported owners/services,
+addresses/routes, conditional rules/defaults and translation declarations. Open a
+port or translation for actual evidence and a separate external-verification guide.
+The tool performs no remote probe and does not import unverifiable test assertions.
+
+### Interpretation boundary
 
 Join actual TCP listeners/UDP bindings with addresses, reported service and supported
 filter/NAT/container-publishing paths. A listening socket or local accept rule alone

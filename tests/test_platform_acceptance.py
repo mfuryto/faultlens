@@ -21,6 +21,7 @@ def reply(argv,**limits):
     if command=='status':data['login_sessions']={'state':'unavailable','rows':[]}
     if command=='health':data['failed_services']={'state':'unavailable','rows':[]}
     if command=='service':data.update(unit='systemd-journald.service',status={'state':'unavailable'},journal={'state':'unavailable'},journal_records=[],assessment={'code':'unavailable'},invocation_summary={})
+    if command=='ports':data.update(state='unavailable',ports=[],translations=[],external_access='Unknown',external_verification={'state':'not_performed'})
     if command=='firewall':data.update(state='unavailable',sources={},correspondences=[],packet_verdict='Unknown')
     if command=='ssh':data.update(state='unavailable',totals={'failed':None},records=[])
     if command=='network':
@@ -39,7 +40,7 @@ def native(**options):
 class PlatformAcceptanceTests(unittest.TestCase):
     def test_absent_optional_sources_are_successful_contracts_not_host_health(self):
         data=native()
-        self.assertEqual(9,len(data['checks']))
+        self.assertEqual(10,len(data['checks']))
         self.assertTrue(all(row['contract']=='PASS' for row in data['checks']))
         self.assertEqual('unavailable',data['checks'][-1]['source_state'])
         self.assertEqual('pending',data['operator_acceptance'])
@@ -61,7 +62,7 @@ class PlatformAcceptanceTests(unittest.TestCase):
             with self.subTest(result=result),self.assertRaises(ValueError):native(execute=lambda *a,**k:result)
 
     def test_missing_source_contracts_do_not_pass_as_generic_success(self):
-        for command,field in (('status','processes'),('status','filesystems'),('health','processes'),('health','filesystems'),('status','login_sessions'),('health','failed_services'),('network','sockets'),('network','network_context'),('network','network_review'),('network','network_samples'),('diagnose','state'),('investigate','state'),('service','journal'),('service','assessment'),('service','invocation_summary')):
+        for command,field in (('ports','external_verification'),('ports','ports'),('ports','translations'),('ports','external_access'),('status','processes'),('status','filesystems'),('health','processes'),('health','filesystems'),('status','login_sessions'),('health','failed_services'),('network','sockets'),('network','network_context'),('network','network_review'),('network','network_samples'),('diagnose','state'),('investigate','state'),('service','journal'),('service','assessment'),('service','invocation_summary')):
             def execute(argv,**limits):
                 result=reply(argv,**limits)
                 if argv[4]==command and '--json' in argv:

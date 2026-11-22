@@ -37,6 +37,9 @@ def nft(raw):
         if not isinstance(value,dict):raise ValueError('Unsupported nft fields')
         family=label(value['family']);table=label(value.get('table',value.get('name','')))
         if kind=='chain':
+            if value.get('hook') is not None:label(value['hook'])
+            if value.get('policy') is not None:label(value['policy'])
+            if value.get('prio') is not None and type(value['prio']) not in {int,str}:raise ValueError('Invalid chain priority')
             name=label(value['name']);identity=(family,table,name)
             if identity in identities:raise ValueError('Duplicate chain identity')
             identities.add(identity)

@@ -2,6 +2,11 @@
 
 ## Unreleased — 1.1.1.dev0
 
+- Add port accessibility investigation with dual-stack bindings, reported owners/
+  services, conditional policy/default references, NAT/forwarding declarations,
+  target-socket links and protocol-specific manual external-verification guidance.
+  Local evidence never becomes a verified Internet-accessibility verdict.
+
 - Add explicit read-only firewall/Fail2ban investigation in Network and CLI: active
   rule/default/set context, current jail thresholds and reported bans, qualified
   rule correspondence, retained logs and original-evidence navigation.

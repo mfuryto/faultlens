@@ -71,6 +71,16 @@ async def workspace_check():
             app.action_open();await pilot.pause(.01)
             if not isinstance(app.screen,SourceDialog):raise ValueError('Installed network source did not open: '+kind)
             await pilot.press('escape')
+        from faultlens.textual_app import PortsDialog
+        app.query_one('#grid-2',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[2]) if row.kind=='port_accessibility'))
+        app.action_open();await pilot.pause(.01);dialog=app.screen
+        if not isinstance(dialog,PortsDialog):raise ValueError('Installed port workflow did not open')
+        async with asyncio.timeout(30):
+            while dialog.report is None:await pilot.pause(.02)
+        if dialog.report.get('command')!='ports' or dialog.report.get('external_access')!='Unknown':raise ValueError('Installed port collection failed')
+        await pilot.click('#ports-sources')
+        if not isinstance(app.screen,SourceDialog):raise ValueError('Installed port sources did not open')
+        await pilot.press('escape','escape')
         app.select_page(5)
         async with asyncio.timeout(20):
             while app.page!=5 or app.job is not None or app.collection_states.get(5) not in {'completed','failed'}:
@@ -119,9 +129,9 @@ raise SystemExit(driver.main())
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed resource gate failed: '+driver+' '+result.state)
         data=json.loads(result.stdout)
         if driver=='benchmark':
-            if len(data['commands'])!=32 or not all(row['within_regression_budget'] for row in data['commands'].values()):
+            if len(data['commands'])!=34 or not all(row['within_regression_budget'] for row in data['commands'].values()):
                 raise ValueError('Installed benchmark coverage/budget failed')
-        elif len(data['profiles'])!=33 or not data['passed']:
+        elif len(data['profiles'])!=39 or not data['passed']:
             raise ValueError('Installed constrained resource coverage/budget failed')
         print('PASS installed '+driver+' with unchanged CPU/wall/memory budgets',flush=True)
 
@@ -170,11 +180,13 @@ def main():
     if probe.returncode!=0 or not probe.stdout.startswith('Faultlens '): raise ValueError('Installed launcher isolation failed')
     for options in (('status',),('health',),('network','--sockets','--network-context'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
                     ('diagnose','--boot','0','--system-journal'),
-                    ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal'),('firewall','--window','hour','--system-journal')):
+                    ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal'),('firewall','--window','hour','--system-journal'),('ports',)):
         result=_capture(['/usr/bin/faultlens',*options,'--json'],timeout=30,limit=4194304)
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed CLI check failed: '+options[0])
         data=json.loads(result.stdout)
         if data.get('schema_version')!=1 or data.get('command')!=options[0]: raise ValueError('Installed CLI schema failed')
+        if options[0]=='ports' and (not isinstance(data.get('ports'),list) or not isinstance(data.get('translations'),list) or data.get('external_access')!='Unknown' or data.get('external_verification',{}).get('state')!='not_performed'):
+            raise ValueError('Port evidence contract failed')
         if options[0]=='firewall' and (not isinstance(data.get('sources'),dict) or not isinstance(data.get('correspondences'),list) or data.get('packet_verdict')!='Unknown'):
             raise ValueError('Installed firewall evidence contract failed')
         if options[0]=='ssh' and (data.get('state') not in {'available','partial','unavailable'}
@@ -201,7 +213,7 @@ def main():
     resource_checks(_capture)
     asyncio.run(workspace_check())
     terminal_check();terminal_check(True)
-    print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': nine CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')
+    print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': ten CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')
 
 
 if __name__=='__main__':

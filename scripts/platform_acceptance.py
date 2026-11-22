@@ -52,7 +52,7 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
     checks=[]
     commands=(('status',),('health',),('network','--sockets','--network-context'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
               ('diagnose','--boot','0','--system-journal','--search-events'),
-              ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal'),('firewall','--window','hour','--system-journal'))
+              ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal'),('firewall','--window','hour','--system-journal'),('ports',))
     for options in commands:
         result=execute([sys.executable,'-I','-B',str(ROOT/'bin/faultlens'),*options,'--json'],timeout=30,limit=4194304)
         if result.state!='completed' or result.returncode!=0: raise ValueError('Native CLI contract did not complete: '+options[0])
@@ -60,6 +60,8 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
         except (ValueError,RecursionError) as exc: raise ValueError('Native CLI returned invalid JSON: '+options[0]) from exc
         if not isinstance(data,dict) or data.get('schema_version')!=1 or data.get('command')!=options[0]:
             raise ValueError('Native CLI returned an unexpected report: '+options[0])
+        if options[0]=='ports' and (not isinstance(data.get('ports'),list) or not isinstance(data.get('translations'),list) or data.get('external_access')!='Unknown' or data.get('external_verification',{}).get('state')!='not_performed'):
+            raise ValueError('Port evidence contract failed')
         if options[0]=='firewall' and (not isinstance(data.get('sources'),dict) or not isinstance(data.get('correspondences'),list) or data.get('packet_verdict')!='Unknown'):
             raise ValueError('Native firewall evidence contract failed')
         if options[0]=='ssh' and (data.get('state') not in {'available','partial','unavailable'}
