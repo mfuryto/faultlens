@@ -8,13 +8,14 @@ from dataclasses import asdict
 from unittest.mock import patch
 
 from textual.widgets import DataTable,Input,Static,TabbedContent,TabPane,Tabs
-from faultlens.textual_app import FaultlensApp,DetailDialog,RawDialog,SourceDialog,ValueDialog
+from faultlens.textual_app import FaultlensApp,DetailDialog,RawDialog,SourceDialog,ValueDialog,ServiceDialog
 from faultlens.models import Observation,report
 from faultlens.tui_model import Session
 from faultlens.workspace import page_table,Entry
 from faultlens.overview import incidents
 from tests.test_incident_overview import OverviewRunner
 from tests.test_sockets import SocketRunner
+from tests.test_service import service_report
 from tests.support import SyntheticSources,SyntheticRunner,SyntheticPhase3Runner,SyntheticNetworkSources
 
 
@@ -29,7 +30,8 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             while not condition(): await pilot.pause(0.01)
 
     def app(self):
-        app=FaultlensApp(initial_collect=False); app.snapshots[0]=status_report(); return app
+        async def service_collector(unit):return service_report(unit)
+        app=FaultlensApp(initial_collect=False,service_collector=service_collector); app.snapshots[0]=status_report(); return app
 
     async def test_arrows_change_tabs_and_row_selection_opens_a_dialog_not_a_field_tree(self):
         app=self.app()
@@ -443,7 +445,7 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
             table=app.query_one('#grid-1',DataTable)
             table.move_cursor(row=next(i for i,row in enumerate(app.entries[1]) if row.kind=='failed_services'))
             await pilot.press('enter');self.assertIsInstance(app.screen,SourceDialog)
-            await pilot.press('enter');self.assertIsInstance(app.screen,DetailDialog)
+            await pilot.press('enter');self.assertIsInstance(app.screen,ServiceDialog)
             self.assertEqual('example-worker.service',app.screen.entry.original['unit'])
             await pilot.press('escape','escape')
             await pilot.resize_terminal(40,10);await pilot.pause(0.01)

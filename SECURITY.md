@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Security fixes target the latest published Faultlens version, starting with 1.0.0.
+Security fixes target the latest published Faultlens version. The current release is 1.0.1.
 Update to the latest patch before reporting a defect; older development previews are
 unsupported. Support is best-effort without a guaranteed response time. No independent
 security audit or comprehensive host-security assessment is claimed.

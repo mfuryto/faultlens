@@ -1,4 +1,4 @@
-Faultlens 1.0 Debian package
+Faultlens 1.0.1 Debian package
 ==================================
 
 Run `faultlens` as your ordinary user to open the terminal workspace.
@@ -6,6 +6,7 @@ Run `faultlens` as your ordinary user to open the terminal workspace.
 
     faultlens status
     faultlens health
+    faultlens service --unit apparmor.service
     faultlens investigate --mode now
     faultlens --help
 
@@ -25,5 +26,6 @@ Faultlens's GPL text. Source and build instructions:
 https://github.com/mfuryto/faultlens
 
 Release assets include matching source, dependency wheels and checksums. Isolated
-Debian/Ubuntu installation tests do not replace the unavailable second real-server
-SSH test. Security reports use the private GitHub advisory route in SECURITY.md.
+Debian/Ubuntu checks cover package installation and local application behavior.
+Source permissions still determine available evidence. Security reports use the
+private GitHub advisory route in SECURITY.md.

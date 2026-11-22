@@ -132,17 +132,79 @@ class DetailDialog(ModalScreen):
         else: self.dismiss()
 
 
+class ServiceDialog(ModalScreen):
+    """Load one selected unit on entry; cancellation reaps its isolated CLI worker."""
+    BINDINGS=[Binding('escape','back','Back'),Binding('r','retry','Refresh'),
+              Binding('e','original','Original fields')]
+
+    def __init__(self,entry,data):
+        super().__init__(); self.entry=entry; self.data=data
+        self.report=None; self.collection_task=None
+
+    def compose(self):
+        with Vertical(classes='dialog'):
+            yield Static(literal(self.entry.original['unit']),classes='dialog-title')
+            with VerticalScroll():
+                yield Static('Loading service status and current-boot unit logs...',id='service-explanation',markup=False)
+            yield Static('Read-only system service query; existing access only. r refreshes; Esc returns.',classes='hint',markup=False)
+            with Horizontal(classes='buttons'):
+                yield Button('Logs',id='service-logs',disabled=True,variant='primary')
+                yield Button('Original fields',id='service-original',disabled=True)
+                yield Button('Back',id='service-back')
+
+    def on_mount(self): self.action_retry()
+
+    def action_retry(self):
+        if self.collection_task is not None: return
+        self.report=None
+        self.query_one('#service-explanation',Static).update('Loading service status and current-boot unit logs...')
+        for name in ('service-logs','service-original'): self.query_one('#'+name,Button).disabled=True
+        self.collection_task=asyncio.create_task(self.load_service())
+
+    async def load_service(self):
+        try:
+            from .service import view
+            value=await self.app.service_collector(self.entry.original['unit'])
+            explanation=Text(detail_text(view(value)))
+            self.query_one('#service-explanation',Static).update(explanation)
+            self.report=value
+            self.query_one('#service-logs',Button).disabled=not value['journal_records']
+            self.query_one('#service-original',Button).disabled=False
+            self.query_one('#service-logs' if value['journal_records'] else '#service-original',Button).focus()
+        except asyncio.CancelledError: raise
+        except (OSError,ValueError,TimeoutError):
+            self.query_one('#service-explanation',Static).update('Service investigation unavailable within collection limits. No fault or absence of faults was established. r retries; Esc returns.')
+        except Exception:
+            self.query_one('#service-explanation',Static).update('Service investigation failed unexpectedly. No replacement evidence was retained. Use the explicit service CLI command to check the source.')
+        finally: self.collection_task=None
+
+    async def on_unmount(self):
+        if self.collection_task is not None:
+            task=self.collection_task;task.cancel()
+            await asyncio.gather(task,return_exceptions=True)
+
+    def action_back(self): self.dismiss()
+    def action_original(self):
+        if self.report is not None: self.app.push_screen(RawDialog(self.report,'Original service status and unit logs'))
+    def on_button_pressed(self,event):
+        event.stop()
+        if event.button.id=='service-logs' and self.report is not None:
+            self.app.push_screen(RecordsDialog(self.report,records=self.report['journal_records']))
+        elif event.button.id=='service-original': self.action_original()
+        else: self.dismiss()
+
+
 class RecordsDialog(ModalScreen):
     """Readable, scrollable source messages; exact retained objects remain available."""
     BINDINGS=[Binding('escape','dismiss','Back'),Binding('e','original','Original fields'),
               Binding('ctrl+right','next_records','Next records'),Binding('ctrl+left','previous_records','Previous records')]
 
-    def __init__(self,data,finding=None,*,record=None):
+    def __init__(self,data,finding=None,*,record=None,records=None):
         super().__init__()
         from .investigation import linked_records
-        self.records=[record] if record is not None else linked_records(data,finding)
+        self.records=records if records is not None else [record] if record is not None else linked_records(data,finding)
         self.record_offset=0
-        self.linkage=resolve(data,finding) if finding is not None else record
+        self.linkage=records if records is not None else resolve(data,finding) if finding is not None else record
 
     def messages(self):
         from .investigation import utc
@@ -376,7 +438,7 @@ class FaultlensApp(App):
               Binding('right','next_tab','Next section',priority=True),
               Binding('escape','cancel','Cancel collection'),Binding('ctrl+c','interrupt','Interrupt',priority=True)]
 
-    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status=''):
+    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status='',service_collector=None):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
@@ -384,6 +446,7 @@ class FaultlensApp(App):
         self.initial_collect=initial_collect; self.search_query=''
         self.collection_attempts={}; self.collection_states={}; self.closing=False; self.workspace_ready=False
         self.settings_store=settings_store; self.settings_status=settings_status
+        self.service_collector=service_collector or ui_collection.collect_service
 
     def _handle_exception(self,error):
         # Pinned Textual hook: never render exception locals containing admin evidence.
@@ -638,6 +701,7 @@ class FaultlensApp(App):
             self.select_page(5)
             self.notice='Investigate uses the selected question/time and optional boot filter.'; self.update_status()
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
+        elif entry.kind=='service': self.push_screen(ServiceDialog(entry,data))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
         elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions'}:
             self.push_screen(SourceDialog(entry,data))

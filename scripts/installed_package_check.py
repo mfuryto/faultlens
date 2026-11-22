@@ -61,6 +61,16 @@ async def workspace_check():
                 await pilot.pause(0.02)
         if app.collection_states[5]!='completed' or app.snapshots[5]['command']!='investigate':
             raise ValueError('Installed investigation collector failed')
+        from faultlens.workspace import Entry
+        from faultlens.textual_app import ServiceDialog
+        app.open_entry(Entry(('systemd-journald.service',),{'unit':'systemd-journald.service'},kind='service'),app.snapshots[5])
+        if not isinstance(app.screen,ServiceDialog):raise ValueError('Installed service dialog did not open')
+        screen=app.screen
+        async with asyncio.timeout(20):
+            while screen.report is None:await pilot.pause(0.02)
+        if screen.report is None or screen.report.get('command')!='service':
+            raise ValueError('Installed service dialog collection failed')
+        await pilot.press('escape')
 
 
 def resource_checks(capture):
@@ -135,20 +145,22 @@ def main():
     probe=subprocess.run(['/usr/bin/faultlens','--version'],cwd=poison,
                          env={**os.environ,'PYTHONPATH':str(poison)},capture_output=True,text=True,timeout=10)
     if probe.returncode!=0 or not probe.stdout.startswith('Faultlens '): raise ValueError('Installed launcher isolation failed')
-    for options in (('status',),('health',),('network','--sockets'),('history','--system-journal'),
+    for options in (('status',),('health',),('network','--sockets'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
                     ('diagnose','--boot','0','--system-journal'),
                     ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal')):
         result=_capture(['/usr/bin/faultlens',*options,'--json'],timeout=30,limit=4194304)
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed CLI check failed: '+options[0])
         data=json.loads(result.stdout)
         if data.get('schema_version')!=1 or data.get('command')!=options[0]: raise ValueError('Installed CLI schema failed')
+        if options[0]=='service' and (data.get('unit')!='systemd-journald.service' or not isinstance(data.get('journal_records'),list)):
+            raise ValueError('Installed service investigation schema failed')
     from faultlens import ui_collection
     if Path(ui_collection.__file__).resolve().parents[1]!=Path('/usr/share/faultlens'):
         raise ValueError('Installed UI backend used source modules')
     resource_checks(_capture)
     asyncio.run(workspace_check())
     terminal_check();terminal_check(True)
-    print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': six CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')
+    print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': seven CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')
 
 
 if __name__=='__main__':

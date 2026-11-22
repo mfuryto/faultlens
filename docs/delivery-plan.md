@@ -1,20 +1,36 @@
 # Faultlens delivery plan
 
-Status: active operating plan, updated 2026-11-19. The owner has authorized
-completion and publication of version 1.0.0. The problem-centered workflow and
-source-checkout SSH smoke test are accepted. Package installation, upgrade/removal,
-installed CLI/TUI and reproducibility have automated Debian/Ubuntu qualification.
-The remaining release work is artifact qualification, green required checks, an exact
-main-commit tag, verified assets and publication. See [release scope](release-readiness.md).
+Status: updated 2026-11-22. Version 1.0.0 was published in the repository's ordinary
+GitHub Releases on 2026-11-19 with the `.deb`, complete corresponding source and
+checksums. The release qualification sequence is complete. The owner plans an
+additional Ubuntu-server package test; that is follow-up, not a release limitation.
 
-The owner will test the package on another Ubuntu server once it is available.
-That is a planned follow-up, not a functional limitation or a release blocker.
-This decision supersedes earlier second-server gates and publication restrictions
-below; dated entries remain development history. Real incident calibration and
-native workload measurements are separate from software correctness checks.
-The original specification is the product goal, not a claim that every future idea
-is part of version 1.0. This plan supersedes the old priority list in
-[stabilization.md](stabilization.md).
+## Current task — investigate a concrete failed service
+
+The owner found a failed AppArmor service while testing another server. Implement
+one bounded service inquiry in the existing CLI and Health navigation:
+
+1. Open a failed service row and load system-manager properties and accessible
+   current-boot unit logs automatically, including old retained startup errors.
+2. Show original error text, source references, supported message explanations and
+   next investigation steps. Keep parser/include and loader-script errors separate;
+   unknown messages remain readable and unavailable logs remain unassessed.
+3. Preserve literal validated command arguments, current access, deadlines/output
+   bounds, terminal safety and cancellation. Never restart services or change policy.
+4. Verify synthetic positive/unknown/unavailable/capped cases, real frontend navigation,
+   native/installed package contracts and unchanged resource/security gates. Review
+   staging and merge only after required CI passes.
+
+The owner requested the 1.0.1 Debian release. After the reviewed merge, build from
+the verified main commit, qualify the exact package on both targets, reconstruct
+it from corresponding source, verify main checks and download-check draft assets
+before publishing version 1.0.1. Future published versions use
+ordinary GitHub Releases with notes, `.deb`, corresponding source and checksums.
+The original 1.0.0 release assets and tag are preserved.
+
+The milestone descriptions and dated entries below retain design/development history;
+the current task above governs new work. Broader security/CVE analysis remains a
+possible future roadmap, outside this fault-investigation change.
 
 ## Product outcome
 

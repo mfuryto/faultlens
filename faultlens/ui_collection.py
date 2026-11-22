@@ -62,7 +62,15 @@ async def bounded_read(stream,limit):
 
 
 async def collect(page,settings):
-    args=arguments(page,settings)
+    return await collect_arguments(arguments(page,settings))
+
+
+async def collect_service(unit):
+    from .commands import validate_service_unit
+    return await collect_arguments(['service','--unit',validate_service_unit(unit),'--json'])
+
+
+async def collect_arguments(args):
     root=Path(__file__).resolve().parents[1]
     launcher=root/'bin'/'faultlens'
     isolation=['-I','-B']+(['-S'] if root==Path('/usr/share/faultlens') else [])

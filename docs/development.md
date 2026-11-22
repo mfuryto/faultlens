@@ -37,10 +37,12 @@ See [package qualification](debian-package.md) for offline builds and disposable
 targets. Existing source and installed resource budgets are unchanged. Docker is a
 maintainer test prerequisite, not a Faultlens dependency.
 
-A release is built from a clean, committed revision and the reviewed wheel directory:
+A release is built from a clean, committed stable revision and the reviewed wheel
+directory. This example rebuilds the published 1.0.1 tag; a new release uses its
+verified stable main commit rather than a development version:
 
 ```sh
-python3 scripts/build_release.py --ref origin/main --wheelhouse /tmp/faultlens-platform-wheels --output-dir dist/v1.0.0
+python3 scripts/build_release.py --ref v1.0.1 --wheelhouse /tmp/faultlens-platform-wheels --output-dir dist/v1.0.1
 ```
 
 The bundle contains the `.deb`, complete corresponding source with exact dependency
@@ -53,6 +55,7 @@ Before publishing: refresh the dependency advisory report for the exact lock, ru
 all source/platform/package checks, qualify the final artifact on both target images,
 verify required main checks on the publication commit, and inspect the final diff.
 Tag only that verified commit. Upload assets to a draft, download and check their
-hashes, then publish after explicit owner authorization. The owner has authorized
-version 1.0 publication in the current release task. No automatic publish workflow
+hashes, then publish after explicit owner authorization. The owner has requested
+version 1.0.1 publication with the service-investigation improvement. Future publication requires
+owner authorization and always uses the repository's ordinary GitHub Releases. No automatic publish workflow
 or project APT repository is installed.
