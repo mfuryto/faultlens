@@ -16,7 +16,7 @@ RESULTS = {
     'oom-kill': ('The manager reports an out-of-memory kill affecting the service.',
         'Investigate the same period for kernel/cgroup OOM reports and retained memory measurements. Current free memory cannot establish past pressure.'),
     'start-limit-hit': ('The manager reports that the service start limit was reached.',
-        'Find the earlier startup failure in the retained messages. Repeated starts and resetting the failure state do not repair that earlier problem.'),
+        'Review earlier start attempts, including intended or manual activity, to understand why the limit was reached. Resetting the failure state alone does not explain or correct the underlying condition.'),
     'resources': ('The manager reports a system-operation failure while preparing or running the service.',
         'Inspect the exact allocation or setup error. This result alone does not identify memory, process, descriptor or storage exhaustion.'),
     'protocol': ('The manager reports that the service did not meet its configured startup protocol.',
