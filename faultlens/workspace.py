@@ -120,13 +120,14 @@ def source_table(entry,data):
         return 'Network observations — attack and cause remain Unknown',('Observation','Assessment','Actual evidence','Next step'),[
             Entry((row['title'],row['assessment'],row['observation'],'Enter explains / opens related evidence'),row,detail(row,source),'network_issue') for row in source['cards']]
     if entry.kind=='network_context':
+        from .network_context import source_view as network_source_view
         labels={'addresses':'Addresses and link flags','routes4':'IPv4 route entries','routes6':'IPv6 route entries','owners':'Reported socket owners'}
         def owned_snapshot(row):
             return dict(row,tcp_listener_rows=sum(value['protocol']=='tcp' and value['state']=='LISTEN' for value in row['rows']),limitations=source['limitations'])
         return 'Independent local network sources',('Source','State','Retained rows','Meaning'),[
-            Entry((labels[key],row['state'],str(len(row['rows'])),'Configuration / association, not connectivity'),owned_snapshot(row) if key=='owners' else row,
-                  {'What it means':'Independent bounded source; unavailable/empty results do not establish absent configuration or ownership.',
-                   'Evidence limits':source['limitations']},'network_addresses' if key=='addresses' else 'network_routes' if key.startswith('routes') else 'sockets') for key,row in source['sources'].items()]
+            Entry((labels[key],row['state'],str(len(row['rows'])),network_source_view(key,row)['What it means']),owned_snapshot(row) if key=='owners' else row,
+                  network_source_view(key,row),'network_addresses' if key=='addresses' else 'network_routes' if key.startswith('routes') else 'sockets',
+                  navigation={'network_context_source':key}) for key,row in source['sources'].items()]
     if entry.kind=='network_addresses':
         return 'Reported addresses / link flags',('Interface','Reported link state','Numeric addresses','Flags'),[
             Entry((row['ifname'],row.get('operstate','UNKNOWN'),', '.join(value['local']+'/'+str(value['prefixlen']) for value in row.get('addr_info',[])),', '.join(row.get('flags',[]))),row,

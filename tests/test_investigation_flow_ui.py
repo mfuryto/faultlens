@@ -8,10 +8,10 @@ from textual.widgets import DataTable,Static
 from faultlens.textual_app import FaultlensApp,DetailDialog,RecordsDialog,RawDialog,SourceDialog,ServiceDialog
 from faultlens.workflows import collect
 from faultlens.overview import incidents
-from faultlens.workspace import Entry
+from faultlens.workspace import Entry,source_table
 from tests.test_problem_workflows import Runner,START,END
 from tests.test_incident_overview import OverviewRunner
-from tests.test_service import service_report
+from tests.test_service import service_report,ServiceRunner
 
 
 class InvestigationFlowWorkspaceTests(unittest.IsolatedAsyncioTestCase):
@@ -80,6 +80,48 @@ class InvestigationFlowWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             await pilot.press('escape','escape')
             await self.select(app,pilot,6,'return_source');await self.ready(pilot,lambda:app.page==5)
             self.assertEqual([],calls)
+
+    async def test_pinned_service_message_preview_keeps_full_literal_message(self):
+        from faultlens.service import collect as service_collect
+        message='Synthetic worker failure: [bold]connection refused[/]\x1b]52;c;synthetic\x07'
+        report=service_collect('example-worker.service',ServiceRunner([message]))
+        _,_,rows=source_table(Entry(('Messages',),report,None,'service_messages'),report)
+        app=FaultlensApp(initial_collect=False)
+        async with app.run_test(size=(110,34)) as pilot:
+            await pilot.pause(.01)
+            app.show_evidence(rows[0],report);await self.ready(pilot,lambda:app.page==6)
+            await pilot.pause(.05)
+            table=app.query_one('#grid-6',DataTable)
+            table.move_cursor(row=next(i for i,row in enumerate(app.entries[6]) if row.kind=='service_message'))
+            await pilot.pause(.05)
+            preview=str(app.query_one('#selected-evidence-6',Static).render())
+            self.assertIn('Synthetic worker failure: [bold]connection refused[/]',preview)
+            self.assertIn('\\u001b',preview);self.assertNotIn('\x1b',preview)
+            self.assertEqual(message,app.evidence_selection.entry.original['message'])
+
+    async def test_pin_from_unpinned_evidence_returns_to_inquiry_instead_of_itself(self):
+        report=self.inquiry();calls=[]
+        async def collector(page,settings):calls.append(page);return report
+        app=FaultlensApp(initial_collect=False,collector=collector);app.snapshots[5]=report
+        async with app.run_test(size=(100,30)) as pilot:
+            app.select_page(6);await self.ready(pilot,lambda:app.page==6)
+            app.query_one('#grid-6',DataTable).move_cursor(row=next(i for i,row in enumerate(app.entries[6]) if row.kind=='finding'))
+            await pilot.press('v')
+            self.assertEqual(5,app.evidence_selection.page)
+            await self.select(app,pilot,6,'return_source');await self.ready(pilot,lambda:app.page==5)
+            self.assertIs(report,app.data());self.assertEqual([],calls)
+
+    async def test_pin_from_unpinned_evidence_returns_to_last_source_without_inquiry(self):
+        from faultlens.tui_model import Session
+        from tests.support import SyntheticSources,SyntheticRunner
+        session=Session(sources=SyntheticSources(),runner=SyntheticRunner());session.refresh();report=session.data
+        app=FaultlensApp(initial_collect=False);app.snapshots[0]=report
+        async with app.run_test(size=(100,30)) as pilot:
+            app.select_page(6);await self.ready(pilot,lambda:app.page==6)
+            app.action_evidence()
+            self.assertEqual(0,app.evidence_selection.page)
+            await self.select(app,pilot,6,'return_source');await self.ready(pilot,lambda:app.page==0)
+            self.assertIs(report,app.data());self.assertIsNone(app.job)
 
     async def test_service_report_pin_reopens_retained_messages_without_requery(self):
         calls=[]

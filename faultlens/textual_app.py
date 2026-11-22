@@ -349,7 +349,11 @@ class SourceDialog(ModalScreen):
             state=self.entry.original.get('state','retained') if isinstance(self.entry.original,dict) else 'retained report group'
             yield Static(literal('Source state: '+str(state)+' | Bounded evidence; no complete-health verdict'),classes='hint')
             yield DataTable(id='source-table',cursor_type='row',zebra_stripes=True)
-            yield Static('No session rows reported; this does not establish that nobody is logged in. s explains coverage.' if self.entry.kind=='login_sessions' else 'No rows in this view. Events may still exist; s explains coverage, e opens originals.',id='source-empty',classes='hint',markup=False)
+            empty='No session rows reported; this does not establish that nobody is logged in. s explains coverage.' if self.entry.kind=='login_sessions' else 'No rows in this view. Events may still exist; s explains coverage, e opens originals.'
+            if (self.entry.navigation or {}).get('network_context_source'):
+                detail=self.entry.detail or {}
+                empty=detail.get('What it means',empty)+'\n'+' '.join(detail.get('What you can do',[]))
+            yield Static(literal(empty),id='source-empty',classes='hint',markup=False)
             with Horizontal(classes='buttons'):
                 yield Button('Previous',id='previous'); yield Button('Next',id='next'); yield Button('Back',id='back')
             with Horizontal(classes='buttons'):yield Button('Evidence',id='pin-evidence')
@@ -407,7 +411,8 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        if (self.entry.navigation or {}).get('network_context_source'):detail=self.entry.detail
+        elif self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
@@ -760,6 +765,7 @@ class FaultlensApp(App):
             text.append('\nEnter opens context and Investigate this boot.')
         else:
             lines=detail.get('Recorded evidence',detail.get('Recorded message',[]))
+            if isinstance(lines,str):lines=[lines]
             if not lines and entry.kind=='journal_record':
                 from .investigation import utc,excerpt
                 lines=[utc(entry.original['reference'].get('realtime_us'))+' | '+excerpt(entry.original['message'],2048)]
@@ -781,7 +787,7 @@ class FaultlensApp(App):
         if entry.context is not None:data=entry.context
         if entry.kind=='investigation_focus':entry=replace(entry,original=data,kind='retained_report')
         table=self.query_one('#grid-'+str(self.page),DataTable)
-        origin=self.evidence_selection.page if self.page==6 and self.evidence_selection else self.page
+        origin=(self.evidence_selection.page if self.evidence_selection else self.last_source()) if self.page==6 else self.page
         self.evidence_selection=Selection(entry,data,origin,table.cursor_row)
         while len(self.screen_stack)>1:self.pop_screen()
         self.table_models.pop(6,None);self.rendered_tables.pop(6,None)

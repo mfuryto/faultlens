@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — 1.1.1.dev0
+
+- Accept native ss owner-column padding while preserving original rows and all
+  collection bounds; reject unexpected controls and trailing non-padding fields.
+- Assess addresses/routes independently from failed socket-owner/process sources,
+  and explain missing tools, failed commands and rejected output in source views.
+- Show the complete literal service message in the Evidence selection preview,
+  rather than interpreting a single message as a list of characters.
+- Return selections pinned from Evidence to the retained inquiry or last source,
+  instead of linking back to Evidence itself. Existing pinned origins are preserved.
+
 ## 1.1.0 — 2026-11-22
 
 - Investigate general system-service failures through reported results, exits/signals,

@@ -22,6 +22,34 @@ from tests.test_security_analysis import history
 
 
 class ContextTests(unittest.TestCase):
+    def test_address_route_assessment_does_not_inherit_an_unrelated_owner_failure(self):
+        from faultlens.network_review import decisions
+        runner=SyntheticRunner();runner.results[Command.SOCKET_OWNERS]=Result('completed','unsupported',0)
+        runner.results[Command.SOCKETS]=Result('completed','',0)
+        data=practical(SyntheticNetworkSources(),runner,sample_seconds=.05,sockets=True)
+        self.assertEqual('partial',data['network_context']['state'])
+        row=next(row for row in decisions(data) if row.label=='Addresses and routes')
+        self.assertEqual('Measured',row.assessment)
+        for command in (Command.NETWORK_ADDRESSES,Command.NETWORK_ROUTES4,Command.NETWORK_ROUTES6):
+            runner.results[command]=Result('timeout')
+        runner.results[Command.SOCKET_OWNERS]=reply(Command.SOCKET_OWNERS)
+        data=practical(SyntheticNetworkSources(),runner,sample_seconds=.05,sockets=True)
+        self.assertEqual('partial',data['network_context']['state'])
+        self.assertEqual('Gap',next(row for row in decisions(data) if row.label=='Addresses and routes').assessment)
+
+    def test_context_source_explanation_distinguishes_tool_failure_and_rejected_output(self):
+        from faultlens.network_context import source_view
+        for state,reason,expected in (('missing','command_unsuccessful','No trusted local ss'),
+                ('timeout','command_unsuccessful','deadline'),('output_limit','command_unsuccessful','bounded output'),
+                ('completed','unsupported_or_over_limit_output','completed successfully'),
+                ('completed','command_unsuccessful','does not establish missing permission')):
+            source={'state':'unavailable','rows':[],'command_state':state,'returncode':0 if reason=='unsupported_or_over_limit_output' else None,'reason':reason}
+            detail=source_view('owners',source)
+            self.assertIn(expected,detail['What it means']);self.assertTrue(detail['What you can do'])
+            self.assertEqual(source['reason'],detail['Reader reason'])
+        source={'state':'available','rows':[],'command_state':'completed','returncode':0,'reason':None}
+        self.assertIn('empty readable source',source_view('routes4',source)['What it means'])
+
     def test_numeric_dual_stack_addresses_routes_and_original_metadata(self):
         values=addresses(reply(Command.NETWORK_ADDRESSES).stdout)
         self.assertEqual(['inet','inet6'],[row['family'] for row in values[0]['addr_info']])
@@ -41,6 +69,14 @@ class ContextTests(unittest.TestCase):
         self.assertEqual(raw,values[0]['original'])
         for suffix in ('users:(("x",pid=0,fd=1))','users:(("x",pid=42,fd=-1))','users:(("x",pid=42,fd=1)); id','users:(("x\x1b",pid=42,fd=1))','unknown'):
             with self.assertRaises(ValueError):owners('tcp ESTAB 0 0 *:22 *:* '+suffix)
+
+    def test_owner_parser_accepts_native_column_padding_without_losing_original(self):
+        raw='tcp ESTAB 0 0 192.0.2.1:22 198.51.100.2:4567 users:(("synthetic worker",pid=42,fd=3))   \t'
+        values=owners(raw)
+        self.assertEqual(raw,values[0]['original'])
+        self.assertEqual(42,values[0]['owners'][0]['pid'])
+        for suffix in (' extra','\x1b','\r'):
+            with self.assertRaises(ValueError):owners(raw+suffix)
 
     def test_unique_full_socket_match_and_bounded_reported_service_association(self):
         runner=SyntheticSocketRunner();data=practical(SyntheticNetworkSources(),runner,sockets=True,sample_seconds=.05)

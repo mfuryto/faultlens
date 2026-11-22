@@ -5,6 +5,11 @@
 The [delivery plan](delivery-plan.md), updated 2026-11-22, governs new work in four
 steps: general service troubleshooting; processes/storage; practical Network with
 possible attack/attempt investigation (DDoS is one example); coherent incident/evidence flow and Signals role.
+All four steps are merged and published in 1.1.0. The owner's next task is
+[post-release stabilization](post-release-review.md), followed by the
+[next development proposal](next-development-plan.md). Feature implementation in
+that proposal requires agreement on the next sequence. The sections below preserve
+the original milestone evidence and do not reopen completed delivery steps.
 Step 1 is merged in PR #68. Step 2 adds bounded live process and mount-capacity
 investigation; the [source design](architecture/system-process-storage.md) describes
 coverage and acceptance. Step 3 adds [practical network investigation](architecture/practical-network-investigation.md);
