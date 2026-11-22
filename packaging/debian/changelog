@@ -1,4 +1,4 @@
-faultlens (1.2.1~dev0) unstable; urgency=medium
+faultlens (1.2.1) stable; urgency=medium
 
   * Assess supported per-port INPUT policy with explicit conditions and scope.
   * Fix iptables multicall invocation and bounded nftables input handling.

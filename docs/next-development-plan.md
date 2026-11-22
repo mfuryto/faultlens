@@ -87,6 +87,7 @@ The owner requested clearer aligned modal buttons, correction of the nftables
 reader-size failure and all four xtables sources, and actual per-port firewall
 assessment rather than repeating external reachability uncertainty. Work on staging
 keeps the new-flow INPUT interpretation explicitly separate from Internet testing,
-with source restrictions/unsupported paths visible. Required source, UI, resource,
-installed Debian/Ubuntu and CodeQL checks gate merge; a further official release is
-a separate publication instruction. No prior release/tag/asset is changed.
+with source restrictions/unsupported paths visible. These changes merged in PR #78
+after source, UI, resource, installed Debian/Ubuntu and CodeQL checks passed. The
+owner authorized official 1.2.1 publication on 2026-11-23 with the qualified `.deb`,
+corresponding source and checksums. No prior release/tag/asset is changed.
