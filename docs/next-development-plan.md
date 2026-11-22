@@ -4,8 +4,9 @@ Approved 2026-11-22: SSH statistics, firewall/Fail2ban, then port accessibility.
 The four-step 1.1.0 delivery is complete; post-release stabilization merged in
 PR #73. The [delivery plan](delivery-plan.md) remains the execution record.
 Finish and verify one coherent step before starting another. SSH statistics merged
-in PR #74 and firewall/Fail2ban in PR #75. The owner authorized port accessibility
-on staging, with merge after required checks. A new release is separate work.
+in PR #74 and firewall/Fail2ban in PR #75. Port accessibility merged in PR #76. All three approved steps are delivered.
+The owner subsequently authorized an official 1.2.0 release for server testing;
+see [release scope and gates](release-readiness.md).
 
 | Order | Work | Administrator outcome | Acceptance |
 | --- | --- | --- | --- |
@@ -42,7 +43,7 @@ is not verified rule ownership. A ban through Fail2ban need not identify the hum
 who requested it. Existing audit evidence is needed for human attribution.
 No ban/unban, rule changes, rule tracing that changes state or production attack tests.
 
-## Step 3: current delivery
+## Step 3: delivered in PR #76
 
 See [port evidence, source bounds and acceptance](architecture/port-accessibility.md).
 Network and `faultlens ports` connect dual-stack bindings, reported owners/services,

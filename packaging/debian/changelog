@@ -1,4 +1,4 @@
-faultlens (1.1.1~dev0) unstable; urgency=medium
+faultlens (1.2.0) stable; urgency=medium
 
   * Add read-only port, filtering and forwarding accessibility investigation.
 

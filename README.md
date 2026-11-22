@@ -12,10 +12,10 @@ and what to investigate next. Findings link to the retained original evidence.
 
 ## Install
 
-Download `faultlens_1.1.0_all.deb` from [Releases](https://github.com/mfuryto/faultlens/releases/latest), then install it:
+Download `faultlens_1.2.0_all.deb` from [Releases](https://github.com/mfuryto/faultlens/releases/latest), then install it:
 
 ```sh
-sudo apt install ./faultlens_1.1.0_all.deb
+sudo apt install ./faultlens_1.2.0_all.deb
 ```
 
 APT installs Python when needed. The reviewed terminal frontend is included; no
@@ -36,6 +36,7 @@ saved per user. See [commands and examples](docs/cli-reference.md) for CLI use.
 
 - Current resource, service and network symptoms, with explanations and next steps.
 - Bounded investigations of retained logs, recordings and supported crash fragments.
+- SSH statistics, firewall/Fail2ban context and port/forwarding evidence in Network.
 - Full local administrator evidence, with clear source coverage and uncertainty.
 
 Faultlens runs locally and is read-only by default. It has no telemetry, cloud

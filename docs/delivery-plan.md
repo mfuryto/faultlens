@@ -164,14 +164,14 @@ remains an operator check. The original step merged without a release; the owner
 Post-release stabilization merged in PR #73. The owner then approved the next
 sequence: **SSH authentication statistics → firewall/Fail2ban → port accessibility**.
 The [approved next sequence](next-development-plan.md) defines outcomes and acceptance.
-SSH statistics merged in PR #74 and firewall/Fail2ban in PR #75. The owner authorized
-port accessibility as the current staging implementation, with merge after required
-checks. See [port scope and acceptance](architecture/port-accessibility.md) and
+SSH statistics merged in PR #74 and firewall/Fail2ban in PR #75. Port accessibility merged in PR #76, completing the approved sequence. See [port scope and acceptance](architecture/port-accessibility.md) and
 [firewall evidence](architecture/firewall-fail2ban.md). Earlier proposed service-history/resource/storage work is deferred, and broad
 package/CVE auditing remains possible future scope.
 
-Development remains `1.1.1.dev0`; published 1.1.0 assets are immutable. No further
-release is authorized by this implementation task. The [SSH design](architecture/ssh-statistics.md)
+The owner authorized official 1.2.0 publication on 2026-11-22 to test the three
+completed network steps on the server. The release uses a reviewed stable-version
+PR, exact-lock audit, green gates and qualified final assets. Published 1.1.0
+assets remain immutable. See [release readiness](release-readiness.md). The [SSH design](architecture/ssh-statistics.md)
 records explicit-count semantics, original evidence, forward pagination, coverage
 and bounds. The [post-release review](post-release-review.md) preserves prior fixes.
 

@@ -1,4 +1,55 @@
-# Faultlens 1.1.0 release scope and qualification
+# Faultlens 1.2.0 release scope and qualification
+
+The owner authorized an official GitHub release with a `.deb` on 2026-11-22 to
+test SSH statistics, firewall/Fail2ban and port accessibility on the server. All
+three steps merged in PRs #74–#76 after their required checks passed. Version
+1.2.0 includes these additions and the post-1.1.0 stabilization in PR #73.
+The stable version describes this feature set, not a server-health/security verdict.
+
+## Included since 1.1.0
+
+- Paged SSH authentication statistics for boot/hour/day/selected periods, with
+  explicit failed/accepted/partial/context counts, reported usernames/peers/time
+  buckets, original messages and honest lower bounds or unavailable totals.
+- Current firewall rules/defaults/sets and Fail2ban jail status, thresholds/actions,
+  reported bans, conditional rule correspondence and bounded unit/file logs.
+  Reported action, actual enforcement and the human initiator remain distinct.
+- Dual-stack listeners/unconnected UDP bindings, reported owners/current services,
+  addresses/routes, conditional policy, DNAT/redirect declarations and compatible
+  target-socket references. External verification is separately explained and is
+  never performed or inferred from a listener, route or accept rule.
+- Accepted native ss padding, independent address/route coverage and retained full
+  service-message previews and source navigation in Evidence.
+
+The workspace remains the primary command; CLI commands are documented separately.
+No Python dependency change, daemon, automatic recording, privilege grant, external
+probe, configuration action, telemetry or cloud integration is introduced. All
+accepted administrator evidence remains locally accessible without masking, with
+terminal controls escaped and missing/capped sources explained.
+
+## Publication gates for 1.2.0
+
+Review the stable-version staging PR, refreshed [exact-lock advisory audit](security/dependency-audit-1.2.0.json),
+changelog and installation instructions. Merge only after source/frontend/resource,
+native platform, Debian/Ubuntu installed-package and CodeQL gates pass. Publish the
+exact verified main commit after its own checks and CodeQL results are green.
+
+Build `faultlens_1.2.0_all.deb`, `faultlens-1.2.0-source.tar.gz`, `release.json` and
+`SHA256SUMS` from that clean committed source and the reviewed wheels. Require the
+shipped corresponding source/wheels to reproduce the package byte for byte offline.
+Qualify the exact final artifact on pinned Debian 12 and Ubuntu 24.04, including
+installation/upgrade/removal, ten native CLI contracts, real installed port-modal
+collection, private frontend/PTY/preferences and all 34 benchmark scenarios/39
+constrained profiles under unchanged budgets. Preserve GPL/dependency notices.
+
+Tag the verified main commit, upload assets to a draft, download and compare every
+asset's bytes/hash and provenance, then publish using the owner's authorization.
+Preserve prior tags/assets and only main/staging. No APT repository is created.
+Server feedback for these new features follows delivery; container/synthetic passes
+do not prove Internet reachability, complete policy, continuous history or detector
+accuracy. Source bounds and interpretation remain in the CLI/architecture docs.
+
+# Historical 1.1.0 release scope and qualification
 
 The owner authorized official GitHub publication on 2026-11-22. Version 1.1.0
 combines the additive service, process/storage, practical network and coherent

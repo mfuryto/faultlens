@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 1.1.1.dev0
+## 1.2.0 — 2026-11-22
 
 - Add port accessibility investigation with dual-stack bindings, reported owners/
   services, conditional policy/default references, NAT/forwarding declarations,
