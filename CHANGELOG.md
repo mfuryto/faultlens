@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — 1.2.1.dev0
+
+- Assess supported new-flow INPUT policy per port with rule order, chain control,
+  source restrictions and explicit unresolved paths; keep Internet tests separate.
+- Accept bounded nftables snapshots up to 192 KiB and report numeric reader limits.
+- Preserve iptables multicall invocation names while executing trusted binaries.
+- Align modal buttons in responsive colored toolbars with a selected-window state.
+
 ## 1.2.0 — 2026-11-22
 
 - Add port accessibility investigation with dual-stack bindings, reported owners/

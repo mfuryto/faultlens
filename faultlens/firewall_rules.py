@@ -6,7 +6,15 @@ import shlex
 from .journal import unique_object,reject_constant,bounded_structure
 
 MAX_BYTES=131072
+MAX_NFT_BYTES=196608
 MAX_OBJECTS=2048
+
+
+class InputLimitError(ValueError):
+    """Fixed numeric diagnostics without including source-controlled rule content."""
+    def __init__(self,unit,actual,limit):
+        self.unit,self.actual,self.limit=unit,actual,limit
+        super().__init__('Firewall '+unit+' limit exceeded')
 
 
 def label(value):
@@ -24,10 +32,11 @@ def network(value):
 
 
 def nft(raw):
-    if len(raw.encode('utf-8'))>MAX_BYTES:raise ValueError('Firewall byte bound')
+    if len(raw.encode('utf-8'))>MAX_NFT_BYTES:raise InputLimitError('bytes',len(raw.encode('utf-8')),MAX_NFT_BYTES)
     data=json.loads(raw,object_pairs_hook=unique_object,parse_constant=reject_constant);bounded_structure(data)
     objects=data['nftables']
-    if not isinstance(objects,list) or len(objects)>MAX_OBJECTS:raise ValueError('Firewall object bound')
+    if not isinstance(objects,list):raise ValueError('Unsupported firewall objects')
+    if len(objects)>MAX_OBJECTS:raise InputLimitError('objects',len(objects),MAX_OBJECTS)
     chains=[];rules=[];sets=[];unknown=[];identities=set()
     for index,item in enumerate(objects):
         if not isinstance(item,dict) or len(item)!=1:raise ValueError('Unsupported nft object')
@@ -115,7 +124,7 @@ def iptables(raw,family):
                 negated=False;i+=2;continue
             if token in {'-j','--jump','-g','--goto'} and i+1<len(tokens):
                 target=label(tokens[i+1]);target_kind='goto' if token in {'-g','--goto'} else 'jump';i+=2;continue
-            extras.append(token);i+=1
+            extras.append(('! ' if negated else '')+token);negated=False;i+=1
         verdict=target.lower() if target in {'ACCEPT','DROP','REJECT','RETURN'} else None
         links=[{'type':target_kind,'target':target}] if target and target not in {'ACCEPT','DROP','REJECT','RETURN','LOG','NFLOG'} else []
         rules.append({'family':family,'table':table,'chain':chain,'handle':index,'verdicts':[verdict] if verdict else [],

@@ -40,7 +40,7 @@ def collect(runner=None,*,sources=None,window='day',since_us=None,until_us=None,
         requested_window={'since_realtime_us':since_us,'until_realtime_us':until_us},
         journal_scope={'requested':'system' if system_journal else 'visible','completeness':'unknown'},
         sources={},jails=[],correspondences=[],records=[],human_initiator='Unknown',packet_verdict='Unknown',
-        bounds={'seconds':MAX_SECONDS,'jails':MAX_JAILS,'ban_previews':MAX_BANS,'matches_per_ban':8,'source_bytes':rules.MAX_BYTES},limitations=list(LIMITS))
+        bounds={'seconds':MAX_SECONDS,'jails':MAX_JAILS,'ban_previews':MAX_BANS,'matches_per_ban':8,'source_bytes':rules.MAX_BYTES,'nft_source_bytes':rules.MAX_NFT_BYTES},limitations=list(LIMITS))
     boot_state='available'
     if window=='boot' and boot_id is None:
         try:
@@ -53,11 +53,13 @@ def collect(runner=None,*,sources=None,window='day',since_us=None,until_us=None,
         stamp=datetime.now(timezone.utc).isoformat()
         reply=operation() if monotonic()-started<MAX_SECONDS else Result('time_limit')
         source={'state':'unavailable','command_state':reply.state,'returncode':reply.returncode,
+            'stderr':reply.stderr,
             'started_at':stamp,'finished_at':datetime.now(timezone.utc).isoformat(),'reason':'command_unsuccessful','data':None}
         if reply.state=='completed' and reply.returncode==0:
             try:
                 if len(reply.stdout.encode('utf-8'))>262144:raise ValueError('Capture byte bound')
                 source.update(state='available',data=parse(reply.stdout),reason=None)
+            except rules.InputLimitError as error:source.update(reason='input_limit_exceeded',input_limit={'unit':error.unit,'actual':error.actual,'limit':error.limit})
             except (ValueError,KeyError,TypeError,UnicodeError,RecursionError):source['reason']='unsupported_or_over_limit_output'
         data['sources'][name]=source;return source
     def plain(raw):

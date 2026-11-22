@@ -49,7 +49,7 @@ def worker(command: str) -> dict:
         from faultlens.firewall_presentation import render
         from tests.firewall_state_fixtures import Runner,START
         data=collect(Runner(maximum=True),window='period',since_us=START,until_us=START+86400000000)
-        if len(data['sources']['nftables']['data']['rules'])!=256 or not data['correspondences'][0]['matches']:
+        if len(data['sources']['nftables']['data']['rules'])!=419 or not data['correspondences'][0]['matches']:
             raise RuntimeError('Synthetic firewall evidence was not retained')
         render(data,output)
         if command=='tui-firewall':

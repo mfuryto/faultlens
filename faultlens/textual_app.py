@@ -12,7 +12,7 @@ for _key in list(os.environ):
 from rich.text import Text
 from textual.app import App,ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical,VerticalScroll,Horizontal
+from textual.containers import Vertical,VerticalScroll,Horizontal,Grid
 from textual.screen import ModalScreen
 from textual.widgets import Header,Footer,Static,DataTable,TabbedContent,TabPane,Button,Input
 from textual import constants
@@ -30,6 +30,8 @@ from . import ui_collection
 
 def literal(value):
     styles={'critical':'bold red','warning':'yellow','unavailable':'dim','partial':'yellow',
+            'Allowed':'green','Blocked':'bold red','Source dependent':'yellow','Address/interface dependent':'yellow','Unresolved':'yellow','No INPUT chains':'cyan',
+            'Interface dependent':'yellow','Source/interface dependent':'yellow',
             'available':'green','normal':'green','Critical':'bold red','Review':'yellow','Gap':'yellow','Partial':'yellow','Measured':'cyan','Confirmed':'cyan','Possible':'yellow','Unknown':'dim'}
     return Text(json.dumps(str(value),ensure_ascii=True)[1:-1],style=styles.get(str(value),''))
 
@@ -45,6 +47,19 @@ class WorkspaceTabs(TabbedContent):
         if event.tab_pane.id!=self.active:
             event.prevent_default()
             event.stop()
+
+
+class ActionBar(Grid):
+    """Aligned buttons in one row when space permits, wrapping in narrow terminals."""
+    def on_mount(self):self.fit_buttons()
+    def on_resize(self,event):self.fit_buttons()
+    def fit_buttons(self):
+        buttons=list(self.query(Button))
+        if not buttons:return
+        width=max(8,max(len(str(button.label))+2 for button in buttons))
+        columns=max(1,min(len(buttons),(self.size.width+1)//(width+1)))
+        self.styles.grid_size_columns=columns
+        self.styles.height=(len(buttons)+columns-1)//columns
 
 
 class RawDialog(ModalScreen):
@@ -101,7 +116,7 @@ class DetailDialog(ModalScreen):
         with Vertical(classes='dialog'):
             yield Static(literal(self.entry.cells[0]),classes='dialog-title')
             with VerticalScroll(): yield Static(Text(detail_text(self.entry.detail or {})),markup=False)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Original',id='original')
                 if self.entry.kind=='finding': yield Button('Records',id='references')
                 if self.entry.kind=='service_message': yield Button('Context',id='service-context',variant='primary')
@@ -115,25 +130,25 @@ class DetailDialog(ModalScreen):
                 if 'Timeline position' in (self.entry.detail or {}): yield Button('Position',id='position')
                 if self.entry.kind=='boot': yield Button('Investigate this boot',id='select-boot',variant='primary')
                 yield Button('Close',id='close')
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Evidence',id='pin-evidence')
                 if self.entry.kind=='history_event':
                     yield Button('Investigate period',id='history-period')
                     if self.entry.navigation.get('record') is not None:yield Button('Recorded message',id='history-record')
             if self.entry.kind in {'port','port_translation'}:
-                with Horizontal(classes='buttons'):
+                with ActionBar(classes='buttons'):
                     yield Button('Policy',id='port-policy');yield Button('Addresses',id='port-addresses');yield Button('Routes',id='port-routes')
-                with Horizontal(classes='buttons'):
+                with ActionBar(classes='buttons'):
                     yield Button('External check',id='port-external')
                     if self.entry.kind=='port' and any(owner.get('service') for owner in self.entry.original['owners']):yield Button('Reported service',id='port-service')
                     if self.entry.kind=='port_translation':yield Button('Target sockets',id='port-targets')
             if self.entry.kind in {'firewall_ban','firewall_chain','firewall_jail'}:
-                with Horizontal(classes='buttons'):
+                with ActionBar(classes='buttons'):
                     if self.entry.kind in {'firewall_ban','firewall_chain'}:yield Button('Matching rules' if self.entry.kind=='firewall_ban' else 'Chain rules',id='firewall-matches')
                     if self.entry.kind in {'firewall_ban','firewall_jail'}:yield Button('Related logs',id='firewall-logs')
                     if self.entry.kind=='firewall_jail':yield Button('Reported bans',id='firewall-bans')
             if self.entry.kind=='service_message':
-                with Horizontal(classes='buttons'):
+                with ActionBar(classes='buttons'):
                     yield Button('Investigate period',id='service-period')
                     yield Button('Current Network' if self.entry.navigation['current_page']==2 else 'Current System',id='service-current')
 
@@ -245,12 +260,12 @@ class ServiceDialog(ModalScreen):
             with VerticalScroll():
                 yield Static('Loading service status and current-boot unit logs...',id='service-explanation',markup=False)
             yield Static('Read-only system service query; existing access only. r refreshes; Esc returns.',classes='hint',markup=False)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Messages',id='service-messages',disabled=True,variant='primary')
                 yield Button('Logs',id='service-logs',disabled=True)
                 yield Button('Original fields',id='service-original',disabled=True)
                 yield Button('Back',id='service-back')
-            with Horizontal(classes='buttons'):yield Button('Evidence',id='service-evidence',disabled=True)
+            with ActionBar(classes='buttons'):yield Button('Evidence',id='service-evidence',disabled=True)
 
     def on_mount(self): self.action_retry()
 
@@ -325,14 +340,15 @@ class SshStatisticsDialog(ModalScreen):
         with Vertical(classes='dialog'):
             yield Static(self.report_heading+' — read-only',classes='dialog-title',markup=False)
             windows=((('Since boot','boot'),('Last hour','hour')),(('Last day','day'),('Period','period'))) if self.time_windows else ()
-            for options in windows:
-                with Horizontal(classes='buttons'):
-                    for label,key in options:yield Button(label,id=self.domain+'-'+key)
+            if windows:
+                with ActionBar(classes='buttons'):
+                    for options in windows:
+                        for label,key in options:yield Button(label,id=self.domain+'-'+key)
             with VerticalScroll():yield Static('Reading '+self.report_heading+' within source bounds; Esc cancels and returns.',id=self.domain+'-explanation',markup=False)
-            for options in self.groups:
-                with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
+                for options in self.groups:
                     for label,key in options:yield Button(label,id=self.domain+'-'+key,disabled=True)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Refresh',id=self.domain+'-refresh');yield Button('Back',id=self.domain+'-back')
 
     def on_mount(self):
@@ -347,6 +363,8 @@ class SshStatisticsDialog(ModalScreen):
     def present(self):
         self.query_one('#'+self.domain+'-explanation',Static).update(Text(detail_text(self.report_view())))
         for key in (key for group in self.groups for _,key in group):self.query_one('#'+self.domain+'-'+key,Button).disabled=False
+        if self.time_windows:
+            for key in ('boot','hour','day','period'):self.query_one('#'+self.domain+'-'+key,Button).variant='primary' if self.options['window']==key else 'default'
 
     def action_refresh(self):
         self.generation+=1;self.report=None;setattr(self.app,self.snapshot_key,None)
@@ -461,10 +479,10 @@ class RecordsDialog(ModalScreen):
             with VerticalScroll(id='readable-records'): yield from self.messages()
             yield Static('',id='record-position',classes='hint',markup=False)
             yield Static('Receipt time may differ from event time. e opens complete original fields; Esc returns.',classes='hint',markup=False)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Previous',id='record-previous'); yield Button('Next',id='record-next')
                 yield Button('Original fields',id='original'); yield Button('Back',id='back')
-            with Horizontal(classes='buttons'):yield Button('Evidence',id='pin-evidence')
+            with ActionBar(classes='buttons'):yield Button('Evidence',id='pin-evidence')
 
     def on_mount(self): self.position()
     def position(self):
@@ -505,16 +523,18 @@ class SourceDialog(ModalScreen):
         with Vertical(classes='dialog'):
             yield Static(literal(self.heading),classes='dialog-title')
             state=self.entry.original.get('state','retained') if isinstance(self.entry.original,dict) else 'retained report group'
-            yield Static(literal('Source state: '+str(state)+' | Bounded evidence; no complete-health verdict'),classes='hint')
+            hint='Source state: '+str(state)+' | Bounded evidence; no complete-health verdict'
+            if self.entry.kind=='ports_listeners':hint='Collected INPUT policy for new TCP/UDP flows; open a port for conditions and source coverage. Internet reachability has not been tested.'
+            yield Static(literal(hint),classes='hint')
             yield DataTable(id='source-table',cursor_type='row',zebra_stripes=True)
             empty='No session rows reported; this does not establish that nobody is logged in. s explains coverage.' if self.entry.kind=='login_sessions' else 'No rows in this view. Events may still exist; s explains coverage, e opens originals.'
             if (self.entry.navigation or {}).get('network_context_source'):
                 detail=self.entry.detail or {}
                 empty=detail.get('What it means',empty)+'\n'+' '.join(detail.get('What you can do',[]))
             yield Static(literal(empty),id='source-empty',classes='hint',markup=False)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Previous',id='previous'); yield Button('Next',id='next'); yield Button('Back',id='back')
-            with Horizontal(classes='buttons'):yield Button('Evidence',id='pin-evidence')
+            with ActionBar(classes='buttons'):yield Button('Evidence',id='pin-evidence')
 
     def on_mount(self):
         self.rebuild_table()
@@ -528,6 +548,7 @@ class SourceDialog(ModalScreen):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
         if self.entry.kind in {'port_services','ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources','firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
+                    [.20,.12,.20,.48] if self.entry.kind in {'firewall_sources','ports_sources'} else
                     [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
             for column,weight in zip(self.columns,weights): table.add_column(column,width=max(3,int(usable*weight)))
@@ -594,7 +615,7 @@ class PeriodDialog(ModalScreen):
             yield Input(value=display(self.start) if self.start else '',placeholder='Start with timezone',id='period-start',max_length=64)
             yield Input(value=display(self.end) if self.end else '',placeholder='End with timezone',id='period-end',max_length=64)
             yield Static('Both boundaries are required. Enter applies the complete range.',id='period-validation',markup=False)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Investigate period',id='period-apply',variant='primary')
                 yield Button('Cancel',id='period-cancel')
 
@@ -635,7 +656,7 @@ class ValueDialog(ModalScreen):
                 from .time_window import HELP
                 yield Static(HELP,markup=False)
             yield Static('Enter applies and saves preferences; Esc cancels.' if self.persistent else 'Session only. Enter applies; Esc cancels.',id='validation',markup=False)
-            with Horizontal(classes='buttons'):
+            with ActionBar(classes='buttons'):
                 yield Button('Apply',id='apply',variant='primary'); yield Button('Cancel',id='cancel')
 
     def on_mount(self): self.query_one(Input).focus()
@@ -677,6 +698,12 @@ class FaultlensApp(App):
     .edit-dialog #validation { height: 1; }
     .buttons { height: 1; min-height: 1; }
     .buttons Button { height: 1; min-height: 1; border: none; min-width: 6; padding: 0 1; margin-right: 1; }
+    .buttons Button { background: $primary-darken-2; color: $text; }
+    .buttons Button:hover, .buttons Button:focus { background: $primary; text-style: bold; }
+    .buttons Button.-primary { background: $primary; text-style: bold; }
+    .buttons Button:disabled { background: $panel; color: $text-disabled; }
+    ActionBar.buttons { grid-columns: 1fr; grid-rows: 1; grid-gutter: 0 1; }
+    ActionBar.buttons Button { width: 100%; min-width: 0; margin: 0; }
     #raw-scalar { height: 1fr; }
     '''
     BINDINGS=[Binding('q','quit','Quit'),Binding('r','refresh','Refresh'),Binding('enter','open','Open'),

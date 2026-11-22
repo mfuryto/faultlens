@@ -80,3 +80,13 @@ No implementation or new collection bounds for those proposals are implied here.
 Hardware tools/active tests and additional privileges are separate scope decisions.
 Broader security/package-CVE assessment remains possible future roadmap scope,
 not part of this delivery. Automatic repair, blocking and packet capture are excluded.
+
+## Post-1.2.0 owner feedback
+
+The owner requested clearer aligned modal buttons, correction of the nftables
+reader-size failure and all four xtables sources, and actual per-port firewall
+assessment rather than repeating external reachability uncertainty. Work on staging
+keeps the new-flow INPUT interpretation explicitly separate from Internet testing,
+with source restrictions/unsupported paths visible. Required source, UI, resource,
+installed Debian/Ubuntu and CodeQL checks gate merge; a further official release is
+a separate publication instruction. No prior release/tag/asset is changed.

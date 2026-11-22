@@ -34,6 +34,7 @@ faultlens/network_review.py
 faultlens/network_sampling.py
 faultlens/overview.py
 faultlens/parsers.py
+faultlens/port_policy.py
 faultlens/port_presentation.py
 faultlens/port_rules.py
 faultlens/ports.py

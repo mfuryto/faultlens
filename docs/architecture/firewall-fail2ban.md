@@ -26,7 +26,7 @@ reports since an unverified reset, not unique connections, clients or authentica
 attempts. `nf_tables` compatibility views overlap native nftables; matching views
 are not independent corroboration. An unknown backend is not silently classified.
 
-Ruleset bounds: 128 KiB and 2,048 objects/text lines per source; 64 nft expressions
+Ruleset bounds: 192 KiB for nftables, 128 KiB for iptables, and 2,048 objects/text lines per source; 64 nft expressions
 per rule, 2,048 set elements, 8,192 characters/128 tokens per iptables rule. Malformed
 or excessive snapshots fail as an independent unavailable source; no successful
 prefix becomes complete policy. Metadata and retained unknown expressions remain
@@ -107,7 +107,7 @@ conditional matches and negation, unknown constructs, absent/invalid/capped sour
 thresholds and unverified human attribution, log scope, getter validation and safe
 file handling. Actual frontend tests cover matching-rule/log/original navigation,
 Evidence, compact resize, cancellation and existing SSH regressions. CLI/TUI resource
-scenarios retain 256 rules under unchanged CPU/wall/RSS and aggregate deadlines.
+scenarios now retain 419 nft rules under unchanged CPU/wall/RSS and aggregate deadlines (the initial delivery used 256).
 Native/installed qualification adds the ninth `firewall` command contract; existing
 Debian/Ubuntu package/security gates remain required. Live server validation remains
 operator feedback, not a synthetic pass or a reason to modify production policy.
@@ -116,3 +116,25 @@ Primary references: [nftables semantics](https://netfilter.org/projects/nftables
 [nft JSON schema](https://manpages.debian.org/bookworm/libnftables1/libnftables-json.5.en.html),
 [Fail2ban read commands](https://github.com/fail2ban/fail2ban/blob/master/man/fail2ban-client.1),
 [Fail2ban status formatting](https://github.com/fail2ban/fail2ban/blob/master/fail2ban/client/beautifier.py).
+
+## Reader corrections after 1.2.0
+
+A reported 140,920-byte snapshot exceeded the original 128-KiB nft reader cap;
+the same complete response normalized as 419 rules, 94 chains and two sets at
+192 KiB. The nft-only cap is now 192 KiB, below the unchanged combined 256-KiB
+stdout/stderr capture. Object/expression/set, command deadline and UI bounds stay
+unchanged. Excessive snapshots report numeric actual/limit/unit metadata instead
+of conflating a size limit with unsupported syntax. No partial policy is accepted.
+
+Xtables resolves several program names to one nft/legacy multicall executable.
+Keep the canonical trusted executable path, but explicitly preserve the selected
+read-only catalog invocation name in argv[0]. The OS executes that verified path;
+no symlink or PATH lookup is substituted. Only the four existing iptables/ip6tables
+version/save names are allowed, never restore or an action provided by source data.
+Completed command stderr is retained within the same combined capture bound and
+shown as escaped original administrator evidence. A nonzero exit is independent
+from parsing failure; root status alone does not prove kernel/namespace access.
+
+Qualification installs nftables/iptables as disposable test-only tools, not package
+runtime dependencies. Non-root readers may correctly report denied access; the
+installed regression gate separately rejects multicall-dispatch failures.

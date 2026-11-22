@@ -117,6 +117,7 @@ class Result:
     state: str
     stdout: str = ""
     returncode: int | None = None
+    stderr: str = ''
 
 
 def trusted_tool(name: str) -> str | None:
@@ -137,12 +138,15 @@ def trusted_tool(name: str) -> str | None:
     return None
 
 
-def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None, graceful=False, utc=False) -> Result:
+def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fds=(), end_when=None, graceful=False, utc=False, invocation_name=None) -> Result:
     """Drain both pipes without communicate's unbounded in-memory buffering."""
-    process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+    if invocation_name is not None and (not isinstance(invocation_name,str) or invocation_name not in {'iptables','ip6tables','iptables-save','ip6tables-save'}):raise ValueError('Invalid invocation name')
+    options={'executable':argv[0]} if invocation_name is not None else {}
+    process = subprocess.Popen([invocation_name,*argv[1:]] if invocation_name else argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, shell=False, env={**ENVIRONMENT,"TZ":"UTC"} if utc else ENVIRONMENT,
-                               cwd="/", start_new_session=True, pass_fds=pass_fds)
+                               cwd="/", start_new_session=True, pass_fds=pass_fds,**options)
     output = bytearray()
+    errors = bytearray()
     total = 0
     deadline = time.monotonic() + timeout
     try:
@@ -168,7 +172,8 @@ def _capture(argv: list[str], timeout: float = 2.0, limit: int = 262144, pass_fd
                             boundary = end_when(output)
                             if boundary is not None:
                                 return Result("window_complete", output[:boundary].decode("utf-8", errors="strict"))
-            return Result("completed", output.decode("utf-8", errors="strict"), process.returncode)
+                    else:errors.extend(chunk)
+            return Result("completed", output.decode("utf-8", errors="strict"), process.returncode,errors.decode('utf-8',errors='backslashreplace'))
     finally:
         # Give nested acceptance workers a chance to clean their own isolated children.
         if graceful and process.poll() is None:
@@ -408,6 +413,8 @@ class CommandRunner:
         try:
             if command==Command.LOGIN_SESSIONS:
                 return _capture([executable,*arguments],utc=True)
+            if tool in {'iptables','ip6tables','iptables-save','ip6tables-save'}:
+                return _capture([executable,*arguments],invocation_name=tool)
             return _capture([executable, *arguments])
         except (OSError, ValueError, UnicodeError, subprocess.SubprocessError):
             return Result("unavailable")

@@ -481,3 +481,17 @@ path/time; UDP requires a valid service-specific request and matching response.
 Silence is inconclusive. Faultlens performs no external probe, DNS query, upload or
 policy change. There is no historical window/boot filter for this current inquiry.
 See [design, source bounds and acceptance](architecture/port-accessibility.md).
+
+### INPUT policy corrections after 1.2.0
+
+`faultlens ports` and Network → Port accessibility → Ports show the collected
+new-flow INPUT result per binding: Allowed, Blocked, Source dependent or Unresolved,
+with address/interface differences and source availability explicit. Open a row
+for the assumptions, target/interface, rule/default context and original fields.
+The result is separate from Internet reachability and NAT/forwarding; no probe runs.
+
+The nft reader accepts up to 192 KiB and reports numeric reader-limit failures.
+Xtables version/save queries preserve their multicall invocation name while using
+the trusted canonical executable. Source coverage includes the exit code and
+escaped original command errors, so failed execution and unsupported output can
+be investigated separately. No access grant or firewall change is performed.

@@ -16,6 +16,7 @@ def view(data):
     if data.get('processes',{}).get('state') in {'partial','unavailable'}:gaps.append('Current process/cgroup associations are incomplete or unavailable; reported ss owner names/PIDs remain separate observations.')
     return {'Answer':answer,'Current evidence':data['collected_at']+' | current namespace | sequential reads',
         'How to investigate':'Open a port for its binding, reported owner/service and candidate addresses. Then open Policy for conditional rules/defaults and Routes for reported return-path configuration.',
+        'Firewall INPUT':'The port list assesses new-flow INPUT rules in collected backends: Allowed, Blocked, Source dependent or Unresolved. Open a row for the source, target/interface, rule/default references and exact limits. This is separate from an external test.',
         'Forwarding':str(len(data['translations']))+' DNAT/redirect declarations in the preview. These can publish a port without a host listener; they do not prove a working container/service or external path.',
         'External verification':'Not performed. Local listening, a global address, a default route or an accept rule cannot certify Internet accessibility. Open External check for protocol-specific manual verification guidance.',
         'Coverage gaps':gaps or ['No command-source failure reported. Completeness, rule interpretation and external policy remain unverified.'],
@@ -67,14 +68,24 @@ def port_detail(row,data):
         examples.append(ref['source']+' / '+rule['chain']+' | '+(', '.join(rule['verdicts']) or 'continue / extension')+' | '+
             '; '.join(rule_detail(rule,ref['source'],data['sources'][ref['source']]['data'])['Conditions'])+
             (' | incoming jump example: '+'; '.join(parents[0]['conditions']) if parents else ''))
+    assessments=[]
+    for backend in row['firewall']['backends']:
+        for flow in backend['flows']:
+            assessments.append(backend['source']+' | destination '+str(flow.get('destination') or 'not resolved')+' | candidate ingress '+
+                (', '.join(flow.get('candidate_ingress_interfaces') or []) or 'not resolved')+' | '+flow['state'].replace('_',' ')+': '+flow['reason'])
+            for chain in flow.get('input_chains',[]):assessments.append('Base policy: '+backend['source']+' / '+chain['table']+' / '+chain['chain']+' = '+str(chain['policy']))
     return {'What it means':row['binding']['meaning'],
         'Observed binding':'IPv'+str(row['family'])+' '+row['protocol'].upper()+' '+row['local']['original'],
         'Binding category':row['binding']['kind'],'Candidate local addresses':row['binding']['addresses'] or ['No assigned-address association established; address collection may be unavailable or the binding may be nonlocal.'],
         'Address preview capped':row['binding']['address_preview_capped'],
         'Reported owner / current service':row['owners'] or ['No owner was reported by ss under existing access. Root access does not guarantee complete attribution. Port numbers alone do not identify the application.'],
         'IPv4 / IPv6':row['binding']['ipv4_via_ipv6'],
-        'Conditional policy':str(len(row['policy_references']))+' candidate references; '+('preview capped; ' if row['policy_preview_capped'] else '')+'open Policy to inspect actual conditions, chain ancestry and defaults. These are references, not a final packet verdict.',
-        'Reported policy actions':str(allowed)+' accept and '+str(blocked)+' drop/reject expressions in the candidate preview. Conditions can restrict different traffic; compatibility views may overlap. Neither a final allow nor block is established.',
+        'Conditional policy':str(len(row['policy_references']))+' candidate references; '+('preview capped; ' if row['policy_preview_capped'] else '')+'open Policy to inspect actual conditions, chain ancestry and defaults. The supported INPUT assessment is separate from a complete packet-path verdict.',
+        'Firewall INPUT assessment':row['firewall']['summary'],
+        'Assessment scope':row['firewall']['scope'],
+        'Assessed targets and base policies':assessments or ['No usable policy source was collected.'],
+        'Other policy coverage':row['firewall']['coverage'],
+        'Reported policy actions':str(allowed)+' accept and '+str(blocked)+' drop/reject expressions in the candidate preview. Counts are not verdicts: the INPUT assessment considers supported conditions, order and chain control. Compatibility views may overlap.',
         'Rule examples':examples or ['No supported rule correspondence established. Missing rules or sources do not establish an unfiltered port.'],
         'Incoming default policies':policies or ['No supported incoming base policy was established.'],
         'External access':'Unknown; no external test was performed.',
@@ -94,9 +105,9 @@ def table(kind,data,options=None):
         for i,row in enumerate(data['ports']):
             if 'port_indices' in options and i not in options['port_indices']:continue
             owners=', '.join(sorted({owner.get('service') or owner['reported_name'] for owner in row['owners']})) or 'Owner not reported'
-            rows.append(Entry(('IPv'+str(row['family'])+' '+row['protocol'].upper()+' '+row['local']['original'],owners,row['binding']['kind'],'External access unverified'),
+            rows.append(Entry(('IPv'+str(row['family'])+' '+row['protocol'].upper()+' '+row['local']['original'],owners,row['binding']['kind'],row['firewall']['summary']),
                 row,port_detail(row,data),'port',navigation={'refs':row['policy_references'],'family':row['family']}))
-        return 'Reported listeners / bound UDP sockets',('Binding','Reported owner/service','Local scope','External access'),rows
+        return 'Ports — collected firewall INPUT assessment',('Binding','Reported owner/service','Binding scope','Firewall INPUT'),rows
     if kind=='ports_translations':
         for row in data['translations']:
             rule=data['sources'][row['source']]['data']['rules'][row['rule_index']]
@@ -129,7 +140,7 @@ def table(kind,data,options=None):
         source=data['sources'][key];detail=source_detail(key,source)
         if key.startswith('routes'):detail|={'What it means':'Reported route configuration only. Default routes and next hops do not verify policy routing, replies, connectivity or Internet access.','Original route rows':(source['data'] or {}).get('rows',[])}
         if key=='addresses':detail|={'Reported addresses / link flags':(source['data'] or {}).get('rows',[])}
-        rows.append(Entry((key,source['state'],source['command_state'],detail['What it means']),source,detail))
+        rows.append(Entry((key,source['state'],source['command_state']+'; exit '+str(source['returncode']),detail['What it means']),source,detail))
     return 'Independent port source evidence',('Source','State','Command','Meaning'),rows
 
 
@@ -140,6 +151,7 @@ def render(data,out,*,details=False,evidence=False):
         for text in value if isinstance(value,list) else [value]:line(out,key+': '+text)
     for entry in table('ports_listeners',data)[2]:
         row=entry.original;line(out,' | '.join(entry.cells));line(out,'  Meaning: '+entry.detail['What it means'])
+        for assessment in entry.detail['Assessed targets and base policies'][:8]:line(out,'  INPUT: '+assessment)
         for address in row['binding']['addresses']:
             flags=list(address['address_flags'])+[key for key in ('tentative','dadfailed','deprecated') if address[key]]
             line(out,'  Address: '+address['address']+' on '+address['ifname']+' | '+str(address['operstate'])+' | '+address['kind']+(' | '+', '.join(flags) if flags else ''))
