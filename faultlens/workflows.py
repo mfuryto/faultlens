@@ -74,7 +74,7 @@ class PartitionRunner:
 
 def collect(runner=None,*,sources=None,mode='now',boot_id=None,boot_index=None,since_us=None,until_us=None,
             system_journal=False,search_events=True,search_ssh=False,search_firewall=False,
-            sample_seconds=.1,sockets=False,atop_date=None,atop_extended=False,
+            sample_seconds=.1,sockets=False,network_context=False,atop_date=None,atop_extended=False,
             pstore=False,pstore_archive=False,pstore_collector=None,pstore_archive_collector=None,clock=time.time):
     if type(sample_seconds) not in {int,float} or not math.isfinite(sample_seconds) or not .05<=sample_seconds<=1: raise ValueError('Invalid sample duration')
     if mode not in MODES: raise ValueError('Unknown investigation mode')
@@ -83,9 +83,10 @@ def collect(runner=None,*,sources=None,mode='now',boot_id=None,boot_index=None,s
     if boot_index is not None and (type(boot_index) is not int or not -128<=boot_index<=0): raise ValueError('Invalid boot index')
     if mode=='before-restart' and boot_index==0: raise ValueError('Before-restart mode requires a previous boot')
     if boot_id is not None and boot_index is not None: raise ValueError('Conflicting boot filters')
-    if any(type(v) is not bool for v in (system_journal,search_events,search_ssh,search_firewall,sockets,atop_extended,pstore,pstore_archive)):
+    if any(type(v) is not bool for v in (system_journal,search_events,search_ssh,search_firewall,sockets,network_context,atop_extended,pstore,pstore_archive)):
         raise ValueError('Invalid investigation option')
     if atop_extended and not atop_date: raise ValueError('Recording date required')
+    if network_context and mode!='now':raise ValueError('Current network context requires now mode')
     if mode=='period' and (since_us is None or until_us is None): raise ValueError('A selected period requires both time boundaries')
     if mode!='period' and (since_us is not None or until_us is not None): raise ValueError('Explicit boundaries require period mode')
     if mode=='now':
@@ -106,8 +107,11 @@ def collect(runner=None,*,sources=None,mode='now',boot_id=None,boot_index=None,s
         from .health import collect as health
         from .network import collect as network
         data['current']['health']=health(sources,runner,sample_seconds=sample_seconds)
-        data['current']['network']=network(sources,sample_seconds=sample_seconds)
-        if sockets:
+        if network_context:
+            from .network_sampling import practical
+            data['current']['network']=practical(sources,runner,sample_seconds=sample_seconds,sockets=sockets)
+        else:data['current']['network']=network(sources,sample_seconds=sample_seconds)
+        if sockets and not network_context:
             from .sockets import attach
             attach(data['current']['network'],runner)
     if boot_index is not None or (mode=='before-restart' and boot_id is None):

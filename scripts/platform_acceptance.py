@@ -50,7 +50,7 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
     ui=ui_version()
     if ui!=('8.2.8' if frontend else None): raise ValueError('Optional frontend does not match the expected reviewed/absent setup')
     checks=[]
-    commands=(('status',),('health',),('network','--sockets'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
+    commands=(('status',),('health',),('network','--sockets','--network-context'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
               ('diagnose','--boot','0','--system-journal','--search-events'),
               ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'))
     for options in commands:
@@ -72,6 +72,11 @@ def native(target,*,frontend=False,execute=_capture,os_info=release,ui_version=f
             raise ValueError('Native session-source state was not reported')
         if options[0]=='health' and data.get('failed_services',{}).get('state') not in {'available','unavailable'}:
             raise ValueError('Native failed-service source state was not reported')
+        if options[0]=='network' and (len(data.get('network_samples',[]))!=3
+                or not isinstance(data.get('network_review',{}).get('cards'),list)
+                or any(data.get('network_context',{}).get('sources',{}).get(key,{}).get('state') not in {'available','unavailable'}
+                       for key in ('addresses','routes4','routes6','owners'))):
+            raise ValueError('Native network investigation contract was not reported')
         if options[0]=='network' and (data.get('state') not in {'available','partial'} or data.get('sockets',{}).get('state') not in {'available','unavailable'}):
             raise ValueError('Native network/socket source states were not reported')
         if options[0] in {'history','diagnose','investigate'} and data.get('state') not in ({'available','partial','unavailable'} if options[0]=='investigate' else {'available','unavailable'}):

@@ -7,7 +7,8 @@ steps: general service troubleshooting; processes/storage; practical Network wit
 possible attack/attempt investigation (DDoS is one example); coherent incident/evidence flow and Signals role.
 Step 1 is merged in PR #68. Step 2 adds bounded live process and mount-capacity
 investigation; the [source design](architecture/system-process-storage.md) describes
-coverage and acceptance. The original milestones below retain their dated evidence. The service workflow
+coverage and acceptance. Step 3 adds [practical network investigation](architecture/practical-network-investigation.md);
+step 4 remains next. The original milestones below retain their dated evidence. The service workflow
 now has a [shared interpretation/navigation design](architecture/general-service-troubleshooting.md).
 
 ## What the application solves
@@ -22,7 +23,7 @@ an arbitrary server froze or guarantee that an attack did not occur.
 | What is happening now? | Prioritized CPU/load/RAM/swap/network readings, bounded process CPU/RSS, mount space/inodes and system-service failure context | Bounded PID/mount coverage; no complete inventory, hardware health or all-unit/user-service inventory |
 | What happened around an earlier boot/problem? | Immutable journal boot selection, bounded tail/filtered searches, chronology, Atop replay and optional pstore fragments | Logging may be lost; full shutdown completion and arbitrary root cause remain unverified |
 | Was memory/storage/kernel failure reported? | Supported OOM/panic/I/O/filesystem/stall signatures with original references | A signature is not the underlying cause; hardware/vendor evidence and labeled incident validation remain necessary |
-| Is network activity suspicious? | Short counter samples, numeric TCP/UDP sockets, narrow SSH/UFW log signatures and Possible historical indicators | No external-reachability probe, effective firewall-policy audit, socket-owner attribution or comprehensive intrusion detection |
+| Is network activity suspicious? | Three bounded counter intervals, numeric address/route context, reported socket owner/service associations, peer review and narrow SSH/UFW/historical indicators | No expected-peer baseline, external-reachability probe, effective firewall-policy audit, all-authentication coverage or comprehensive intrusion detection |
 | Can I trust the conclusion? | Explicit bounded evidence, provenance, original records and Confirmed/Possible/Unknown distinctions | Authenticity under root/kernel compromise and empirical detector accuracy are not established |
 
 Important practical gaps:

@@ -298,6 +298,7 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--history", action="store_true", help="Inspect preservation configuration and metadata (check only).")
     parser.add_argument("--pstore", action="store_true", help="Inspect bounded live pstore crash records (investigate/diagnose; no boot attribution).")
     parser.add_argument("--pstore-archive", action="store_true", help="Inspect bounded raw systemd pstore archive records (investigate/diagnose; no boot attribution).")
+    parser.add_argument("--network-context",action="store_true",help="Read local addresses/routes, three counter intervals and permitted socket owners; network/security or investigate now only.")
     parser.add_argument("--system-journal", action="store_true", help="Select accessible system journal for both boot listing and diagnosis (history/incidents/investigate/diagnose; no elevation).")
     event_options=parser.add_mutually_exclusive_group()
     event_options.add_argument('--search-events',action='store_true',help='Run bounded kernel/service searches; on by default for investigate.')
@@ -315,10 +316,13 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (investigate/diagnose).")
     args = parser.parse_args(argv)
     if (args.command=='service')!=(args.unit is not None): parser.error('Use service --unit NAME.service to investigate one service.')
+    if args.network_context and not (args.command in {'network','security'} or args.command=='investigate' and args.mode in {None,'now'}):
+        parser.error('--network-context requires network, security or investigate now.')
     if args.no_search_events and args.command!='investigate': parser.error('--no-search-events is supported only with investigate.')
     if args.mode is not None and args.command!='investigate': parser.error('--mode is supported only with investigate.')
     if args.command=='investigate':
         args.mode=args.mode or ('before-restart' if args.previous_boot else 'period' if args.since_us is not None or args.until_us is not None else 'now')
+        if args.network_context and args.mode!='now':parser.error('Current network context requires now mode.')
         if args.sockets and args.mode!='now': parser.error('Current socket snapshots require now mode.')
         if args.previous_boot and args.mode!='before-restart': parser.error('--previous-boot requires before-restart mode.')
         if args.mode=='period' and (args.since_us is None or args.until_us is None): parser.error('Period mode requires both --since and --until.')
@@ -371,15 +375,21 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             data=collect(runner,sources=sources,mode=args.mode,boot_index=args.boot,boot_id=args.boot_id,
                 since_us=args.since_us,until_us=args.until_us,system_journal=args.system_journal,
                 search_events=not args.no_search_events,search_ssh=args.search_ssh,search_firewall=args.search_firewall,
-                sample_seconds=args.sample_seconds,sockets=args.sockets,atop_date=args.atop_date,
+                sample_seconds=args.sample_seconds,sockets=args.sockets,network_context=args.network_context,atop_date=args.atop_date,
                 atop_extended=args.atop_extended,pstore=args.pstore,pstore_archive=args.pstore_archive,
                 pstore_collector=pstore_collector,pstore_archive_collector=pstore_archive_collector)
         elif args.command in {'network', 'security'}:
             from .network import collect
-            data = collect(sources, command=args.command, sample_seconds=args.sample_seconds)
-            if args.sockets:
+            if args.network_context:
+                from .network_sampling import practical
+                data=practical(sources,runner,command=args.command,sample_seconds=args.sample_seconds,sockets=args.sockets)
+            else:data = collect(sources, command=args.command, sample_seconds=args.sample_seconds)
+            if args.sockets and not args.network_context:
                 from .sockets import attach
                 attach(data, runner)
+            if not args.network_context:
+                from .network_review import live
+                live(data)
         elif args.command == "incidents":
             from .overview import incidents
             data = incidents(runner, boot_count=args.boot_count if args.boot_count is not None else 3,
@@ -421,6 +431,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             print("Faultlens — read-only " + args.command + ": " + data['state'], file=stdout)
             print("Namespace: current; attack assessment Unknown; completeness unknown.", file=stdout)
             print("Sample: " + json.dumps(data['sample'], ensure_ascii=True), file=stdout)
+            for key in ("network_samples","network_context","network_review"):
+                if key in data:print(key+": "+json.dumps(data[key],ensure_ascii=True),file=stdout)
             if "sockets" in data:
                 print("Sockets: " + json.dumps(data["sockets"], ensure_ascii=True), file=stdout)
             for observation in data['observations']:

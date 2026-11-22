@@ -29,11 +29,11 @@ def finding_entry(item,source):
 def source_entries(data):
     result=[]
     for key,title in (('ssh_analysis','SSH reports'),('firewall_analysis','Firewall reports'),
-                      ('event_search','Broader event search'),('atop','Recorded resources'),
+                      ('network_review','Network investigation'),('event_search','Broader event search'),('atop','Recorded resources'),
                       ('pstore','Live crash evidence'),('pstore_archive','Archived crash evidence')):
         if key not in data: continue
         source=data[key]
-        result.append(Entry((title,source['state'],key,'Open retained source results'),source,None,key))
+        result.append(Entry((title,source['state'],key,'Open retained source results'),source,None,'network_issues' if key=='network_review' else key))
     return result
 
 
@@ -102,6 +102,7 @@ def page_table(page,data,settings):
         from .current_views import build
         view=build(data,('status','health','network')[page])
         rows=[Entry((row.label,row.value,row.assessment,row.meaning),row.original,row.detail,row.kind) for row in view['rows']]
+        if page==2:rows.append(Entry(('Investigate network logs','Current or selected period','Open inquiry','Review authentication, firewall and service evidence with explicit scope'),None,None,'network_logs'))
         if settings.investigation_mode: rows.append(Entry(('Investigate a problem now','Current + recent evidence','Open inquiry','Enter opens Problems now'),'now',None,'investigation_start'))
         return ('Check','Result','Assessment','Meaning / next step'),rows
     if page==4:
@@ -156,6 +157,42 @@ def _group_members(data,representative,source):
 
 def source_table(entry,data):
     source=entry.original
+    if entry.kind=='network_issues':
+        from .network_review import detail
+        return 'Network observations — attack and cause remain Unknown',('Observation','Assessment','Actual evidence','Next step'),[
+            Entry((row['title'],row['assessment'],row['observation'],'Enter explains / opens related evidence'),row,detail(row,source),'network_issue') for row in source['cards']]
+    if entry.kind=='network_context':
+        labels={'addresses':'Addresses and link flags','routes4':'IPv4 route entries','routes6':'IPv6 route entries','owners':'Reported socket owners'}
+        def owned_snapshot(row):
+            return dict(row,tcp_listener_rows=sum(value['protocol']=='tcp' and value['state']=='LISTEN' for value in row['rows']),limitations=source['limitations'])
+        return 'Independent local network sources',('Source','State','Retained rows','Meaning'),[
+            Entry((labels[key],row['state'],str(len(row['rows'])),'Configuration / association, not connectivity'),owned_snapshot(row) if key=='owners' else row,
+                  {'What it means':'Independent bounded source; unavailable/empty results do not establish absent configuration or ownership.',
+                   'Evidence limits':source['limitations']},'network_addresses' if key=='addresses' else 'network_routes' if key.startswith('routes') else 'sockets') for key,row in source['sources'].items()]
+    if entry.kind=='network_addresses':
+        return 'Reported addresses / link flags',('Interface','Reported link state','Numeric addresses','Flags'),[
+            Entry((row['ifname'],row.get('operstate','UNKNOWN'),', '.join(value['local']+'/'+str(value['prefixlen']) for value in row.get('addr_info',[])),', '.join(row.get('flags',[]))),row,
+                  {'Observed':row,'What it means':'Administrative/operational flags and local address assignments only; an UP link does not verify end-to-end service connectivity.'}) for row in source['rows']]
+    if entry.kind=='network_routes':
+        return 'Reported route entries — policy selection unverified',('Family / table','Destination / type','Gateway / device','Scope'),[
+            Entry((str(row['address_family'])+' / '+str(row.get('table','main')),str(row.get('dst','default'))+' / '+str(row.get('type','unicast')),
+                   str(row.get('gateway','direct / see next hops'))+' / '+str(row.get('dev','see original')),str(row.get('scope','reported default'))),row,
+                  {'Observed':row,'What it means':'A configured route entry is not a verified selected route or remote reachability. Multipath, policy rules, VRFs and other namespaces can change actual forwarding.'}) for row in source['rows']]
+    if entry.kind=='network_samples':
+        from .interface_presentation import measurements as measurements_for_interface
+        def measurements(row):
+            interface=next((item['value'] for item in row['observations'] if item['key']=='network.interfaces' and item['value'] is not None),[])
+            return [item['interface']+' | '+ '; '.join(measurements_for_interface(item)[:2]) for item in interface]
+        return 'Independent measured intervals — not a continuous trace',('Interval','Actual duration','Coverage','Meaning'),[
+            Entry((str(row['sample_index']),str(row['sample'].get('elapsed_seconds'))+' s',row['state'],'Open byte/packet rates per interface'),row,
+                {'Observed':row['started_at']+' to '+row['finished_at'],'Measurements':measurements(row),
+                 'What it means':'Rates belong to each measured interval. No interface sum, sustained-rate or baseline claim is inferred. e retains every protocol counter.'}) for row in source['rows']]
+    if entry.kind=='socket_owners':
+        return 'Reported owners — sequential associations only',('PID / name','Descriptor','Reported service','Meaning'),[
+            Entry((str(row['pid'])+' / '+row['reported_name'],str(row['fd']),row.get('service') or 'Not established','Enter opens reported service when available'),
+                  dict(row,unit=row['service']) if row.get('service') else row,
+                  {'What it means':'ss-reported owner, with a separate bounded procfs cgroup sample when available. Socket/PID reuse, namespaces and restricted access can prevent or mislead association.'},
+                  'service' if row.get('service') else 'detail') for row in source['rows']]
     if entry.kind=='processes':
         from .system_resource_views import process_order,process_detail
         from .presentation import size
@@ -213,7 +250,7 @@ def source_table(entry,data):
             finding_entry(row,entry.cells[2]) for row in source]
     if entry.kind=='sockets':
         return 'Local sockets',('Protocol','State','Local endpoint','Peer endpoint'),[
-            Entry((row['protocol'].upper(),row['state'],row['local']['original'],row['peer']['original']),row,socket_view(row))
+            Entry((row['protocol'].upper(),row['state'],row['local']['original'],row['peer']['original']),row,socket_view(row),'socket')
             for row in source['rows']]
     if entry.kind=='atop':
         return 'Recorded resource samples',('Sample','UTC interval','Scope'),[
@@ -275,6 +312,9 @@ def investigation_entries(data):
             excerpt(last['message']),'Later conditions unknown'),last,
             {'Recorded message':[utc(last['reference'].get('realtime_us'))+' | '+excerpt(last['message'],2048)],
              'What it means':view['ending'],'What you can do':[view['next']]},'journal_record'))
+    if data.get('network_review'):
+        source=data['network_review']
+        rows.append(Entry(('Network investigation',source['state'],str(len(source['cards']))+' concrete observations','Open peer/port reports, alternatives and originals'),source,None,'network_issues'))
     rows.append(answer)
     return rows
 

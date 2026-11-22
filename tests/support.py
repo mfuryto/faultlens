@@ -54,7 +54,9 @@ class SyntheticSources:
 class SyntheticRunner:
     def __init__(self):
         self.calls = []
+        from tests.network_context_fixtures import reply
         self.results = {
+            **{command:reply(command) for command in (Command.NETWORK_ADDRESSES,Command.NETWORK_ROUTES4,Command.NETWORK_ROUTES6,Command.SOCKET_OWNERS)},
             Command.LOGIN_SESSION_SERVICE: Result('missing'),
             Command.LOGIN_SESSION_LIST: Result('missing'),
             Command.LOGIN_SESSIONS: Result('completed','example-admin pts/0 2026-01-01 12:34 . 42 (192.0.2.8)\n',0),
@@ -284,12 +286,14 @@ class SyntheticNetworkSources(SyntheticSources):
         self.network_reads = {}
 
     def read(self, path, limit=262144):
-        if path not in {'/proc/net/dev', '/proc/net/netstat', '/proc/net/snmp'}:
+        if path not in {'/proc/net/dev', '/proc/net/netstat', '/proc/net/snmp','/proc/net/snmp6'}:
             return super().read(path, limit)
         index = self.network_reads.get(path, 0)
         self.network_reads[path] = index+1
+        if path == '/proc/net/snmp6':
+            return '\n'.join(key+' 0' for key in ('Udp6InDatagrams','Udp6OutDatagrams','Udp6NoPorts','Udp6InErrors','Udp6RcvbufErrors','Udp6SndbufErrors'))+'\n'
         if path == '/proc/net/snmp':
-            return 'Udp: InDatagrams OutDatagrams NoPorts InErrors RcvbufErrors SndbufErrors\nUdp: 1 2 0 0 0 0\n'
+            return 'Tcp: ActiveOpens PassiveOpens AttemptFails EstabResets InSegs OutSegs RetransSegs InErrs OutRsts\nTcp: 1 2 0 0 10 20 0 0 0\nUdp: InDatagrams OutDatagrams NoPorts InErrors RcvbufErrors SndbufErrors\nUdp: 1 2 0 0 0 0\n'
         if path == '/proc/net/netstat':
             return ('TcpExt: SyncookiesSent SyncookiesRecv SyncookiesFailed ListenOverflows ListenDrops\n'
                     + 'TcpExt: ' + ' '.join(str(index) for _ in range(5)) + '\n')
@@ -323,10 +327,11 @@ class SyntheticFirewallRunner(SyntheticSshRunner):
         return Result('completed','\n'.join(rows),0)
 
 
-class SyntheticSocketRunner:
+class SyntheticSocketRunner(SyntheticRunner):
     def run(self, command):
         if command != Command.SOCKETS:
-            raise ValueError('Unexpected synthetic command')
+            from tests.network_context_fixtures import reply
+            return reply(command,maximum=True)
         return Result('completed', ''.join(
             f'tcp ESTAB 0 0 192.0.2.1:{10000+i} 198.51.100.1:443\n' for i in range(512)), 0)
 

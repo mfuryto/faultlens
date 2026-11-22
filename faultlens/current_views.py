@@ -226,7 +226,10 @@ def _network(data):
     active=sum(row.assessment=='Active' for row in classified)
     review=sum(row.assessment=='Review' for row in classified)
     gaps=sum(row.assessment=='Gap' for row in classified)
-    rows=[]
+    from .network_review import decisions
+    rows=decisions(data)
+    context_gaps=any(row.assessment in {'Gap','Partial'} for row in rows)
+    extra_review=any(row.assessment in {'Review','Possible'} for row in rows)
     if interfaces:
         rows.append(Decision('Interface summary',str(len(interfaces))+' interfaces',
             'Review' if review else 'Partial' if gaps else 'Measured',
@@ -236,7 +239,7 @@ def _network(data):
     elif source is not None: rows.append(observation(source))
     else: rows.append(Decision('Interface comparisons','Not available','Gap','No interface comparison was collected.',None,{'What it means':'No traffic rates or interface-health conclusion can be inferred.'}))
     pressure=[item for item in observations if item['key'] in {finding['rule_id'] for finding in data.get('findings',[])}]
-    protocol=[item for item in observations if item['key'].startswith(('network.tcp.','network.udp.')) or item['key'] in {'network.tcp','network.udp'}]
+    protocol=[item for item in observations if item['key'].startswith(('network.tcp.','network.udp.','network.tcp_basic.','network.udp6.')) or item['key'] in {'network.tcp','network.udp','network.tcp_basic','network.udp6'}]
     unavailable=sum(item['state']=='unavailable' for item in protocol)
     rows.append(group('Protocol pressure',protocol,
         'Supported growth may reflect legitimate bursts, slow listeners or buffer limits; it does not establish a flood or cause.',
@@ -248,18 +251,20 @@ def _network(data):
         rows.append(Decision('Socket snapshot',
             str(sockets.get('tcp_listener_rows',0))+' TCP listener rows; '+str(len(sockets['rows']))+' retained rows' if available else 'Could not be assessed',
             'Measured' if available else 'Gap','Local bindings do not prove Internet access. Open the snapshot to investigate relevant ports/services.',sockets,
-            {'What it means':'Current local TCP/UDP snapshot; no owner attribution or external-reachability probe.'},'sockets'))
+            {'What it means':'Current local TCP/UDP snapshot; requested context may add reported sequential owner/service associations. External reachability remains unverified.'},'sockets'))
     else: rows.append(Decision('Socket snapshot','Not requested','Info','Enable socket endpoints only if needed to investigate service reachability.',None,{'What it means':'No socket evidence was requested.'}))
     if interfaces: rows.append(Decision('All interfaces',str(len(interfaces))+' retained interfaces','Info','Open the paged table for every interface, including idle and comparison gaps.',interfaces,{},'interfaces'))
     rows.append(_all(data))
-    summary=('Sampled interface or protocol error/pressure counters need review.' if review or pressure else
-             'Network evidence is incomplete; inspect the available comparisons and source gaps.' if gaps or not interfaces or unavailable or (sockets is not None and sockets['state']!='available') else
+    summary=('Sampled interface or protocol error/pressure counters need review.' if review or pressure or extra_review else
+             'Network evidence is incomplete; inspect the available comparisons and source gaps.' if context_gaps or gaps or not interfaces or unavailable or (sockets is not None and sockets['state']!='available') else
              'No supported error/drop or protocol-pressure growth was observed in this short sample.')
+    if context_gaps:summary+=' Some requested network context could not be assessed.'
     elapsed=timing.get('elapsed_seconds')
-    step=('Inspect highlighted error/pressure counters and service symptoms; compare legitimate workload before changes.' if review or pressure else
-          'Inspect the source/comparison gaps needed for your investigation; missing data is not zero activity.' if gaps or not interfaces or unavailable or (sockets is not None and sockets['state']!='available') else
+    step=('Inspect highlighted error/pressure counters and service symptoms; compare legitimate workload before changes.' if review or pressure or extra_review else
+          'Inspect the source/comparison gaps needed for your investigation; missing data is not zero activity.' if context_gaps or gaps or not interfaces or unavailable or (sockets is not None and sockets['state']!='available') else
           'No change follows from this sample alone. Repeat during a network symptom; inspect sockets if a service cannot be reached.')
-    scope='Current network namespace; interval '+(duration(elapsed) if elapsed is not None else 'not verified')+'. No interface-layer totals or route/role claims.'
+    scope='Current network namespace; interval '+(duration(elapsed) if elapsed is not None else 'not verified')+'. No interface-layer totals or verified forwarding/role claims.'
+    if data.get('network_context'):scope+=' Configured addresses/routes and reported owners are separate sequential reads; no connectivity or policy verdict.'
     return summary,step,rows,scope
 
 

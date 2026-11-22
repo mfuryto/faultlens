@@ -15,6 +15,7 @@ def arguments(page,settings):
     args=[commands[page],'--json']
     if page==5 and settings.investigation_mode:
         args=['investigate','--json','--mode',settings.investigation_mode]
+    if page in {2,3} or page==5 and settings.investigation_mode=='now':args+=['--network-context']
     if page in {0,1,2,3}: args+=['--sample-seconds',str(settings.sample_seconds)]
     if page==1 and settings.preservation: args+=['--history']
     if page in {2,3} and settings.sockets: args+=['--sockets']

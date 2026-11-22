@@ -66,7 +66,7 @@ resource constraints; kernel-uninterruptible I/O remains an operating-system lim
 | --- | --- |
 | System | Prioritized resource/service readings, current process CPU/RSS, mount space/inodes, reported logged-in users and grouped access to all retained rows |
 | Health | Operational readings and observed failed services, separate from journal/recording readiness and tool/default details |
-| Network | Error/gap/activity-prioritized interface examples, protocol review counts and optional sockets; all interfaces remain in a paged table |
+| Network | Concrete investigation cards, repeated counter intervals, addresses/link flags, separate IPv4/IPv6 routes and permitted socket owner/service context; all retained sources remain inspectable |
 | Signals | Current network indicators, source coverage and sockets, including zero-match states; a separate link opens selected-boot SSH/firewall history |
 | History | Retained UTC ranges and named report examples; Investigate this boot pins its ID and opens Diagnostics |
 | Investigate | Problems now, a selected period or before-restart context; investigation answer, actual message excerpts, timestamps and follow-up; all grouped reports and sources remain accessible |
@@ -81,6 +81,23 @@ rows. Separate writable mount space or inode pressure appears directly in System
 a full read-only image is informational. These current measurements cannot explain
 past pressure. [Source bounds and semantics](architecture/system-process-storage.md)
 remain explicit in each source's details.
+
+In **Network**, open **Network investigation** for concrete counter, queue, state
+or peer observations, their benign alternatives and next steps. **Socket rows**
+opens the actual referenced rows; **Reported owners** can open a reported system
+service in the shared service/log reader when association is available. This does
+not establish a malicious peer, application identity or Internet reachability.
+**Addresses and routes** opens independent local sources; **Measured intervals**
+shows byte/packet rates for each short interval without a host-throughput sum.
+These sources load on opening Network/Signals; optional socket collection still
+follows Settings. No active scan, capture, external lookup or blocking runs.
+
+Historical network cards expose reported peers/ports and **Referenced records**.
+**Investigate logs** selects the card's bounded receipt-time period when available,
+or a current/recent inquiry for current observations. Authentication/firewall reads
+are enabled, the optional boot filter is cleared, and journal scope still follows
+Settings. The query is not peer-filtered; compare original fields and service logs.
+Narrow SSH/UFW readers do not cover every authentication or firewall format.
 
 Repeated reports are grouped in the overview rather than called separate incidents.
 Source dialogs render at most 64 rows per batch, show the retained total and retain

@@ -107,7 +107,7 @@ def worker(command: str) -> dict:
     if command in {'network', 'security', 'network-sockets'}:
         arguments.extend(['--sample-seconds', '0.05'])
     if command == 'network-sockets':
-        arguments = ['network', '--sockets', '--sample-seconds', '0.05', '--json']
+        arguments = ['network', '--sockets', '--network-context', '--sample-seconds', '0.05', '--json']
         runner = SyntheticSocketRunner()
     sources = SyntheticNetworkSources() if command in {'network', 'security', 'network-sockets'} else SyntheticSources()
     if command=='health':

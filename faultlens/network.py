@@ -9,6 +9,8 @@ from .models import Observation, report, unavailable
 from .parsers import counters, network as interfaces
 
 UDP_FIELDS = ('InDatagrams', 'OutDatagrams', 'NoPorts', 'InErrors', 'RcvbufErrors', 'SndbufErrors')
+TCP_BASIC_FIELDS=('ActiveOpens','PassiveOpens','AttemptFails','EstabResets','InSegs','OutSegs','RetransSegs','InErrs','OutRsts')
+UDP6_FIELDS=('Udp6InDatagrams','Udp6OutDatagrams','Udp6NoPorts','Udp6InErrors','Udp6RcvbufErrors','Udp6SndbufErrors')
 TCP_FIELDS = ('SyncookiesSent', 'SyncookiesRecv', 'SyncookiesFailed', 'ListenOverflows', 'ListenDrops')
 LIMITATIONS = (
     'Current network namespace only; no host-wide visibility or stable interface identity is established.',
@@ -16,7 +18,7 @@ LIMITATIONS = (
     'Counter resets/decreases and changed interface sets prevent comparisons; reuse of a name without a decrease can be undetectable.',
     'Virtual/physical interfaces can count the same traffic; interface values must not be summed as host throughput.',
     'Counter sampling collects no endpoints or payloads; --sockets separately opts in to local endpoint collection. No DNS, packet capture or remote probes are used.',
-    'No traffic baseline, SSH logs, firewall policy or historical security evidence is analyzed in this milestone.',
+    'Current counter sampling supplies no baseline or historical attack verdict. Requested journal/recording readers have separate coverage.',
     'No supported indicator or a zero delta does not establish security. Attack and root-cause assessments remain Unknown.',
     'Root/kernel compromise can falsify counters. No sysctl, interface or firewall settings are changed.',
 )
@@ -42,6 +44,7 @@ def protocol_counters(text, section, selected_fields):
         for name, number in zip(names[1:], numbers[1:]):
             # RFC 1213: TCP's dynamic connection limit uses -1, not a counter reset.
             parsed[name] = -1 if names[0] == 'Tcp:' and name == 'MaxConn' and number == '-1' else counters([number])[0]
+        if any(value>2**64-1 for value in parsed.values()):raise ValueError('Protocol counter range')
         if names[0] == section:
             result = {name: parsed.get(name) for name in selected_fields}
     if result is None:
@@ -57,33 +60,53 @@ def udp_statistics(text):
     return protocol_counters(text, 'Udp:', UDP_FIELDS)
 
 
-def _snapshot(sources):
+def udp6_statistics(text):
+    if len(text.encode())>262144 or len(text.splitlines())>512:raise ValueError('IPv6 counter bound')
+    values={}
+    for line in text.splitlines():
+        fields=line.split()
+        if len(fields)!=2 or re.fullmatch('[A-Za-z][A-Za-z0-9]{0,63}',fields[0]) is None or fields[0] in values:
+            raise ValueError('Invalid IPv6 counter')
+        values[fields[0]]=counters([fields[1]])[0]
+        if values[fields[0]]>2**64-1:raise ValueError('IPv6 counter range')
+    if not any(key in values for key in UDP6_FIELDS):raise ValueError('IPv6 UDP counters missing')
+    return {key:values.get(key) for key in UDP6_FIELDS}
+
+
+def _sources(extended):
+    result=[('interfaces','/proc/net/dev',interfaces),('tcp','/proc/net/netstat',tcp_extensions),('udp','/proc/net/snmp',udp_statistics)]
+    if extended:result += [('tcp_basic','/proc/net/snmp',lambda text:protocol_counters(text,'Tcp:',TCP_BASIC_FIELDS)),
+                          ('udp6','/proc/net/snmp6',udp6_statistics)]
+    return result
+
+
+def _snapshot(sources,extended=False):
     result = {}
-    for key, path, parser in (('interfaces', '/proc/net/dev', interfaces),
-                              ('tcp', '/proc/net/netstat', tcp_extensions),
-                              ('udp', '/proc/net/snmp', udp_statistics)):
+    for key,path,parser in _sources(extended):
         try:
             text = sources.read(path)
             if len(text.encode()) > 262144:
                 raise ValueError('Network source exceeds limit')
             result[key] = parser(text)
-        except (OSError, ValueError, UnicodeError):
+            if key=='interfaces' and any(value>2**64-1 for row in result[key] for field,value in row.items() if field!='interface'):
+                raise ValueError('Interface counter range')
+        except (OSError, ValueError, UnicodeError, KeyError):
             result[key] = None
     return result
 
 
-def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.sleep, clock=time.monotonic):
+def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.sleep, clock=time.monotonic, extended=False):
     if command not in {'network', 'security'} or not isinstance(sample_seconds, (float, int)) or isinstance(sample_seconds, bool) or not math.isfinite(sample_seconds) or not 0.05 <= sample_seconds <= 1:
         raise ValueError('Invalid network sample')
     sources = sources or LinuxSources()
     started = clock()
-    before = _snapshot(sources)
+    before = _snapshot(sources,extended)
     sleep(sample_seconds)
-    after = _snapshot(sources)
+    after = _snapshot(sources,extended)
     elapsed = clock() - started
     valid_time = math.isfinite(elapsed) and 0.001 <= elapsed <= 5
     items, findings = [], []
-    for key, source in (('interfaces', '/proc/net/dev'), ('tcp', '/proc/net/netstat'), ('udp', '/proc/net/snmp')):
+    for key,source,_parser in _sources(extended):
         if before[key] is None or after[key] is None or not valid_time:
             items.append(unavailable('network.' + key, source, 'Both valid snapshots and a bounded positive monotonic interval are required.'))
             continue
@@ -101,7 +124,7 @@ def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.s
             items.append(Observation('network.interfaces', values, 'bytes/packets/events and per second', source,
                 'unknown', explanation='Two visible counter snapshots; changed/reset interfaces have no inferred rates.', limitations=LIMITATIONS))
         else:
-            for name in (TCP_FIELDS if key == 'tcp' else UDP_FIELDS):
+            for name in {'tcp':TCP_FIELDS,'udp':UDP_FIELDS,'tcp_basic':TCP_BASIC_FIELDS,'udp6':UDP6_FIELDS}[key]:
                 first, last = before[key][name], after[key][name]
                 if first is None or last is None or last < first:
                     items.append(unavailable('network.' + key + '.' + name, source, 'Counter missing, reset or decreased; no delta is inferred.'))
@@ -131,5 +154,7 @@ def collect(sources=None, *, command='network', sample_seconds=0.1, sleep=time.s
                 sample={'requested_seconds': sample_seconds, 'elapsed_seconds': elapsed if valid_time else None},
                 namespace='current', completeness='unknown', attack_assessment='Unknown', root_cause='Unknown',
                 findings=[finding.to_dict() for finding in findings])
+    data['protocol_scope']={'tcp':'namespace aggregate; no independent IPv4/IPv6 TCP breakdown',
+                            'udp':'IPv4','udp6':'IPv6 requested' if extended else 'not requested'}
     data['limitations'].extend(LIMITATIONS)
     return data

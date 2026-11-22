@@ -323,7 +323,8 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(100,30)) as pilot:
             await pilot.pause(0.01); app.select_page(2); await pilot.pause(0.01)
             table=app.query_one('#grid-2',DataTable)
-            self.assertLessEqual(table.row_count,9)
+            self.assertTrue({'network_issues','network_context','network_samples'}.issubset({row.kind for row in app.entries[2]}))
+            self.assertLessEqual(sum(row.kind=='network_issue' for row in app.entries[2]),3)
             table.move_cursor(row=next(i for i,row in enumerate(app.entries[2]) if row.kind=='sockets'))
             await pilot.press('enter'); self.assertIsInstance(app.screen,SourceDialog)
             await pilot.press('enter'); self.assertIsInstance(app.screen,DetailDialog)

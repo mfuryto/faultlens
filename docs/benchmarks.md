@@ -483,3 +483,13 @@ used by constrained-resource profiles and installed-package qualification. This
 strengthens the workload without changing the 28 benchmark modes, 21 profiles,
 50/80 MiB memory budgets, one CPU second, two wall seconds or aggregate deadlines.
 These synthetic checks do not measure native procfs/mount I/O on arbitrary hosts.
+
+## Practical network context — 2026-11-22
+
+The existing maximum `network-sockets` scenario now requests three independent
+intervals, extended TCP/IPv6 UDP counters, 128 synthetic address rows, 256 routes
+per family, 512 owned socket rows and bounded current process associations.
+Resource profiles and installed-package qualification use the same strengthened
+worker. All 28 modes, 21 profiles and existing CPU/wall/RSS/aggregate budgets remain
+unchanged. Synthetic rates/peers are invented; these checks generate no real attack
+traffic and do not benchmark native source I/O on arbitrary hosts.

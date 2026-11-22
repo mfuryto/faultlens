@@ -22,7 +22,7 @@ constants.DRIVER=None
 
 from . import __version__
 from .tui_model import Session,Settings,escaped,brief
-from .workspace import TABS,page_table,source_table,detail_text,collection_entry
+from .workspace import TABS,page_table,source_table,detail_text,collection_entry,Entry
 from .presentation import guide
 from .evidence_links import resolve
 from . import ui_collection
@@ -105,6 +105,11 @@ class DetailDialog(ModalScreen):
                 yield Button('Original',id='original')
                 if self.entry.kind=='finding': yield Button('Records',id='references')
                 if self.entry.kind=='service_message': yield Button('Context',id='service-context',variant='primary')
+                if self.entry.kind=='socket':yield Button('Reported owners',id='socket-owners')
+                if self.entry.kind=='network_issue':
+                    yield Button('Investigate logs',id='network-logs')
+                    if self.entry.original.get('candidate_indices'):yield Button('Referenced records',id='network-records')
+                    if self.entry.original.get('socket_indices'):yield Button('Socket rows',id='network-sockets')
                 if self.entry.kind=='process' and self.entry.original.get('service'):
                     yield Button('Reported service',id='process-service')
                 if 'Timeline position' in (self.entry.detail or {}): yield Button('Position',id='position')
@@ -125,8 +130,19 @@ class DetailDialog(ModalScreen):
         if event.button.id=='original': self.action_original()
         elif event.button.id=='position': self.action_position()
         elif event.button.id=='references': self.app.push_screen(RecordsDialog(self.data,self.entry.original))
+        elif event.button.id=='socket-owners':
+            self.app.push_screen(SourceDialog(Entry(('Reported owners',),{'state':self.entry.original.get('owner_state','not_established'),'rows':self.entry.original.get('owners',[])},kind='socket_owners'),self.data))
+        elif event.button.id=='network-records':
+            source=self.data.get(self.entry.original.get('source_key'),{})
+            records=source.get('records',[])
+            self.app.push_screen(RecordsDialog(self.data,records=[records[index] for index in self.entry.original['candidate_indices'] if type(index) is int and 0<=index<len(records)]))
+        elif event.button.id=='network-sockets':
+            indices=set(self.entry.original['socket_indices']);source=self.data.get('sockets',{})
+            subset=dict(source,rows=[row for row in source.get('rows',[]) if row['row_index'] in indices])
+            self.app.push_screen(SourceDialog(Entry(('Referenced socket rows',),subset,kind='sockets'),self.data))
+        elif event.button.id=='network-logs':
+            self.app.open_network_logs(self.entry.original)
         elif event.button.id=='process-service' and self.entry.kind=='process':
-            from .workspace import Entry
             unit=self.entry.original['service']
             self.app.push_screen(ServiceDialog(Entry((unit,),{'unit':unit},None,'service'),self.data))
         elif event.button.id=='service-context' and self.entry.kind=='service_message':
@@ -311,12 +327,12 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
+        if self.is_mounted and self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
+        if self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
                     [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
@@ -357,7 +373,7 @@ class SourceDialog(ModalScreen):
         from .crash_presentation import source_view
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
-        if self.entry.kind in {'observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        if self.entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
@@ -685,6 +701,16 @@ class FaultlensApp(App):
             if steps: text.append('\nNext: ').append(literal(steps[0]))
         self.query_one('#selected-evidence-'+str(self.page),Static).update(text)
 
+    def open_network_logs(self,issue=None):
+        issue=issue or {};window=issue.get('window')
+        while len(self.screen_stack)>1:self.pop_screen()
+        self.session.settings=replace(self.session.settings,search_ssh=True,search_firewall=True)
+        if window:
+            self.start_investigation('period',start=max(0,window['since_us']-60000000),end=window['until_us']+60000000)
+        else:self.start_investigation('now')
+        self.notice='Network follow-up: journal scope uses Settings; optional boot filter cleared. Inspect original peers/ports and service logs; the query is not peer-filtered.'
+        self.update_status()
+
     def start_investigation(self,mode,*,start=None,end=None):
         self.session.settings=replace(self.session.settings,investigation_mode=mode,boot_selector='',
             since_us=str(start) if start is not None else self.session.settings.since_us,
@@ -711,6 +737,8 @@ class FaultlensApp(App):
 
     def open_entry(self,entry,data):
         if entry.context is not None: data=entry.context
+        if entry.kind=='network_logs':
+            self.open_network_logs();return
         if entry.kind=='investigation_start':
             if entry.original=='period':
                 self.push_screen(PeriodDialog(self.session.settings.since_us,self.session.settings.until_us,
@@ -738,7 +766,7 @@ class FaultlensApp(App):
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='service': self.push_screen(ServiceDialog(entry,data))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
+        elif entry.kind in {'network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 

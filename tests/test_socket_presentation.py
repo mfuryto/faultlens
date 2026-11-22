@@ -12,6 +12,7 @@ from faultlens.sockets import attach,parse
 from faultlens.tui_model import Session
 from tests.test_network_analysis import NetworkSources
 from tests.test_sockets import SocketRunner
+from tests.support import SyntheticNetworkSources
 
 
 class SocketPresentationTests(unittest.TestCase):
@@ -88,7 +89,7 @@ class SocketPresentationTests(unittest.TestCase):
                 self.assertEqual(rows.splitlines(),[value['original'] for value in data['sockets']['rows']])
 
     def test_tui_opens_socket_explanations_without_collection_or_evidence_copies(self):
-        session=Session(sources=NetworkSources(),runner=SocketRunner())
+        session=Session(sources=SyntheticNetworkSources(),runner=SocketRunner())
         session.choose_page(2); session.update_setting('sockets'); session.refresh()
         snapshot=session.data['sockets']
         original=copy.deepcopy(session.data)
@@ -104,7 +105,7 @@ class SocketPresentationTests(unittest.TestCase):
         self.assertEqual(original,session.data)
 
     def test_raw_socket_tree_and_explicit_metadata_access_stay_raw(self):
-        session=Session(sources=NetworkSources(),runner=SocketRunner())
+        session=Session(sources=SyntheticNetworkSources(),runner=SocketRunner())
         session.choose_page(3); session.update_setting('sockets'); session.refresh()
         session.selected=next(i for i,row in enumerate(session.rows()) if row.action=='socket_snapshot')
         session.open_row(inspect_only=True)

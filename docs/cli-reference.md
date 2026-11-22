@@ -359,3 +359,32 @@ identity changes, unavailable sources and missing inode denominators stay explic
 No arbitrary path, process control, repair or cleanup is accepted. These are bounded
 current-namespace readings, not complete inventory or historical conclusions.
 See [process and storage design](architecture/system-process-storage.md).
+
+## Practical network investigation
+
+```sh
+faultlens network --network-context --sockets
+faultlens network --network-context --sockets --details
+faultlens network --network-context --sockets --json
+faultlens investigate --mode now --network-context --sockets --search-ssh --search-firewall
+faultlens investigate --mode period --since '2026-11-14T22:20:00Z' --until '2026-11-14T22:40:00Z' --search-ssh --search-firewall
+```
+
+Add --system-journal to an investigation only when accessible system logs are needed;
+this grants no access. Current network context is rejected for historical modes.
+The basic counter-only network/security commands remain available.
+
+--network-context retains three independent short intervals, extended TCP and
+separate IPv6 UDP coverage, numeric local addresses/link state and IPv4/IPv6 route
+entries. With --sockets, it also reads permitted reported owners and bounded cgroup
+service associations. ip/ss are optional feature tools; nothing is installed or
+changed by collection. Readable review cards explain actual growth/queues/states,
+reported peers, benign alternatives and next investigations. Peer/port fields do not
+automatically establish outbound initiation, application identity or an attack.
+
+JSON/details include `network_samples`, `network_context` and `network_review`,
+independent source states, every retained original row and exact references.
+Historical review cards link scan-like/password-failure/UDP report patterns and
+qualified recorded traffic changes to original logs and receipt-time windows.
+Missing or quiet evidence is not an all-clear. No capture, probe, reputation lookup,
+blocking or tuning runs. See [source boundaries and acceptance](architecture/practical-network-investigation.md).

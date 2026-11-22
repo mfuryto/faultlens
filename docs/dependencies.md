@@ -19,7 +19,8 @@ Run with existing access; unavailable evidence does not trigger privilege escala
 | journalctl | history, incidents, diagnose, previous-boot check | Needed for these journal features; visible records depend on permissions and retention |
 | systemctl | status/check/health service observations and bounded failed-service details | Needed for these service-manager observations only |
 | systemd-analyze | check --history merged journald configuration | Optional; uses portable cat-config without --tldr; output compatibility is checked at collection time |
-| ss | network/security --sockets | Optional local TCP/UDP snapshot; existing permissions and network namespace apply |
+| ss | network/security --sockets; owner reporting with --network-context | Optional numeric local TCP/UDP snapshot and reported owners; existing permissions/namespaces apply |
+| ip | network/security --network-context; current workspace Network/Signals | Optional numeric addresses/link state and separate IPv4/IPv6 route entries; commonly provided with ss by iproute2 |
 | atop | diagnose --atop-date | Optional replay tool; recordings must already exist; Faultlens does not install or enable a recorder |
 | free, df | scripts/validate_local.py | Optional comparison tools; ordinary status reads procfs/statvfs directly |
 
@@ -31,9 +32,14 @@ Atop recording and rotation require a separately managed service; installing a t
 does not recreate past measurements. Do not change sampling without measuring overhead.
 
 The initial network/security commands read fixed procfs counters directly and need
-no additional tool or package. The optional --sockets flag additionally invokes ss for endpoint observations; firewall policy is not inspected.
+no additional tool or package. The optional --sockets flag additionally invokes ss for endpoint observations.
+--network-context adds fixed ip address/route reads, three counter intervals and
+permitted ss owner reporting when sockets are requested. The workspace enables
+this context for current network sections. Missing iproute2 evidence does not
+require installation just to pass a server test; other sources remain useful.
+Effective firewall policy and external connectivity are not inspected.
 
-Faultlens currently does not invoke sosreport, sar, ip, nstat or nft. They are
+Faultlens currently does not invoke sosreport, sar, nstat or nft. They are
 excluded from dependency observations until an implemented feature needs them.
 In particular, sosreport collection is not required and could gather substantially
 more sensitive material than current Faultlens observations.
