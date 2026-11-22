@@ -92,10 +92,10 @@ An enabled option does not prove readable logs or a working recorder. The existi
 preference schema/keys remain unchanged, so saved preferences continue to load.
 Only user preferences persist; contexts and evidence selections are session-only.
 
-The development version becomes 1.1.0.dev0 for the combined additive feature work
-since stable 1.0.1. No 1.0.2 release was published. The owner requested merge only;
-publication of the future 1.1.0 release is a separate delivery. Existing release
-assets/tags and install instructions remain intact.
+The combined additive feature work originally used 1.1.0.dev0 after stable 1.0.1;
+no 1.0.2 release was published. The owner subsequently authorized 1.1.0 publication,
+completed on 2026-11-22. Post-release development uses 1.1.1.dev0. Existing release
+assets/tags and stable install instructions remain intact.
 
 ## Verification
 

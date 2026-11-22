@@ -1,7 +1,7 @@
 # Faultlens delivery plan
 
 Updated 2026-11-22. This is the single forward-work sequence, approved by the owner.
-Versions 1.0.0 and 1.0.1 are published in ordinary GitHub Releases. The owner has
+Versions 1.0.0, 1.0.1 and 1.1.0 are published in ordinary GitHub Releases. The owner has
 used Faultlens on another server and reported resolving the observed service fault.
 This is useful operator feedback, not an invented pass for every acceptance case.
 
@@ -18,6 +18,8 @@ All four steps are merged in PRs #68–#71. The owner authorized the combined
 1.1.0 release on 2026-11-22 after the earlier merge-only delivery. Release preparation
 uses a reviewed staging PR, green source/platform/package/security gates, the exact
 verified main commit, qualified final assets and ordinary GitHub Releases.
+Version 1.1.0 was published from `6b3a05d486818736a978b7a557ba27a501035dda`;
+the downloaded assets matched their source hashes and both final-package targets passed.
 Whole-host security/CVE auditing remains possible future scope.
 Finish and validate one coherent step before starting another. Subtasks belong to
 these four steps; do not turn each patch into a new phase or expand scope silently.
@@ -158,6 +160,14 @@ remains an operator check. The original step merged without a release; the owner
 1.1.0 publication on 2026-11-22.
 
 ## Delivery and future scope
+
+The owner requested post-release stabilization followed by a proposal for the next
+development sequence on 2026-11-22. The [post-release review](post-release-review.md)
+records concrete regressions and its verification scope. Development is now
+`1.1.1.dev0`; the published 1.1.0 tag and assets stay immutable. The
+[next development proposal](next-development-plan.md) is a proposal, not approval
+to start new collectors or widen the product scope. No further release is authorized
+by this stabilization task.
 
 Work on staging, review the final diff and merge to main only after required security,
 source/platform and Debian/Ubuntu package checks pass. Keep only main/staging, no

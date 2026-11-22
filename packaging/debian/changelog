@@ -1,3 +1,12 @@
+faultlens (1.1.1~dev0) unstable; urgency=medium
+
+  * Accept ss owner-column padding without changing read/row limits.
+  * Separate address/route coverage and explain network-source failures.
+  * Preserve complete service-message previews in pinned Evidence selections.
+  * Return Evidence selections to their source instead of the Evidence section.
+
+ -- mfuryto <34251082+mfuryto@users.noreply.github.com>  Sun, 22 Nov 2026 00:00:00 +0000
+
 faultlens (1.1.0) stable; urgency=medium
 
   * Unify History, inquiry Signals and fixed Evidence selections.

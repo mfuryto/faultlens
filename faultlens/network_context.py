@@ -88,6 +88,7 @@ def routes(raw,family):
 
 def owners(raw):
     if len(raw.encode('utf-8'))>262144:raise ValueError('Owner output bound')
+    if any(ord(c)<32 and c not in '\t\n' or ord(c)==127 for c in raw):raise ValueError('Unsupported owner output control')
     base=[];reported=[]
     pattern=re.compile(r'\("((?:[^"\\\x00-\x1f]|\\.){0,256})",pid=([0-9]{1,10}),fd=([0-9]{1,10})\)')
     for line in raw.splitlines():
@@ -96,7 +97,9 @@ def owners(raw):
         base.append(' '.join(fields[:6]));suffix=fields[6] if len(fields)==7 else ''
         values=[]
         if suffix:
-            if not suffix.startswith('users:(') or not suffix.endswith(')') or len(suffix)>8192:raise ValueError('Unsupported owner suffix')
+            if len(suffix)>8192:raise ValueError('Unsupported owner suffix')
+            suffix=suffix.rstrip(' \t')
+            if not suffix.startswith('users:(') or not suffix.endswith(')'):raise ValueError('Unsupported owner suffix')
             remaining=suffix[7:-1];matches=list(pattern.finditer(remaining))
             if not matches or len(matches)>16 or ','.join(match[0] for match in matches)!=remaining:raise ValueError('Unsupported owner list')
             for match in matches:
@@ -107,6 +110,27 @@ def owners(raw):
     rows=socket_rows('\n'.join(base))
     for row,line,values in zip(rows,raw.splitlines(),reported):row.update(original=line,owners=values)
     return rows
+
+
+def source_view(key,source):
+    """Explain independent source failure without guessing that access was denied."""
+    tool='ss' if key=='owners' else 'ip'
+    if source['state']=='available':
+        meaning='The local '+tool+' output was accepted: '+str(len(source['rows']))+' retained rows. An empty readable source does not prove absent configuration or ownership.'
+        step='Inspect retained rows and their scope. Reported configuration and owners do not verify connectivity or application health.'
+    else:
+        state=source.get('command_state')
+        meaning={'missing':'No trusted local '+tool+' executable was found; it may be absent or fail executable trust checks.',
+            'timeout':'The '+tool+' command exceeded the collection deadline; no successful row prefix was retained.',
+            'output_limit':'The '+tool+' command exceeded the bounded output capture; no successful row prefix was retained.'}.get(state)
+        if source.get('reason')=='unsupported_or_over_limit_output':
+            meaning='The '+tool+' command completed successfully, but its format or amount of output was not accepted by the bounded reader. This is not evidence of denied access; root access does not change parser limits.'
+        if meaning is None:meaning='The '+tool+' command did not provide a usable result. This alone does not establish missing permission or absent data.'
+        step='Inspect the local tool version and its read-only output to distinguish format and collection limits. Do not change privileges or server configuration from this status alone.'
+        if state=='missing':step='Check whether the optional iproute2 tools are installed in a trusted system location. Installation is an administrator choice, not a prerequisite for unrelated Faultlens sources.'
+    return {'What it means':meaning,'What you can do':[step],
+        'Command state':source.get('command_state'),'Exit status':source.get('returncode'),
+        'Reader reason':source.get('reason'),'Evidence limits':list(LIMITS)}
 
 
 def collect(runner=None,*,sockets=None,sample_seconds=.1):

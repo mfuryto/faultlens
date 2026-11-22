@@ -171,9 +171,11 @@ def decisions(data):
     context=data.get('network_context')
     if context:
         sources=context['sources'];addresses=sources['addresses'];routes=[sources[key] for key in ('routes4','routes6')]
+        source_states=[source['state'] for source in [addresses,*routes]]
+        state='Measured' if all(value=='available' for value in source_states) else 'Partial' if any(value=='available' for value in source_states) else 'Gap'
         meaning='Open local addresses/link flags and separate IPv4/IPv6 route tables. Configuration does not prove usable connectivity or Internet exposure.'
         result.append(Decision('Addresses and routes',str(len(addresses['rows']))+' reported interfaces; '+str(sum(len(source['rows']) for source in routes))+' route rows',
-            'Measured' if context['state']=='available' else 'Partial' if context['state']=='partial' else 'Gap',meaning,context,
+            state,meaning,context,
             {'What it means':meaning,'What you can do':['Inspect interface flags, address family, route table/type and configured next hops. Policy rules, VRFs and external connectivity require separate context.'],
              'Evidence limits':context['limitations']},'network_context'))
     if data.get('network_samples'):

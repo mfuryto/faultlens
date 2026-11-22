@@ -1,7 +1,7 @@
 """Synthetic network evidence navigation through the actual terminal frontend."""
 import asyncio
 import unittest
-from textual.widgets import DataTable
+from textual.widgets import DataTable,Static
 from faultlens.textual_app import FaultlensApp,SourceDialog,DetailDialog,RecordsDialog,RawDialog,ServiceDialog
 from faultlens.network_sampling import practical
 from faultlens.workspace import Entry
@@ -10,6 +10,8 @@ from tests.support import SyntheticNetworkSources,SyntheticSocketRunner
 from tests.test_service import service_report
 from tests.test_firewall import FirewallRunner,TCP
 from tests.test_incidents import record
+from faultlens.commands import Command,Result
+from tests.support import SyntheticRunner
 
 
 class NetworkInvestigationWorkspaceTests(unittest.IsolatedAsyncioTestCase):
@@ -59,6 +61,24 @@ class NetworkInvestigationWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(3,len(screen.entries));await pilot.press('enter')
             self.assertIn('Measurements',app.screen.entry.detail)
             self.assertIn('packets/s',str(app.screen.entry.detail['Measurements']))
+
+    async def test_unavailable_owner_source_explains_parser_failure_without_marking_routes_partial(self):
+        runner=SyntheticRunner();runner.results[Command.SOCKETS]=Result('completed','',0)
+        runner.results[Command.SOCKET_OWNERS]=Result('completed','unsupported',0)
+        app=FaultlensApp(initial_collect=False)
+        app.snapshots[2]=practical(SyntheticNetworkSources(),runner,sample_seconds=.05,sockets=True)
+        async with app.run_test(size=(110,36)) as pilot:
+            screen=await self.source(app,pilot,'network_context')
+            self.assertEqual('Measured',next(row for row in app.entries[2] if row.kind=='network_context').cells[2])
+            index=next(i for i,row in enumerate(screen.entries) if row.cells[0]=='Reported socket owners')
+            self.assertIn('completed successfully',screen.entries[index].cells[3])
+            screen.query_one(DataTable).move_cursor(row=index);await pilot.press('enter')
+            self.assertIsInstance(app.screen,SourceDialog)
+            self.assertIn('not evidence of denied access',str(app.screen.query_one('#source-empty',Static).render()))
+            await pilot.press('s');self.assertIsInstance(app.screen,DetailDialog)
+            self.assertIn('parser limits',app.screen.entry.detail['What it means'])
+            await pilot.press('e');self.assertIsInstance(app.screen,RawDialog)
+            self.assertEqual('unsupported_or_over_limit_output',app.screen.value['reason'])
 
     async def test_historical_card_opens_referenced_records_and_bounded_log_followup(self):
         rows=[record(TCP.replace('DPT=22','DPT='+str(2000+i)),monotonic=i,__CURSOR='i='+str(i)) for i in range(10)]
