@@ -7,6 +7,7 @@ from .models import report
 from . import network_context as context
 from . import firewall_rules,port_rules
 from .system_resources import read_source
+from .port_policy import InputPolicy
 
 MAX_SECONDS=20
 MAX_PORTS=128
@@ -68,15 +69,18 @@ def binding(row,addresses):
 def collect(runner=None,*,monotonic=time.monotonic):
     runner=runner or CommandRunner();started=monotonic();data=report('ports',[])
     data.update(sources={},ports=[],translations=[],policies=[],external_verification={'state':'not_performed','observations':[]},
-        external_access='Unknown',limitations=list(LIMITS),bounds={'seconds':MAX_SECONDS,'port_previews':MAX_PORTS,'policy_references_per_port':32,'addresses_per_binding':32})
+        external_access='Unknown',limitations=list(LIMITS),bounds={'seconds':MAX_SECONDS,'port_previews':MAX_PORTS,'policy_references_per_port':32,'addresses_per_binding':32,
+            'nft_source_bytes':firewall_rules.MAX_NFT_BYTES,'input_contexts':128,'input_rule_visits':32768,'input_chain_depth':24,'input_context_rule_visits':4096})
     def read(name,operation,parse):
         stamp=datetime.now(timezone.utc).isoformat();reply=operation() if monotonic()-started<MAX_SECONDS else Result('time_limit')
         source={'state':'unavailable','command_state':reply.state,'returncode':reply.returncode,'started_at':stamp,
+            'stderr':reply.stderr,
             'finished_at':datetime.now(timezone.utc).isoformat(),'reason':'command_unsuccessful','data':None}
         if reply.state=='completed' and reply.returncode==0:
             try:
                 if len(reply.stdout.encode('utf-8'))>262144:raise ValueError('Port source byte bound')
                 source.update(state='available',data=parse(reply.stdout),reason=None)
+            except firewall_rules.InputLimitError as error:source.update(reason='input_limit_exceeded',input_limit={'unit':error.unit,'actual':error.actual,'limit':error.limit})
             except (ValueError,KeyError,TypeError,UnicodeError,RecursionError,IndexError):source['reason']='unsupported_or_over_limit_output'
         data['sources'][name]=source
     for name,command,parse in (
@@ -100,6 +104,7 @@ def collect(runner=None,*,monotonic=time.monotonic):
         processes=read_source('processes',runner,.05) if monotonic()-started<MAX_SECONDS else {'state':'unavailable','rows':[],'reason':'time_limit'}
         data['processes']=processes
     process_index={row['pid']:row for row in (processes or {}).get('rows',[])}
+    policy=InputPolicy(data['sources'])
     for source,row in all_rows[:MAX_PORTS]:
         family=row['family'];protocol=row['protocol'];port=row['local']['port'];owners=[]
         for original in row['owners']:
@@ -110,6 +115,7 @@ def collect(runner=None,*,monotonic=time.monotonic):
         data['ports'].append({'source':source,'row_index':row['row_index'],'family':family,'protocol':protocol,'port':port,
             'local':row['local'],'socket':row,'binding':binding(row,addresses),'owners':owners,'policy_references':refs,'policy_preview_capped':capped,
             'external_access':'Unknown','external_test':'not_performed'})
+        data['ports'][-1]['firewall']=policy.evaluate(data['ports'][-1])
     for translation in data['translations']:
         refs=[{'source':translation['source'],'rule_index':translation['rule_index'],'hooks':translation['hooks'],
             'association':'Translation declaration; packet path not established'}]

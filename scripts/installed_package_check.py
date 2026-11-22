@@ -187,6 +187,11 @@ def main():
         if data.get('schema_version')!=1 or data.get('command')!=options[0]: raise ValueError('Installed CLI schema failed')
         if options[0]=='ports' and (not isinstance(data.get('ports'),list) or not isinstance(data.get('translations'),list) or data.get('external_access')!='Unknown' or data.get('external_verification',{}).get('state')!='not_performed'):
             raise ValueError('Port evidence contract failed')
+        if options[0]=='firewall':
+            for name in ('iptables4','iptables6','iptables4_backend','iptables6_backend'):
+                source=data['sources'][name]
+                if source.get('command_state')!='completed' or 'stderr' not in source or 'No valid subcommand' in source['stderr']:
+                    raise ValueError('Installed xtables multicall dispatch failed')
         if options[0]=='firewall' and (not isinstance(data.get('sources'),dict) or not isinstance(data.get('correspondences'),list) or data.get('packet_verdict')!='Unknown'):
             raise ValueError('Installed firewall evidence contract failed')
         if options[0]=='ssh' and (data.get('state') not in {'available','partial','unavailable'}

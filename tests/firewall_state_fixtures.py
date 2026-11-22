@@ -42,7 +42,7 @@ class Runner:
     def __init__(self,maximum=False):
         self.calls=[]
         self.results={command:Result('missing') for command in Command}
-        self.results.update({Command.NFT_RULESET:Result('completed',nft_snapshot(256 if maximum else 1),0),
+        self.results.update({Command.NFT_RULESET:Result('completed',nft_snapshot(419 if maximum else 1),0),
             Command.IPTABLES_SAVE:Result('completed','*filter\n:INPUT DROP [0:0]\n:example-ban - [0:0]\n-A INPUT -p tcp --dport 22 -j example-ban\n[2:120] -A example-ban -s 192.0.2.7/32 -j REJECT\nCOMMIT\n',0),
             Command.IP6TABLES_SAVE:Result('completed','*filter\n:INPUT ACCEPT [0:0]\nCOMMIT\n',0),
             Command.IPTABLES_VERSION:Result('completed','iptables v1.8.9 (nf_tables)',0),

@@ -80,7 +80,7 @@ def qualify(target,wheelhouse,artifact=None):
             run([*apt,'update'],timeout=180)
             run([*apt,'--no-install-recommends','-y','install','/packages/'+first.name],timeout=180)
             # Qualification-only tools exercise real ip/ss formats; package dependencies remain independent.
-            run([*apt,'--no-install-recommends','-y','install','iproute2'],timeout=180)
+            run([*apt,'--no-install-recommends','-y','install','iproute2','iptables','nftables'],timeout=180)
             run(['docker','network','disconnect','bridge',cid])
             check=['docker','exec','--user','65534:65534','--env','HOME=/tmp/faultlens-package-operator',
                    '--env','XDG_CONFIG_HOME=/tmp/faultlens-package-operator/.config',

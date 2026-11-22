@@ -17,6 +17,24 @@ class PortWorkspaceTests(unittest.IsolatedAsyncioTestCase):
         async with asyncio.timeout(4):
             while not condition():await pilot.pause(.01)
 
+    async def test_port_list_reports_actual_input_decisions_with_external_scope_separate(self):
+        from tests.test_input_policy import runner,match
+        data=collect(runner([[match('dport',22),{'accept':None}]]))
+        async def collector():return data
+        app=FaultlensApp(initial_collect=False,ports_collector=collector)
+        async with app.run_test(size=(110,34)) as pilot:
+            await pilot.pause(.01);app.push_screen(PortsDialog());dialog=app.screen
+            await self.ready(pilot,lambda:dialog.report is not None)
+            await pilot.click('#ports-listeners')
+            self.assertEqual(['Allowed','Blocked','Blocked','Allowed'],[entry.cells[3] for entry in app.screen.entries])
+            self.assertIn('Firewall INPUT',app.screen.columns)
+            await pilot.press('enter')
+            self.assertEqual('Allowed',app.screen.entry.detail['Firewall INPUT assessment'])
+            self.assertIn('new UDP',app.screen.entry.detail['Assessment scope'])
+            self.assertIn('Unknown',app.screen.entry.detail['External access'])
+            await pilot.click('#port-policy');await pilot.press('enter')
+            self.assertIn('accept',app.screen.entry.detail['Reported verdicts'])
+
     async def test_network_port_opens_policy_addresses_routes_service_and_external_guidance(self):
         data=collect(Runner());calls=[];services=[]
         async def collector(**options):calls.append(options);return data

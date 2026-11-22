@@ -1,3 +1,11 @@
+faultlens (1.2.1~dev0) unstable; urgency=medium
+
+  * Assess supported per-port INPUT policy with explicit conditions and scope.
+  * Fix iptables multicall invocation and bounded nftables input handling.
+  * Align and distinguish modal action buttons.
+
+ -- mfuryto <34251082+mfuryto@users.noreply.github.com>  Mon, 23 Nov 2026 00:00:00 +0000
+
 faultlens (1.2.0) stable; urgency=medium
 
   * Add read-only port, filtering and forwarding accessibility investigation.

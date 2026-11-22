@@ -372,3 +372,12 @@ source** returns to its section; a source refreshed in the meantime may differ.
 contexts and evidence are session-only; saved preferences retain their existing schema.
 Settings explain each option's purpose and last cached source availability without
 probing or implying that On grants access. See [the flow design](architecture/coherent-investigation-flow.md).
+
+## Action toolbars after 1.2.0
+
+Modal actions use aligned buttons with visible backgrounds and keyboard focus.
+Wide terminals keep time windows and source actions on single rows; narrow SSH
+terminals wrap the same actions into aligned rows. The selected history window is
+highlighted, and unavailable actions remain visibly disabled until a result loads.
+Controls, refresh/cancellation, saved preferences and original-evidence shortcuts
+are unchanged. Color follows the terminal/theme rather than adding a preference.

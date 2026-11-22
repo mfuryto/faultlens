@@ -20,7 +20,7 @@ Do not infer per-socket IPV6_V6ONLY from a system default or IPv6 wildcard bindi
 
 Independent existing `ip` JSON readers retain addresses and IPv4/IPv6 route tables
 (256 rows, 64 address entries per interface, 256 KiB). Nftables and IPv4/IPv6
-iptables-save retain their existing 128-KiB/2,048-object/line limits. Backend version
+iptables-save retain their 192-KiB nft / 128-KiB iptables and 2,048-object/line limits. Backend version
 reports distinguish legacy/compatibility evidence; native nft and nf_tables
 compatibility views can overlap. No UFW or Fail2ban action, container daemon API,
 namespace entry, sysctl write, trace or packet capture runs. No dependency changes.
@@ -119,3 +119,51 @@ Primary references: [ss options](https://man7.org/linux/man-pages/man8/ss.8.html
 [IPv6 socket semantics](https://man7.org/linux/man-pages/man7/ipv6.7.html),
 [nftables hooks/verdicts](https://netfilter.org/projects/nftables/manpage.html),
 [nft JSON/NAT schema](https://manpages.debian.org/bookworm/libnftables1/libnftables-json.5.en.html).
+
+## New-flow INPUT assessment after 1.2.0
+
+The port list now reports **Allowed**, **Blocked**, **Source dependent**,
+**Interface dependent**, **Source/interface dependent**,
+**Address/interface dependent**, **Unresolved**, **No INPUT chains** or
+**Unavailable** for collected IP/inet INPUT policy. This is a new tracked TCP SYN
+or UDP flow assessment, not a whole-kernel or Internet verdict. Bound address/zone
+and existing source access still apply. For wildcard bindings, loopback/multicast
+addresses are excluded from the non-loopback target assessment. The interface
+owning an assigned address is never assumed to be the incoming interface: weak-host
+routing, loopback VIPs and bridges can differ. Interface predicates range over the
+collected non-loopback interfaces (loopback interfaces for loopback bindings),
+with a bounded preview of candidates. Conditional interface paths stay visible.
+Missing/capped
+address context remains unresolved where conditions need it. Loopback-only binding
+scope remains separately visible.
+
+Evaluate supported literal protocol/port/address/interface predicates, source
+prefixes/named address sets and NEW conntrack state with three-valued matches.
+Respect rule order, jump/return/goto and base defaults; an accept in one base
+chain does not override a drop in another. Unknown source predicates explore both
+branches. All supported branches must allow for Allowed; a definite input drop
+is Blocked. Mixed source branches are conservatively Source dependent, not an
+exact ACL expansion or proof that a particular peer is admitted. Other unresolved
+conditions/actions never become a guessed allow. Address/interface differences
+retain per-target assessments; named/numeric protocol/family/state forms are
+recognized. Existing/related flows are not certified by a new-flow assessment.
+
+Unsupported maps, transformations, match extensions and non-INPUT routing/NAT/
+forwarding paths stay explicit. Source and rule/default references remain local
+and inspectable. The native nft view takes presentation precedence over reported
+nf_tables compatibility views; a legacy view remains separately identified and
+unreadable sources are coverage gaps. No INPUT chain in a readable view does not
+prove absent filtering in other views/hooks. External verification remains a
+separate manual inquiry and is not repeated as each port's policy result.
+
+The interpreter allows at most 128 source/flow contexts, 32,768 rule visits per
+report, 4,096 per context and depth 24; repeated identical contexts reuse results.
+Cycles, malformed structures and budget exhaustion are Unresolved. Flow/evaluated
+rule previews are bounded; original sources are unchanged. Assessments include
+exact source/target/interface scope, readable reasons, base policies and original
+fields. These are interpretations of collected snapshots, not authenticated
+proof of live traffic or future policy.
+
+References: [nft verdict semantics](https://netfilter.org/projects/nftables/manpage.html),
+[Linux protocol families](https://github.com/torvalds/linux/blob/master/include/uapi/linux/netfilter.h)
+and [conntrack states](https://github.com/torvalds/linux/blob/master/include/uapi/linux/netfilter/nf_conntrack_common.h).

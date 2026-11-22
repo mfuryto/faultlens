@@ -45,6 +45,11 @@ def source_detail(key,source):
         'unsupported_encoding':'The bounded tail was not valid UTF-8; no guessed text was retained.',
     }.get(state,'The command did not provide usable evidence. This alone does not establish permission denial or absent rules/bans.')
     if source['reason']=='unsupported_or_over_limit_output':meaning='The command succeeded, but its format or amount was not accepted. No partial successful prefix or zero count was substituted.'
+    if source['reason']=='input_limit_exceeded':
+        bound=source['input_limit'];meaning='The command succeeded, but returned '+str(bound['actual'])+' '+bound['unit']+'; the reader limit is '+str(bound['limit'])+'. No partial policy or zero count was substituted.'
+    if state=='completed' and source['returncode'] not in (None,0):
+        error=source.get('stderr','').strip().splitlines()
+        meaning='The command exited with status '+str(source['returncode'])+('. Reported error: '+error[0][:256] if error else '; no error text was retained.')
     backend=''
     original=(source.get('data') or {}).get('original','')
     if key.endswith('_backend') and isinstance(original,str):
@@ -62,6 +67,7 @@ def source_detail(key,source):
         if first:meaning+=' UFW reports '+first.removeprefix('Status: ')+'. This frontend report does not replace kernel-rule inspection.'
     if key=='fail2ban' and 'jails' in content:meaning+=' Fail2ban reports '+str(len(content['jails']))+' active jails.'
     return {'Source':key,'What it means':meaning,'Backend':backend,'Command state':state,'Exit status':source['returncode'],
+        'Original command error / warning':source.get('stderr') or 'No command error/warning text retained.',
         'Reader reason':source['reason'],'Interpretation / history gaps':gaps or ['No additional gap established; source completeness remains unverified.'],
         'What you can do':['Inspect the original source and existing access/tool availability. Do not change policy or grant access merely to clear this status.']}
 
@@ -115,7 +121,7 @@ def table(kind,data,options=None):
             for key,label in (('rules','Rules'),('chains','Chains / defaults'),('sets','Address sets'),('jails','Fail2ban jails'),('bans','Reported bans'),('sources','Source coverage'))]
     if kind=='firewall_sources':
         return 'Independent source coverage',('Source','State','Command / reader','Meaning'),[
-            Entry((key,source['state'],source['command_state']+' / '+str(source['reason']),source_detail(key,source)['What it means']),source,
+            Entry((key,source['state'],source['command_state']+'; exit '+str(source['returncode']),source_detail(key,source)['What it means']),source,
                 source_detail(key,source),'detail') for key,source in data['sources'].items()]
     if kind=='firewall_jails':
         for jail in data['jails']:
