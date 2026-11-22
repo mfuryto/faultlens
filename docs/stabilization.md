@@ -4,7 +4,7 @@
 
 The [delivery plan](delivery-plan.md), updated 2026-11-22, governs new work in four
 steps: general service troubleshooting; processes/storage; practical Network with
-possible attack/DDoS investigation; coherent incident/evidence flow and Signals role.
+possible attack/attempt investigation (DDoS is one example); coherent incident/evidence flow and Signals role.
 The original milestones below retain their dated evidence. The service workflow
 now has a [shared interpretation/navigation design](architecture/general-service-troubleshooting.md).
 

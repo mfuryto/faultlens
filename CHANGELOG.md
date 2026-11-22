@@ -8,7 +8,8 @@
   and relevant current System/Network readings from the service view.
 - Distinguish same, different and unverified reported invocation identities.
 - Replace the active delivery plan with the owner-approved four-step order and
-  explicit practical Network / possible attack / DDoS investigation requirements.
+  explicit practical Network / possible attack investigation requirements. DDoS
+  is one example, not the design focus.
 
 ## 1.0.1 — 2026-11-22
 

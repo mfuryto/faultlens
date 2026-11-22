@@ -11,11 +11,11 @@ This is useful operator feedback, not an invented pass for every acceptance case
 | --- | --- | --- | --- |
 | 1 | General service troubleshooting | Implemented in this change; merge requires green checks | Open any listed failed system service, understand the reported failure, read a concrete message and continue to the next evidence |
 | 2 | Processes and storage in System | Queued | Find the process or filesystem related to observed resource pressure |
-| 3 | Practical Network investigation, including possible attacks and DDoS | Queued, explicitly prioritized by owner | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
+| 3 | Practical Network and possible attack investigation | Queued, explicitly prioritized by owner | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
 | 4 | Coherent History / Investigate / Evidence flow and Signals role | Queued | Follow one incident across retained sources with clear context and provenance |
 
 The implementation in this change completes step 1 once its required checks and
-reviewed merge pass. Step 2 is next; Network/DDoS remains explicitly queued as step 3.
+reviewed merge pass. Step 2 is next; Network/attack investigation remains explicitly queued as step 3.
 Finish and validate one coherent step before starting another. Subtasks belong to
 these four steps; do not turn each patch into a new phase or expand scope silently.
 The [earlier plan](delivery-plan-history.md) preserves the decisions and evidence
@@ -73,39 +73,53 @@ Exit evidence: a busy process, independent full filesystem/inodes, healthy host,
 container scope and inaccessible source produce useful, distinct answers. Do not
 infer historical pressure from a current reading or run a repair/cleanup operation.
 
-## Step 3 — practical Network and possible attack/DDoS evidence
+## Step 3 — practical Network and possible attack investigation
 
-The owner has experienced DDoS and wants practical evidence of attacks or attempts.
-Treat this as incident investigation with justified indicators, not a safety verdict
-or comprehensive host-security audit.
+The owner wants broad practical visibility into possible network attacks and attempts.
+DDoS is one prior experience and example, not the organizing architecture or a reason
+to restrict the feature set. Start with incident questions and available evidence,
+using one shared model: symptom, time/scope, affected service, protocol/endpoints,
+reported peers, observations, confidence, benign alternatives and next investigation.
+This remains local incident investigation, not a comprehensive security verdict.
 
 1. Establish context: local addresses, routes/link state and permitted socket-to-
-   process/service attribution. Separate current namespace, interface and IP-family
-   coverage; never infer Internet reachability from a local listener alone.
-2. Explain traffic pressure with measured packet/byte rates, relevant TCP states,
-   SYN-cookie/retransmission/listener-overflow/drop and UDP-error observations where
-   supported. Use explicit intervals, multiple comparable samples and qualified
-   history/baselines. A high rate alone does not establish an attack.
-3. Link existing authentication/firewall/application observations to chosen periods,
-   peers and affected services. Describe what was actually logged; a firewall label
-   does not prove the final packet verdict, and an address does not identify a person.
-4. Support retrospective checks from existing recordings/logs, with timestamps,
-   counter-reset/gap handling and declared coverage. Host counters cannot reconstruct
-   unrecorded packets, per-peer UDP traffic or an earlier attack by themselves.
-5. Explain benign alternatives: legitimate demand, backups, slow applications,
-   proxies/NAT/load balancers, retransmissions and inadequate capacity can resemble
-   attack signals. A quiet snapshot cannot rule out an earlier or intermittent attack.
-6. Explain upstream limits: a saturated provider link can prevent evidence reaching
-   the host. Suggest reviewing existing provider/edge evidence when relevant; no
-   provider API, cloud service, automatic capture or remote probing is introduced.
+   process/service attribution. Separate namespace, interface and IP-family coverage;
+   never infer Internet reachability from a local listener alone.
+2. Investigate different patterns through the same evidence model: scan-like activity,
+   repeated authentication failures, unexpected connections or outbound traffic,
+   possible service misuse, connection/listener pressure and traffic/resource floods.
+   DDoS belongs to the last group as one example; no single pattern defines the UI.
+3. Explain measured packet/byte rates, relevant TCP states, SYN-cookie/retransmission/
+   listener-overflow/drop and UDP-error observations where supported. Use explicit
+   intervals, multiple comparable samples and qualified history/baselines. A high
+   rate, an unfamiliar endpoint or a failed login alone does not establish an attack.
+4. Link existing authentication/firewall/application evidence to chosen periods,
+   peers and affected services. Describe what was logged: firewall labels do not
+   prove final packet verdicts, and an address does not identify a person. Do not
+   silently extend narrow SSH/UFW readers into claims of complete attack coverage.
+5. Support retrospective checks from existing recordings/logs, with timestamps and
+   declared reset/gap/retention coverage. Host counters cannot reconstruct unrecorded
+   packets, per-peer UDP traffic or an earlier attack by themselves.
+6. Explain benign alternatives: legitimate demand, backups, administration, proxies/
+   NAT/load balancers, retransmissions, slow applications and inadequate capacity can
+   resemble attack signals. A quiet snapshot cannot rule out earlier/intermittent
+   activity. Unknown or inaccessible sources never become an all-clear.
+7. Explain visibility limits where relevant, including upstream saturation before
+   traffic reaches the host. Suggest reviewing existing edge/provider evidence when
+   needed; do not require provider APIs, cloud services or new external collectors.
 
-Use evidence-backed labels such as reported load and possible attack indicator,
-with a concrete next step and unknown cause. No automatic firewall rules, blocking,
-rate-limit changes, packet floods, production attack tests or service changes.
-Test with synthetic normal/legitimate-burst/SYN-pressure/UDP-error/scan-like cases,
-NAT/proxy ambiguity, reset/wrap/missing counters, IPv4/IPv6 gaps and absent history.
-Resource limits still apply. [Kernel networking semantics](https://docs.kernel.org/networking/ip-sysctl.html)
-are a source reference, not a list of tuning values to apply automatically.
+Show justified observations and possible indicators with original references and
+concrete next steps. Avoid blanket attack classifications and attack-specific special
+screens. Keep collection extensible through reviewed local sources and explicit
+bounds; no automatic packet capture, remote probes, reputation lookup, blocking,
+firewall/rate-limit changes or production attack tests.
+
+Synthetic acceptance must cover normal operation, legitimate bursts, scan-like cases,
+authentication-failure patterns, unexpected-connection examples, service pressure and
+flood-like traffic, plus proxy/NAT ambiguity, missing/reset/wrapped counters, IPv4/IPv6
+coverage gaps and absent history. Tests exercise interpretation without generating
+real attacks. Resource limits still apply. [Kernel networking semantics](https://docs.kernel.org/networking/ip-sysctl.html)
+are a reference, not automatic tuning instructions.
 
 ## Step 4 — coherent incident and evidence flow
 
