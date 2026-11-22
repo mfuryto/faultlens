@@ -120,6 +120,13 @@ class DetailDialog(ModalScreen):
                 if self.entry.kind=='history_event':
                     yield Button('Investigate period',id='history-period')
                     if self.entry.navigation.get('record') is not None:yield Button('Recorded message',id='history-record')
+            if self.entry.kind in {'port','port_translation'}:
+                with Horizontal(classes='buttons'):
+                    yield Button('Policy',id='port-policy');yield Button('Addresses',id='port-addresses');yield Button('Routes',id='port-routes')
+                with Horizontal(classes='buttons'):
+                    yield Button('External check',id='port-external')
+                    if self.entry.kind=='port' and any(owner.get('service') for owner in self.entry.original['owners']):yield Button('Reported service',id='port-service')
+                    if self.entry.kind=='port_translation':yield Button('Target sockets',id='port-targets')
             if self.entry.kind in {'firewall_ban','firewall_chain','firewall_jail'}:
                 with Horizontal(classes='buttons'):
                     if self.entry.kind in {'firewall_ban','firewall_chain'}:yield Button('Matching rules' if self.entry.kind=='firewall_ban' else 'Chain rules',id='firewall-matches')
@@ -139,6 +146,16 @@ class DetailDialog(ModalScreen):
     def on_button_pressed(self,event):
         event.stop()
         if event.button.id=='pin-evidence':self.action_evidence()
+        elif event.button.id in {'port-policy','port-addresses','port-routes','port-targets'}:
+            from .port_presentation import view
+            kind='ports_listeners' if event.button.id=='port-targets' else 'ports_'+event.button.id.removeprefix('port-')
+            self.app.push_screen(SourceDialog(Entry(('Related port evidence',),self.data,view(self.data),kind,navigation=self.entry.navigation),self.data))
+        elif event.button.id=='port-external':
+            from .port_presentation import external_check
+            self.app.push_screen(DetailDialog(Entry(('External verification',),self.entry.original,external_check(self.entry.original if self.entry.kind=='port' else None)),self.data))
+        elif event.button.id=='port-service':
+            units=sorted({owner['service'] for owner in self.entry.original['owners'] if owner.get('service')})
+            self.app.push_screen(SourceDialog(Entry(('Reported services',),{'state':'reported','rows':units},kind='port_services'),self.data))
         elif event.button.id in {'firewall-matches','firewall-bans'}:
             from .firewall_presentation import view
             kind='firewall_rules' if event.button.id=='firewall-matches' else 'firewall_bans'
@@ -290,6 +307,7 @@ class ServiceDialog(ModalScreen):
 
 class SshStatisticsDialog(ModalScreen):
     """One cancellable SSH query with retained source/time context."""
+    time_windows=True
     domain='ssh';report_heading='SSH authentication history';default_window='boot'
     snapshot_key='ssh_snapshot';collector_key='ssh_collector';report_kind='ssh_report'
     groups=((('Usernames','users'),('Peers','peers'),('Times','timeline')),(('Records','records'),('Original','original'),('Evidence','evidence')))
@@ -306,7 +324,8 @@ class SshStatisticsDialog(ModalScreen):
     def compose(self):
         with Vertical(classes='dialog'):
             yield Static(self.report_heading+' — read-only',classes='dialog-title',markup=False)
-            for options in ((('Since boot','boot'),('Last hour','hour')),(('Last day','day'),('Period','period'))):
+            windows=((('Since boot','boot'),('Last hour','hour')),(('Last day','day'),('Period','period'))) if self.time_windows else ()
+            for options in windows:
                 with Horizontal(classes='buttons'):
                     for label,key in options:yield Button(label,id=self.domain+'-'+key)
             with VerticalScroll():yield Static('Reading '+self.report_heading+' within source bounds; Esc cancels and returns.',id=self.domain+'-explanation',markup=False)
@@ -319,8 +338,9 @@ class SshStatisticsDialog(ModalScreen):
     def on_mount(self):
         if getattr(self.app,self.snapshot_key) is not None:
             self.report=getattr(self.app,self.snapshot_key)
-            self.options={key:self.report[key] if key=='window' else self.report['requested_window'][key.replace('_us','_realtime_us')] for key in self.options}
-            if self.options['window']!='period':self.options.update(since_us=None,until_us=None)
+            if self.time_windows:
+                self.options={key:self.report[key] if key=='window' else self.report['requested_window'][key.replace('_us','_realtime_us')] for key in self.options}
+                if self.options['window']!='period':self.options.update(since_us=None,until_us=None)
             self.present()
         else:self.action_refresh()
 
@@ -332,7 +352,7 @@ class SshStatisticsDialog(ModalScreen):
         self.generation+=1;self.report=None;setattr(self.app,self.snapshot_key,None)
         for key in (key for group in self.groups for _,key in group):self.query_one('#'+self.domain+'-'+key,Button).disabled=True
         self.query_one('#'+self.domain+'-explanation',Static).update('Reading '+self.report_heading+' within source bounds; Esc cancels and returns. No previous result is substituted on failure.')
-        self.pending=(dict(self.options,system_journal=self.app.session.settings.system_journal),self.generation)
+        self.pending=(dict(self.options,system_journal=self.app.session.settings.system_journal) if self.time_windows else {},self.generation)
         if self.active_read is not None and not self.active_read.done() and not self.active_read.cancelling():self.active_read.cancel()
         if self.collection_task is None or self.collection_task.done():self.collection_task=asyncio.create_task(self.load())
 
@@ -373,7 +393,10 @@ class SshStatisticsDialog(ModalScreen):
         elif key=='back':self.dismiss()
         elif key=='original':self.action_original()
         elif self.report is not None:
-            if key=='records':self.app.push_screen(RecordsDialog(self.report,records=self.report['records']))
+            if key=='external':
+                from .port_presentation import external_check
+                self.app.push_screen(DetailDialog(Entry(('External verification',),None,external_check()),self.report))
+            elif key=='records':self.app.push_screen(RecordsDialog(self.report,records=self.report['records']))
             elif key=='evidence':self.app.show_evidence(Entry((self.report_heading,),self.report,self.report_view(),self.report_kind),self.report)
             else:self.app.push_screen(SourceDialog(Entry((self.report_heading+' / '+key,),self.report,self.report_view(),self.domain+'_'+key),self.report))
 
@@ -388,6 +411,18 @@ class FirewallDialog(SshStatisticsDialog):
 
     def report_view(self):
         from .firewall_presentation import view
+        return view(self.report)
+
+
+class PortsDialog(SshStatisticsDialog):
+    """Explicit current binding/policy inquiry; no history selectors or remote probes."""
+    time_windows=False;domain='ports';report_heading='Port accessibility'
+    snapshot_key='ports_snapshot';collector_key='ports_collector';report_kind='ports_report'
+    groups=((('Ports','listeners'),('Forwarding','translations'),('Sources','sources')),
+            (('External check','external'),('Original','original'),('Evidence','evidence')))
+
+    def report_view(self):
+        from .port_presentation import view
         return view(self.report)
 
 
@@ -486,12 +521,12 @@ class SourceDialog(ModalScreen):
         self.query_one(DataTable).focus()
 
     def on_resize(self,event):
-        if self.is_mounted and self.entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
+        if self.is_mounted and self.entry.kind in {'port_services','ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources','firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             self.call_after_refresh(self.rebuild_table)
 
     def rebuild_table(self):
         table=self.query_one(DataTable); selected=table.cursor_row; table.clear(columns=True)
-        if self.entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
+        if self.entry.kind in {'port_services','ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources','firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}:
             weights=([.20,.13,.30,.37] if self.entry.kind=='login_sessions' else
                     [0.40,0.12,0.48] if len(self.columns)==3 else [0.28,0.26,0.14,0.32])
             usable=max(12,self.app.size.width-8-2*len(self.columns))
@@ -535,7 +570,7 @@ class SourceDialog(ModalScreen):
         source=self.entry.original
         explain={'sockets':snapshot_view,'atop':recording_view,'pstore':source_view,'pstore_archive':source_view}
         if (self.entry.navigation or {}).get('network_context_source'):detail=self.entry.detail
-        elif self.entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
+        elif self.entry.kind in {'port_services','ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources','firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','observations','interfaces','failed_services','scope_details','login_sessions','service_messages','processes','filesystems'}: detail=self.entry.detail or {'What it means':'Retained source rows only; open an individual row for context.'}
         elif self.entry.kind in explain: detail=explain[self.entry.kind](source)
         else:
             detail={'Source':self.entry.cells[0],'State':source.get('state','retained') if isinstance(source,dict) else 'retained reports',
@@ -651,7 +686,7 @@ class FaultlensApp(App):
               Binding('right','next_tab','Next section',priority=True),
               Binding('escape','cancel','Cancel collection'),Binding('ctrl+c','interrupt','Interrupt',priority=True)]
 
-    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status='',service_collector=None,ssh_collector=None,firewall_collector=None):
+    def __init__(self,session=None,collector=None,initial_collect=True,settings_store=None,settings_status='',service_collector=None,ssh_collector=None,firewall_collector=None,ports_collector=None):
         super().__init__(); self.session=session or Session(); self.collector=collector or ui_collection.collect
         if session is None: self.session.settings=Settings.administrator_defaults()
         self.page=0; self.snapshots={}; self.snapshot_options={}; self.entries={}; self.notice=''; self.job=None
@@ -663,6 +698,7 @@ class FaultlensApp(App):
         self.service_collector=service_collector or ui_collection.collect_service
         self.ssh_collector=ssh_collector or ui_collection.collect_ssh;self.ssh_snapshot=None
         self.firewall_collector=firewall_collector or ui_collection.collect_firewall;self.firewall_snapshot=None
+        self.ports_collector=ports_collector or ui_collection.collect_ports;self.ports_snapshot=None
 
     def _handle_exception(self,error):
         # Pinned Textual hook: never render exception locals containing admin evidence.
@@ -967,8 +1003,9 @@ class FaultlensApp(App):
 
     def open_entry(self,entry,data):
         if entry.context is not None: data=entry.context
+        if entry.kind=='port_accessibility':self.push_screen(PortsDialog());return
         if entry.kind=='firewall_state':self.push_screen(FirewallDialog());return
-        if entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources'}:self.push_screen(SourceDialog(entry,data));return
+        if entry.kind in {'port_services','ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources','firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources'}:self.push_screen(SourceDialog(entry,data));return
         if entry.kind=='ssh_statistics':self.push_screen(SshStatisticsDialog());return
         if entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline'}:self.push_screen(SourceDialog(entry,data));return
         if entry.kind=='return_source':
@@ -1013,7 +1050,7 @@ class FaultlensApp(App):
         elif entry.kind=='journal_record': self.push_screen(RecordsDialog(data,record=entry.original))
         elif entry.kind=='service': self.push_screen(ServiceDialog(entry,data))
         elif entry.kind=='raw': self.push_screen(RawDialog(entry.original))
-        elif entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','retained_report','service_messages','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
+        elif entry.kind in {'port_services','ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources','firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources','ssh_report','ssh_users','ssh_peers','ssh_timeline','network_issues','network_context','network_addresses','network_routes','network_samples','socket_owners','retained_report','service_messages','finding_group','sockets','atop','pstore','pstore_archive','ssh_analysis','firewall_analysis','event_search','analysis','timeline','observations','interfaces','failed_services','scope_details','login_sessions','processes','filesystems'}:
             self.push_screen(SourceDialog(entry,data))
         else: self.push_screen(DetailDialog(entry,data))
 

@@ -16,6 +16,8 @@ from .journal import MAX_REALTIME_US, SHUTDOWN_REQUEST, UNIT_START_FAILED, valid
 
 
 class Command(Enum):
+    LISTENERS4 = 'listeners4'
+    LISTENERS6 = 'listeners6'
     REFERENCE_MEMORY = "reference_memory"
     REFERENCE_FILESYSTEM = "reference_filesystem"
     SYSTEM_STATE = "system_state"
@@ -43,6 +45,8 @@ class Command(Enum):
 
 
 CATALOG = {
+    Command.LISTENERS4: ('ss',('-H','-n','-O','-4','-l','-t','-u','-p')),
+    Command.LISTENERS6: ('ss',('-H','-n','-O','-6','-l','-t','-u','-p')),
     Command.NFT_RULESET: ('nft',('-j','-n','-a','list','ruleset')),
     Command.IPTABLES_SAVE: ('iptables-save',('-c',)),
     Command.IP6TABLES_SAVE: ('ip6tables-save',('-c',)),

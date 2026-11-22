@@ -93,6 +93,10 @@ async def collect_firewall(*,window='day',since_us=None,until_us=None,system_jou
     return await collect_arguments(args)
 
 
+async def collect_ports():
+    return await collect_arguments(['ports','--json'])
+
+
 async def collect_arguments(args):
     root=Path(__file__).resolve().parents[1]
     launcher=root/'bin'/'faultlens'

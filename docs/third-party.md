@@ -62,3 +62,9 @@ validated at collection time; unknown versions/formats become independent source
 gaps. Missing tools do not prevent unrelated Faultlens features from working.
 Semantic/protocol references, supported constructs, limits and qualification are
 recorded in [the firewall integration design](architecture/firewall-fail2ban.md).
+
+The port-accessibility reader adds only fixed dual-stack listening/owner options
+to the existing optional `ss` integration. It reuses the inventoried native `ip`,
+`nft`, `iptables-save`/`ip6tables-save` and backend-version readers plus existing
+procfs service associations. No new executable, Python dependency or bundled code
+is introduced. External-test guidance is manual; no network client is executed.

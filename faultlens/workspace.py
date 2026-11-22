@@ -76,6 +76,7 @@ def page_table(page,data,settings):
         from .current_views import build
         view=build(data,('status','health','network')[page])
         rows=[Entry((row.label,row.value,row.assessment,row.meaning),row.original,row.detail,row.kind) for row in view['rows']]
+        if page==2:rows.append(Entry(('Port accessibility','Inspect bindings and policy','External access unverified','Open ports, owners, filtering and forwarding evidence'),None,None,'port_accessibility'))
         if page==2:rows.append(Entry(('Investigate network logs','Current or selected period','Open inquiry','Review authentication, firewall and service evidence with explicit scope'),None,None,'network_logs'))
         if settings.investigation_mode: rows.append(Entry(('Investigate a problem now','Current + recent evidence','Open inquiry','Enter opens Problems now'),'now',None,'investigation_start'))
         return ('Check','Result','Assessment','Meaning / next step'),rows
@@ -108,6 +109,12 @@ def _group_members(data,representative,source):
 
 
 def source_table(entry,data):
+    if entry.kind=='port_services':
+        return 'Sequential reported service associations',('Reported unit','Association','Next step'),[
+            Entry((unit,'Current PID/cgroup; observation-time membership unverified','Open service status/logs'),{'unit':unit},kind='service') for unit in entry.original['rows']]
+    if entry.kind in {'ports_report','ports_listeners','ports_translations','ports_policy','ports_addresses','ports_routes','ports_sources'}:
+        from .port_presentation import table
+        return table(entry.kind,entry.original,entry.navigation)
     if entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources'}:
         from .firewall_presentation import table
         return table(entry.kind,entry.original,entry.navigation)
