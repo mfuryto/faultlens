@@ -29,7 +29,7 @@ see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). This project grant does not
 replace upstream licenses or remove their notice obligations.
 
 On 2026-11-22, pip-audit 2.10.1 checked all nine exact requirements and reported no
-known vulnerabilities or skipped packages. The [version 1.0.1 audit record](security/dependency-audit-1.0.1.json)
+known vulnerabilities or skipped packages. The [version 1.1.0 audit record](security/dependency-audit-1.1.0.json)
 is bound to the requirements file SHA-256. This is a dated advisory check, not proof against unknown issues.
 Dependency graph/Dependabot alerts remain relevant; automatic update PRs stay paused
 under the main/staging-only branch policy. Updates must be reviewed, re-hashed,

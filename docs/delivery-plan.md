@@ -12,13 +12,13 @@ This is useful operator feedback, not an invented pass for every acceptance case
 | 1 | General service troubleshooting | Completed — PR #68 | Open any listed failed system service, understand the reported failure, read a concrete message and continue to the next evidence |
 | 2 | Processes and storage in System | Completed — PR #69 | Find the process or filesystem related to observed resource pressure |
 | 3 | Practical Network and possible attack investigation | Completed — PR #70 | Understand connection failures, traffic pressure and evidence of possible current or earlier attacks |
-| 4 | Coherent History / Investigate / Evidence flow and Signals role | Implemented; green checks gate delivery | Follow one incident across retained sources with clear context and provenance |
+| 4 | Coherent History / Investigate / Evidence flow and Signals role | Completed — PR #71 | Follow one incident across retained sources with clear context and provenance |
 
-Steps 1–3 are merged in PRs #68, #69 and #70. This change implements step 4;
-source, interface, resource, CodeQL and installed-package checks gate delivery.
-The combined development version is 1.1.0.dev0; the owner requested merge only.
-A future stable release remains a separate delivery. Whole-host security/CVE
-auditing remains possible future scope.
+All four steps are merged in PRs #68–#71. The owner authorized the combined
+1.1.0 release on 2026-11-22 after the earlier merge-only delivery. Release preparation
+uses a reviewed staging PR, green source/platform/package/security gates, the exact
+verified main commit, qualified final assets and ordinary GitHub Releases.
+Whole-host security/CVE auditing remains possible future scope.
 Finish and validate one coherent step before starting another. Subtasks belong to
 these four steps; do not turn each patch into a new phase or expand scope silently.
 The [earlier plan](delivery-plan-history.md) preserves the decisions and evidence
@@ -154,7 +154,8 @@ Evidence selections. Signals reuses the selected inquiry and consolidates verifi
 shared-reference previews, with source failures and explicit limits. Settings explain
 purpose and cached availability without probes. Existing preferences remain compatible.
 Automated source/UI/package/resource checks gate merge; new-flow SSH acceptance
-remains an operator check. The owner selected merge only, with release publication later.
+remains an operator check. The original step merged without a release; the owner subsequently authorized
+1.1.0 publication on 2026-11-22.
 
 ## Delivery and future scope
 

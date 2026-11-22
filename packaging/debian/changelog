@@ -1,5 +1,6 @@
-faultlens (1.1.0~dev0) unstable; urgency=medium
+faultlens (1.1.0) stable; urgency=medium
 
+  * Unify History, inquiry Signals and fixed Evidence selections.
   * Add practical local network context and evidence-backed investigation cards.
   * Add bounded process CPU/RSS and mount-specific capacity/inode investigation.
   * Complete the shared service failure/message/context investigation flow.
