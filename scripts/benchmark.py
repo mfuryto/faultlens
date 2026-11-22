@@ -19,6 +19,31 @@ def worker(command: str) -> dict:
     from tests.support import SyntheticHistoricalRunner, SyntheticSources, SyntheticStallRunner, SyntheticClockRunner, SyntheticSystemRunner, SyntheticEventRunner, SyntheticReviewRunner, SyntheticOverlayRunner, SyntheticJournalLossRunner, SyntheticOverviewRunner, SyntheticExtendedRunner, SyntheticMaximumExtendedRunner, SyntheticNetworkSources, SyntheticSshRunner, SyntheticFirewallRunner, SyntheticSocketRunner, SyntheticPhase3Runner
     output = io.StringIO()
     started = time.monotonic()
+    if command in {'firewall-state','tui-firewall'}:
+        from faultlens.firewall_state import collect
+        from faultlens.firewall_presentation import render
+        from tests.firewall_state_fixtures import Runner,START
+        data=collect(Runner(maximum=True),window='period',since_us=START,until_us=START+86400000000)
+        if len(data['sources']['nftables']['data']['rules'])!=256 or not data['correspondences'][0]['matches']:
+            raise RuntimeError('Synthetic firewall evidence was not retained')
+        render(data,output)
+        if command=='tui-firewall':
+            import asyncio
+            from faultlens.textual_app import FaultlensApp,FirewallDialog,SourceDialog
+            async def collector(**options):return data
+            async def exercise():
+                app=FaultlensApp(initial_collect=False,firewall_collector=collector)
+                async with app.run_test(size=(100,30)) as pilot:
+                    await pilot.pause(.01);app.push_screen(FirewallDialog());dialog=app.screen
+                    async with asyncio.timeout(3):
+                        while dialog.report is None:await pilot.pause(.01)
+                    await pilot.click('#firewall-bans');await pilot.press('enter');await pilot.click('#firewall-matches')
+                    if not isinstance(app.screen,SourceDialog) or not app.screen.entries:
+                        raise RuntimeError('Firewall correspondence did not open original rules')
+            asyncio.run(exercise())
+        usage=resource.getrusage(resource.RUSAGE_SELF)
+        return {'collection_wall_seconds':time.monotonic()-started,
+            'cpu_seconds':usage.ru_utime+usage.ru_stime,'peak_rss_mib':usage.ru_maxrss/1024}
     if command in {'ssh-statistics','tui-ssh'}:
         from faultlens.ssh_statistics import collect
         from faultlens.ssh_presentation import render
@@ -262,7 +287,7 @@ def main(runtime=None):
     parser.add_argument('--json', action='store_true', help='Emit all measurements as JSON for automation.')
     parser.add_argument('--details', action='store_true', help='Show the per-mode measurement table.')
     parser.add_argument('--iterations', type=positive_iterations, default=10)
-    parser.add_argument('--worker', choices=('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'ssh-statistics', 'tui-ssh', 'tui-status', 'tui-diagnostic','tui-health'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'ssh-statistics', 'tui-ssh', 'firewall-state', 'tui-firewall', 'tui-status', 'tui-diagnostic','tui-health'), help=argparse.SUPPRESS)
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Linux is required for RSS units and the application.')
@@ -277,7 +302,7 @@ def main(runtime=None):
     summary = {'synthetic': True, 'python': sys.version.split()[0], 'iterations': args.iterations, 'commands': {},
                'runtime': {key:value for key,value in runtime.items() if key!='interpreter_options'}}
     passed = True
-    for command in ('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'ssh-statistics', 'tui-ssh', 'tui-status', 'tui-diagnostic','tui-health'):
+    for command in ('status','health', 'check', 'history', 'diagnose', 'diagnose-atop', 'check-history', 'diagnose-pstore', 'diagnose-pstore-archive', 'diagnose-stalls', 'diagnose-clock', 'diagnose-system', 'diagnose-events', 'diagnose-review', 'diagnose-overlay', 'diagnose-journal-loss', 'incidents', 'diagnose-integrated', 'diagnose-extended', 'network', 'security', 'diagnose-ssh', 'diagnose-firewall', 'network-sockets', 'phase3-security', 'ssh-statistics', 'tui-ssh', 'firewall-state', 'tui-firewall', 'tui-status', 'tui-diagnostic','tui-health'):
         samples, wall = [], []
         for _ in range(args.iterations):
             started = time.monotonic()

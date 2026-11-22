@@ -282,8 +282,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         argv = ['tui']
     parser = SafeArgumentParser(prog="faultlens", description="Local read-only Linux diagnostics. With no arguments, open the terminal workspace; use explicit commands for scripts.")
     parser.add_argument("--version", action="version", version="Faultlens " + __version__)
-    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate", "service", "ssh"), default="status")
-    parser.add_argument("--window",choices=("boot","hour","day","period"),help="SSH statistics window; default boot, or period with explicit boundaries.")
+    parser.add_argument("command", nargs="?", choices=("status", "check", "history", "diagnose", "incidents", "network", "security", "tui", "health", "investigate", "service", "ssh", "firewall"), default="status")
+    parser.add_argument("--window",choices=("boot","hour","day","period"),help="SSH/firewall log window: boot/hour/day/period; firewall defaults to day, ssh to boot.")
     parser.add_argument('--unit',type=service_unit,help='One literal system .service name to investigate with service; current-boot system logs, no elevation.')
     parser.add_argument("--details", action="store_true", help="Show technical measurements, references and source limitations.")
     parser.add_argument("--json", action="store_true", help="Emit structured observations to stdout only.")
@@ -316,13 +316,13 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
     parser.add_argument("--show-evidence", action="store_true", help="Show retained original evidence locally (investigate/diagnose/service/ssh).")
     parser.add_argument("--search-firewall", action="store_true", help="Inspect supported kernel firewall reports and bounded packet-pattern indicators (investigate/diagnose).")
     args = parser.parse_args(argv)
-    if args.window is not None and args.command!='ssh':parser.error('--window is supported only with ssh.')
-    if args.command=='ssh':
-        args.window=args.window or ('period' if args.since_us is not None or args.until_us is not None else 'boot')
-        if args.previous_boot or args.boot is not None:parser.error('SSH statistics accepts an immutable --boot-id, not relative boot selection.')
-        if args.window=='period' and (args.since_us is None or args.until_us is None):parser.error('SSH period requires both time boundaries.')
-        if args.window!='period' and (args.since_us is not None or args.until_us is not None):parser.error('SSH time boundaries require period window.')
-        if args.atop_date is not None:parser.error('Atop recordings are not part of SSH statistics.')
+    if args.window is not None and args.command not in {'ssh','firewall'}:parser.error('--window is supported only with ssh or firewall.')
+    if args.command in {'ssh','firewall'}:
+        args.window=args.window or ('period' if args.since_us is not None or args.until_us is not None else 'day' if args.command=='firewall' else 'boot')
+        if args.previous_boot or args.boot is not None:parser.error('SSH/firewall log queries accept an immutable --boot-id, not relative boot selection.')
+        if args.window=='period' and (args.since_us is None or args.until_us is None):parser.error('SSH/firewall period requires both time boundaries.')
+        if args.window!='period' and (args.since_us is not None or args.until_us is not None):parser.error('SSH/firewall time boundaries require period window.')
+        if args.atop_date is not None:parser.error('Atop recordings are not part of SSH/firewall queries.')
     if (args.command=='service')!=(args.unit is not None): parser.error('Use service --unit NAME.service to investigate one service.')
     if args.network_context and not (args.command in {'network','security'} or args.command=='investigate' and args.mode in {None,'now'}):
         parser.error('--network-context requires network, security or investigate now.')
@@ -339,8 +339,8 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("TUI has its own explanation and evidence views; use explicit CLI commands for JSON/details.")
     if args.search_firewall and args.command not in {'diagnose','investigate'}:
         parser.error("Firewall journal analysis is supported only with diagnose.")
-    if args.show_evidence and args.command not in {'diagnose','investigate','service','ssh'}:
-        parser.error("Original journal evidence is supported only with investigate, diagnose, service or ssh.")
+    if args.show_evidence and args.command not in {'diagnose','investigate','service','ssh','firewall'}:
+        parser.error("Original journal evidence is supported only with investigate, diagnose, service, ssh or firewall.")
     if args.search_ssh and args.command not in {'diagnose','investigate'}:
         parser.error("SSH journal analysis is supported only with diagnose.")
     if args.atop_extended and (args.command not in {'diagnose','investigate'} or args.atop_date is None):
@@ -349,21 +349,21 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
         parser.error("Overview selection is supported only with incidents.")
     if args.since_us is not None and args.until_us is not None and args.since_us > args.until_us:
         parser.error("Journal start boundary must not exceed the end boundary.")
-    if args.since_us is not None and args.command not in {"diagnose","investigate","ssh"}:
-        parser.error("Journal time boundaries are supported only with investigate, diagnose or ssh.")
-    if args.until_us is not None and args.command not in {"diagnose","investigate","ssh"}:
-        parser.error("Journal time boundaries are supported only with investigate, diagnose or ssh.")
+    if args.since_us is not None and args.command not in {"diagnose","investigate","ssh","firewall"}:
+        parser.error("Journal time boundaries are supported only with investigate, diagnose, ssh or firewall.")
+    if args.until_us is not None and args.command not in {"diagnose","investigate","ssh","firewall"}:
+        parser.error("Journal time boundaries are supported only with investigate, diagnose, ssh or firewall.")
     if args.search_events and args.command not in {"diagnose","investigate"}:
         parser.error("Targeted event search is supported only with diagnose.")
-    if args.system_journal and args.command not in {"history", "diagnose", "incidents", "investigate", "ssh"}:
-        parser.error("System journal scope is supported only with history, diagnose, incidents, investigate or ssh.")
+    if args.system_journal and args.command not in {"history", "diagnose", "incidents", "investigate", "ssh", "firewall"}:
+        parser.error("System journal scope is supported only with history, diagnose, incidents, investigate, ssh or firewall.")
     if args.pstore_archive and args.command not in {"diagnose","investigate"}:
         parser.error("Pstore archive analysis is supported only with diagnose.")
     if args.pstore and args.command not in {"diagnose","investigate"}:
         parser.error("Pstore analysis is supported only with diagnose.")
     if args.history and args.command not in {"check", "health"}:
         parser.error("Preservation assessment is supported only with check or health.")
-    if args.command not in {"diagnose","investigate","ssh"} and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
+    if args.command not in {"diagnose","investigate","ssh","firewall"} and (args.previous_boot or args.boot is not None or args.boot_id is not None or args.atop_date is not None):
         parser.error("Boot selection is supported only with diagnose.")
     if args.sockets and args.command not in {"network", "security", "investigate"}:
         parser.error("Socket collection is supported only with network or security.")
@@ -375,7 +375,11 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
             from .tui import run
             return run(sources=sources, runner=runner, sample_seconds=args.sample_seconds, stderr=stderr,
                        pstore_collector=pstore_collector, pstore_archive_collector=pstore_archive_collector)
-        if args.command=='ssh':
+        if args.command=='firewall':
+            from .firewall_state import collect
+            data=collect(runner,sources=sources,window=args.window,since_us=args.since_us,until_us=args.until_us,
+                boot_id=args.boot_id,system_journal=args.system_journal)
+        elif args.command=='ssh':
             from .ssh_statistics import collect
             data=collect(runner,sources=sources,window=args.window,since_us=args.since_us,until_us=args.until_us,
                 boot_id=args.boot_id,system_journal=args.system_journal)
@@ -433,6 +437,9 @@ def main(argv=None, *, sources=None, runner=None, platform=None, stdout=None, st
                 attach_resources(data,runner,args.sample_seconds)
         if args.json:
             print(json.dumps(data, ensure_ascii=True, allow_nan=False), file=stdout)
+        elif args.command=='firewall':
+            from .firewall_presentation import render
+            render(data,stdout,details=args.details,evidence=args.show_evidence)
         elif args.command=='ssh':
             from .ssh_presentation import render
             render(data,stdout,details=args.details,evidence=args.show_evidence)

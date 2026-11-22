@@ -46,3 +46,19 @@ network/log/driver hooks and never exports a report automatically.
 Primary references: [Textual](https://pypi.org/project/textual/8.2.8/),
 [testing](https://textual.textualize.io/guide/testing/) and
 [worker lifecycle](https://textual.textualize.io/guide/workers/).
+
+## Optional native firewall integrations
+
+The explicit firewall reader can invoke the administrator's existing `nft`,
+`iptables-save`, `ip6tables-save`, version-only `iptables`/`ip6tables`, `ufw` and
+`fail2ban-client` executables from the trusted fixed system directories. No binary,
+Python package, action script or configuration from these projects is imported,
+bundled, downloaded, installed or started. They retain their installed upstream
+notices and update lifecycle. These are optional feature integrations, not new
+Debian Depends or replacements for the hash-locked frontend closure.
+
+Only the reviewed read commands/getters are permitted. Native output dialects are
+validated at collection time; unknown versions/formats become independent source
+gaps. Missing tools do not prevent unrelated Faultlens features from working.
+Semantic/protocol references, supported constructs, limits and qualification are
+recorded in [the firewall integration design](architecture/firewall-fail2ban.md).

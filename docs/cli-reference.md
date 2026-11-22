@@ -427,3 +427,26 @@ attack or complete-session verdict follows. Pagination examines accessible histo
 beyond the old 500-candidate tail while retaining every counted original. Limited
 scans show lower bounds; unavailable totals are null, not zero. Exhausted queries
 still cannot establish complete logging since boot. See [scope and bounds](architecture/ssh-statistics.md).
+
+## Firewall and Fail2ban
+
+```sh
+faultlens firewall --system-journal
+faultlens firewall --window boot --system-journal
+faultlens firewall --since '2026-01-01T00:00:00Z' --until '2026-01-02T00:00:00Z' --system-journal
+faultlens firewall --details --show-evidence
+faultlens firewall --json
+```
+
+Network → Firewall and Fail2ban opens the same reader. The default journal window
+is the last day; current rules and jail state always describe collection time.
+Fixed current/previous Fail2ban file tails are separate unfiltered context with
+unverified local timezone/boot, even when a UTC period is selected.
+
+Open rules, chain defaults/links, sets, jail thresholds/actions and reported bans.
+A ban can open same-address blocking expressions and related retained messages.
+A Fail2ban-reported ban or matching expression does not prove a traversed packet
+path, successful blocking, rule ownership or the human initiator. Full originals
+remain available without masking; no action template, ban/unban, firewall write,
+DNS lookup or external probe runs. Tools and sources are optional and use existing
+access. See [source bounds and interpretation](architecture/firewall-fail2ban.md).

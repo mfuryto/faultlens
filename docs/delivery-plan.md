@@ -164,9 +164,9 @@ remains an operator check. The original step merged without a release; the owner
 Post-release stabilization merged in PR #73. The owner then approved the next
 sequence: **SSH authentication statistics → firewall/Fail2ban → port accessibility**.
 The [approved next sequence](next-development-plan.md) defines outcomes and acceptance.
-The current task implements SSH statistics on staging and authorizes merge after all
-required checks. Firewall and port-accessibility implementation remain subsequent
-steps. Earlier proposed service-history/resource/storage work is deferred, and broad
+SSH statistics merged in PR #74. The owner authorized firewall/Fail2ban as the
+current staging implementation, with merge after required checks. Port accessibility
+remains the next step. See [firewall scope and acceptance](architecture/firewall-fail2ban.md). Earlier proposed service-history/resource/storage work is deferred, and broad
 package/CVE auditing remains possible future scope.
 
 Development remains `1.1.1.dev0`; published 1.1.0 assets are immutable. No further

@@ -108,6 +108,9 @@ def _group_members(data,representative,source):
 
 
 def source_table(entry,data):
+    if entry.kind in {'firewall_report','firewall_rules','firewall_chains','firewall_sets','firewall_jails','firewall_bans','firewall_sources'}:
+        from .firewall_presentation import table
+        return table(entry.kind,entry.original,entry.navigation)
     if entry.kind in {'ssh_report','ssh_users','ssh_peers','ssh_timeline'}:
         from .ssh_presentation import table
         return table(entry.kind,entry.original)

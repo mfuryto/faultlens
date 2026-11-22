@@ -119,9 +119,9 @@ raise SystemExit(driver.main())
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed resource gate failed: '+driver+' '+result.state)
         data=json.loads(result.stdout)
         if driver=='benchmark':
-            if len(data['commands'])!=30 or not all(row['within_regression_budget'] for row in data['commands'].values()):
+            if len(data['commands'])!=32 or not all(row['within_regression_budget'] for row in data['commands'].values()):
                 raise ValueError('Installed benchmark coverage/budget failed')
-        elif len(data['profiles'])!=27 or not data['passed']:
+        elif len(data['profiles'])!=33 or not data['passed']:
             raise ValueError('Installed constrained resource coverage/budget failed')
         print('PASS installed '+driver+' with unchanged CPU/wall/memory budgets',flush=True)
 
@@ -170,11 +170,13 @@ def main():
     if probe.returncode!=0 or not probe.stdout.startswith('Faultlens '): raise ValueError('Installed launcher isolation failed')
     for options in (('status',),('health',),('network','--sockets','--network-context'),('service','--unit','systemd-journald.service'),('history','--system-journal'),
                     ('diagnose','--boot','0','--system-journal'),
-                    ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal')):
+                    ('investigate','--mode','period','--since-us','0','--until-us','1','--system-journal'),('ssh','--window','hour','--system-journal'),('firewall','--window','hour','--system-journal')):
         result=_capture(['/usr/bin/faultlens',*options,'--json'],timeout=30,limit=4194304)
         if result.state!='completed' or result.returncode!=0: raise ValueError('Installed CLI check failed: '+options[0])
         data=json.loads(result.stdout)
         if data.get('schema_version')!=1 or data.get('command')!=options[0]: raise ValueError('Installed CLI schema failed')
+        if options[0]=='firewall' and (not isinstance(data.get('sources'),dict) or not isinstance(data.get('correspondences'),list) or data.get('packet_verdict')!='Unknown'):
+            raise ValueError('Installed firewall evidence contract failed')
         if options[0]=='ssh' and (data.get('state') not in {'available','partial','unavailable'}
                 or not isinstance(data.get('totals'),dict) or not isinstance(data.get('records'),list)):
             raise ValueError('Installed SSH statistics contract failed')
@@ -199,7 +201,7 @@ def main():
     resource_checks(_capture)
     asyncio.run(workspace_check())
     terminal_check();terminal_check(True)
-    print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': eight CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')
+    print('PASS '+phase+' Python '+'.'.join(str(value) for value in sys.version_info[:3])+': nine CLI contracts, private frontend, native UI collectors, no-argument PTY/navigation/resize/quit/interrupt, preferences')
 
 
 if __name__=='__main__':

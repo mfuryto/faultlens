@@ -20,6 +20,6 @@ class ConstrainedAcceptanceTests(unittest.TestCase):
         self.assertGreater(data['runtime']['preparation_wall_seconds'],0)
         self.assertFalse(data['deployment_test'])
         self.assertTrue(data['passed'])
-        self.assertEqual(27,len(data['profiles']))
+        self.assertEqual(33,len(data['profiles']))
         self.assertEqual({128,256,512},{p['address_space_limit_mib'] for p in data['profiles']})
         self.assertTrue(all(p['cpu_affinity_count']==1 and p['passed'] for p in data['profiles']))

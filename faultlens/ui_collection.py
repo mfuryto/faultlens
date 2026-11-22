@@ -82,6 +82,17 @@ async def collect_ssh(*,window='boot',since_us=None,until_us=None,system_journal
     return await collect_arguments(args)
 
 
+async def collect_firewall(*,window='day',since_us=None,until_us=None,system_journal=False):
+    from .journal import validate_window
+    validate_window(since_us,until_us)
+    if window not in {'boot','hour','day','period'} or type(system_journal) is not bool:raise ValueError('Invalid firewall options')
+    args=['firewall','--window',window,'--json']
+    if system_journal:args.append('--system-journal')
+    for flag,value in (('--since-us',since_us),('--until-us',until_us)):
+        if value is not None:args += [flag,str(value)]
+    return await collect_arguments(args)
+
+
 async def collect_arguments(args):
     root=Path(__file__).resolve().parents[1]
     launcher=root/'bin'/'faultlens'
