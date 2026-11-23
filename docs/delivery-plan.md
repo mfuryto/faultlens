@@ -181,3 +181,8 @@ force pushes or branch deletion. Future owner-authorized stable releases use ord
 GitHub Releases with notes, a qualified `.deb`, corresponding source and checksums.
 Whole-host security/CVE analysis remains a possible later roadmap item. It is not
 part of the active four-step sequence.
+
+The owner authorized official 1.2.1 publication on 2026-11-23 for PR #78's firewall
+reader, per-port INPUT and modal action-layout corrections. The stable staging PR,
+exact-main checks, refreshed advisory audit and verified final assets gate release.
+Existing releases remain immutable; see [release readiness](release-readiness.md).

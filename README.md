@@ -12,10 +12,10 @@ and what to investigate next. Findings link to the retained original evidence.
 
 ## Install
 
-Download `faultlens_1.2.0_all.deb` from [Releases](https://github.com/mfuryto/faultlens/releases/latest), then install it:
+Download `faultlens_1.2.1_all.deb` from [Releases](https://github.com/mfuryto/faultlens/releases/latest), then install it:
 
 ```sh
-sudo apt install ./faultlens_1.2.0_all.deb
+sudo apt install ./faultlens_1.2.1_all.deb
 ```
 
 APT installs Python when needed. The reviewed terminal frontend is included; no

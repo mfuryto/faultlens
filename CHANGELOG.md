@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 1.2.1.dev0
+## 1.2.1 — 2026-11-23
 
 - Assess supported new-flow INPUT policy per port with rule order, chain control,
   source restrictions and explicit unresolved paths; keep Internet tests separate.

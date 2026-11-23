@@ -1,4 +1,40 @@
-# Faultlens 1.2.0 release scope and qualification
+# Faultlens 1.2.1 release scope and qualification
+
+The owner authorized official GitHub publication on 2026-11-23. This patch release
+ships the corrections merged in PR #78: all four xtables version/save readers keep
+their multicall invocation names, valid nftables responses up to 192 KiB are read,
+and modal actions are aligned, colored and responsive to narrow SSH terminals.
+
+Port rows assess supported new-flow IP/inet INPUT policy with rule order, defaults,
+chain control and source/interface conditions. Allowed, Blocked, conditional and
+Unresolved results refer to collected INPUT evidence, not Internet reachability.
+Other hooks, NAT/forwarding, unreadable backends and unsupported constructs retain
+explicit limits. No external probe, configuration change or dependency change runs.
+
+## Publication gates for 1.2.1
+
+Review the stable-version staging PR, [exact-lock advisory audit](security/dependency-audit-1.2.1.json),
+changelog and install instructions. Require source/frontend/resource, native platform,
+installed Debian/Ubuntu and CodeQL checks on the PR and exact publication main commit.
+The implementation passed 740 tests, 34 performance scenarios and 117 constrained
+runs before release preparation; release CI and final assets are checked separately.
+An isolated Ubuntu installed-benchmark timeout passed on its single-job rerun after
+independent PR and local qualification passed under unchanged budgets.
+
+Build `faultlens_1.2.1_all.deb`, `faultlens-1.2.1-source.tar.gz`, `release.json` and
+`SHA256SUMS`. The source archive and reviewed wheels must reproduce the package byte
+for byte offline. Qualify the exact final artifact on pinned Debian 12 and Ubuntu
+24.04, including installation/upgrade/removal, ten CLI contracts, real installed
+TUI/PTY/preferences and the existing installed resource gates. Tag only the verified
+main commit; download and compare every draft asset before publication. Preserve
+prior releases and only main/staging branches. No APT repository is introduced.
+
+Server feedback on these corrections follows delivery. Synthetic/container checks
+are execution receipts, not claims that the reporting server's rules or access are
+now verified. See [INPUT scope](architecture/port-accessibility.md) and
+[reader corrections](architecture/firewall-fail2ban.md).
+
+# Historical 1.2.0 release scope and qualification
 
 The owner authorized an official GitHub release with a `.deb` on 2026-11-22 to
 test SSH statistics, firewall/Fail2ban and port accessibility on the server. All
